@@ -4,8 +4,8 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/pwa-192.png',
-  '/pwa-512.png'
+  '/isisneutraperfil.png',
+  '/favicon.svg'
 ];
 
 self.addEventListener('install', (event) => {
