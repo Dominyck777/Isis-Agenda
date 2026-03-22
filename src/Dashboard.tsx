@@ -181,34 +181,27 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [showSettingsPanel, user]);
 
-  let earliest = 8;
-  let latest = 20;
+  // Cálculo Dinâmico da Janela do Grid (Baseado estritamente nas Configurações da Empresa)
+  let earliest = 9;
+  let latest = 18;
 
-  if (configAgenda && configAgenda.horarios) {
-     const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
-     if (openDays.length > 0) {
-       const startHours = openDays.map((h: any) => parseInt((h.inicio || '08').split(':')[0], 10));
-       const endHours = openDays.map((h: any) => {
-         const [hPart, mPart] = (h.fim || '18').split(':');
-         return parseInt(hPart, 10) + (parseInt(mPart || '0', 10) > 0 ? 1 : 0);
-       });
-       earliest = Math.min(...startHours);
-       latest = Math.max(...endHours);
-     }
-  }
-
-  // Considerar horários dos agendamentos efetivos para expandir a grade
-  if (agendamentos.length > 0) {
-    agendamentos.forEach(ag => {
-      const dIni = new Date(ag.data_hora_inicio);
-      const dFim = new Date(ag.data_hora_fim);
-      const hIni = dIni.getHours();
-      const hFim = dFim.getHours() + (dFim.getMinutes() > 0 ? 1 : 0);
+  if (configAgenda?.horarios) {
+    const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
+    if (openDays.length > 0) {
+      // Pega o menor horário de início e o maior de fim entre todos os dias configurados para definir a "Janela do Grid"
+      earliest = Math.min(...openDays.map((h: any) => parseInt(h.inicio.split(':')[0])));
       
-      if (hIni < earliest) earliest = hIni;
-      if (hFim > latest) latest = hFim;
-    });
+      const latestFromHours = openDays.map((h: any) => {
+        const [hh, mm] = h.fim.split(':').map(Number);
+        return hh + (mm > 0 ? 1 : 0); // Arredonda para cima se houver minutos
+      });
+      latest = Math.max(...latestFromHours);
+    }
   }
+
+  // O Grid agora é estritamente limitado à "Janela Comercial". 
+  // Agendamentos fora dessa janela não expandem mais o grid visualmente.
+
 
   // Previna a quebra do array do Grid caso os horários sejam inconsistentes
   if (earliest < 0) earliest = 0;
