@@ -80,6 +80,7 @@ const getDaysOfWeek = (startDate: Date) => {
   });
 };
 
+/* Ocultado preventivamente para passar no Vercel Build (noUnusedLocals)
 const getDayArray = (date: Date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -119,6 +120,7 @@ const getMonthArray = (date: Date) => {
   }
   return arr;
 };
+*/
 
 const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
@@ -126,7 +128,7 @@ const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.get
 export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week'); // Mantido como 'week' por padrão
+  const [viewMode] = useState<'day' | 'week' | 'month'>('week'); // Mantido como 'week' por padrão
   // Base Rules
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   
