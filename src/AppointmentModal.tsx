@@ -83,7 +83,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
          .select('id, data_hora_inicio, data_hora_fim, status')
          .eq('codigo_empresa', user.codigo_empresa)
          .eq('codigo_profissional', form.codigo_profissional)
-         .neq('status', 'cancelado')
          .gte('data_hora_inicio', startOfDay)
          .lte('data_hora_inicio', endOfDay);
       
@@ -130,10 +129,14 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
      const slotEnd = new Date(slotStart.getTime() + duracao * 60000);
 
      for (const ag of agendamentosDoDia) {
-        if (agendamentoItem && ag.id === agendamentoItem.id) continue;
+        if (agendamentoItem && String(ag.id) === String(agendamentoItem.id)) continue;
+        if (ag.status === 'cancelado') continue;
         const agStart = new Date(ag.data_hora_inicio);
         const agEnd = new Date(ag.data_hora_fim);
-        if (slotStart < agEnd && slotEnd > agStart) return false;
+        if (slotStart < agEnd && slotEnd > agStart) {
+           console.log(`[Slot Conflict] Slot ${slotTime} blocked by appointment:`, ag);
+           return false;
+        }
      }
      return true;
   };
@@ -209,8 +212,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       .eq('codigo_empresa', user.codigo_empresa)
       .eq('codigo_profissional', form.codigo_profissional)
       .neq('status', 'cancelado')
-      .lt('data_hora_inicio', endObj.toISOString()) // Se o inicio desse conlito foi ANTES de eu Terminar
-      .gt('data_hora_fim', startObj.toISOString()); // E se o Fim desse conflito foi DEPOIS de eu Começar -> CHOQUE
+      .lt('data_hora_inicio', endObj.toISOString()) 
+      .gt('data_hora_fim', startObj.toISOString()); 
 
     const isConflict = conflitos && conflitos.some(c => !agendamentoItem || c.id !== agendamentoItem.id);
     if (isConflict) {
