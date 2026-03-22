@@ -126,7 +126,7 @@ const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.get
 export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week'); // Mantido como 'week' por padrão
   // Base Rules
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   
@@ -200,7 +200,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const hoursArray = Array.from({ length: (latest - earliest) + 1 }, (_, i) => i + earliest);
 
   const startOfWeekDate = getStartOfWeek(currentDate);
-  const currentWeekDays = viewMode === 'week' ? getDaysOfWeek(startOfWeekDate) : viewMode === 'day' ? getDayArray(currentDate) : getMonthArray(currentDate);
+  // viewMode is hardcoded to week logic below since day/month are commented
+  const currentWeekDays = getDaysOfWeek(startOfWeekDate); 
 
   const filteredAgendamentos = React.useMemo(() => {
      return agendamentos.filter(ag => {
@@ -362,16 +363,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => clearInterval(interval);
   }, [user]);
 
-  const handlePrevRange = () => {
-    if (viewMode === 'day') setCurrentDate(addDays(currentDate, -1));
-    else if (viewMode === 'week') setCurrentDate(addDays(currentDate, -7));
-    else setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-  const handleNextRange = () => {
-    if (viewMode === 'day') setCurrentDate(addDays(currentDate, 1));
-    else if (viewMode === 'week') setCurrentDate(addDays(currentDate, 7));
-    else setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
+  const handlePrevRange = () => setCurrentDate(addDays(currentDate, -7));
+  const handleNextRange = () => setCurrentDate(addDays(currentDate, 7));
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   const handleToday = () => setCurrentDate(new Date());
@@ -500,11 +493,12 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
           
           <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="hide-on-mobile" style={{ display: 'flex', gap: '4px', background: 'var(--input-bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            {/* Ocultado a pedido do usuario: Filtros Dia/Semana/Mês */}
+            {/*<div className="hide-on-mobile" style={{ display: 'flex', gap: '4px', background: 'var(--input-bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <button type="button" onClick={() => setViewMode('day')} style={{ background: viewMode === 'day' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'day' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Dia</button>
               <button type="button" onClick={() => setViewMode('week')} style={{ background: viewMode === 'week' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'week' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Semana</button>
               <button type="button" onClick={() => setViewMode('month')} style={{ background: viewMode === 'month' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'month' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Mês</button>
-            </div>
+            </div>*/}
             <button className="btn-today hide-on-mobile" onClick={handleToday}>Hoje</button>
             <div className="nav-arrows hide-on-mobile">
               <button className="icon-btn" onClick={handlePrevRange}>❮</button>
@@ -556,7 +550,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </aside>
 
           <main className="dash-main" style={{ display: 'flex', flexDirection: 'column' }}>
-            {viewMode === 'month' ? (
+            {/* Ocultado a pedido do usuario: viewMode === 'month' */}
+            {/*viewMode === 'month' ? (
               <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="cal-header-row" style={{ paddingLeft: 0, paddingRight: 0 }}>
                    {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((d, i) => (
@@ -607,7 +602,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                    })}
                 </div>
               </div>
-            ) : (
+            ) : (*/}
               <>
                 <div className="cal-header-row">
                   <div className="time-zone">GMT-03</div>
@@ -692,7 +687,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
               </>
-            )}
+            {/*)}*/}
           </main>
         </div>
       </div>
