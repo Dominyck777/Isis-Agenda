@@ -203,7 +203,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
 
   return (
     <div className="settings-overlay" onClick={onClose}>
-      <div className="settings-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="settings-card cadastros-modal" onClick={e => e.stopPropagation()}>
         <div className="settings-header" style={{ flexShrink: 0 }}>
           <h2 style={{ color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px' }}><IFolder /> Cadastros</h2>
           <button className="settings-close-btn" onClick={onClose}><IClose /></button>
@@ -264,14 +264,15 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
-                    <h3>Gerenciar Clientes</h3>
+                    <h3 style={{ margin: 0 }}>Gerenciar Clientes</h3>
                     <button className="btn-add-user" onClick={openNewCliForm} style={{ marginBottom: 0 }}>+ Cadastrar Cliente</button>
                   </div>
-                  <div style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  {/* Desktop View Table */}
+                  <div className="hide-on-mobile" style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <table className="users-table" style={{ margin: 0, border: 'none' }}>
-                      <thead><tr><th>Cód</th><th>Nome</th><th>Telefone</th><th>Status</th><th>Ação</th></tr></thead>
+                      <thead><tr><th>Cód</th><th>Nome</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
                       <tbody>
-                        {clientes.length === 0 && <tr><td colSpan={5} style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum cliente em sua base. Que tal registrar o primeiro?</td></tr>}
+                        {clientes.length === 0 && <tr><td colSpan={5} style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum cliente em sua base.</td></tr>}
                         {clientes.map(c => (
                           <tr key={c.id}>
                             <td style={{ color:'var(--text-muted)' }}>#{c.codigo.toString().padStart(4, '0')}</td>
@@ -283,6 +284,32 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile View Cards */}
+                  <div className="show-on-mobile users-list">
+                    {clientes.length === 0 && <p style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum cliente em sua base.</p>}
+                    {clientes.map(c => (
+                      <div key={c.id} className="user-card-item">
+                        <div className="user-info-row" style={{ alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <strong style={{ fontSize: '1.25rem', color: '#fff' }}>{c.nome}</strong>
+                            <span style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>ID: #{c.codigo.toString().padStart(4, '0')}</span>
+                          </div>
+                          <button className="btn-edit-user" onClick={() => setEditingCli(c)} title="Editar Cliente">
+                            <IEdit /> <span>Editar</span>
+                          </button>
+                        </div>
+                        <div className="user-row-2" style={{ marginTop: '8px' }}>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>📞 {c.telefone || 'Sem telefone'}</span>
+                        </div>
+                        <div className="user-row-3">
+                          <span className="status-indicator">
+                            {c.ativo !== false ? '🟢 Ativo' : '🔴 Inativo'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </>
               )
@@ -348,14 +375,15 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
-                    <p style={{ color: 'var(--text-muted)' }}>Configure os serviços oferecidos e seus valores.</p>
+                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>Configure os serviços oferecidos e seus valores.</p>
                     <button className="btn-add-user" onClick={onAddClick} style={{ marginBottom: 0 }}>+ Adicionar Serviço</button>
                   </div>
-                  <div style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  {/* Desktop View Table */}
+                  <div className="hide-on-mobile" style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <table className="users-table" style={{ margin: 0, border: 'none' }}>
-                      <thead><tr><th>Serviço</th><th>Dur. Estimada</th><th>Valor Base</th><th>Status</th><th>Ação</th></tr></thead>
+                      <thead><tr><th>Serviço</th><th>Duração</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
                       <tbody>
-                        {servicos.length === 0 && <tr><td colSpan={5} style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum serviço cadastrado na sua base.</td></tr>}
+                        {servicos.length === 0 && <tr><td colSpan={5} style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum serviço cadastrado.</td></tr>}
                         {servicos.map(s => (
                           <tr key={s.codigo}>
                             <td><strong>{s.nome}</strong></td>
@@ -367,6 +395,32 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile View Cards */}
+                  <div className="show-on-mobile users-list">
+                    {servicos.length === 0 && <p style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum serviço cadastrado na sua base.</p>}
+                    {servicos.map(s => (
+                      <div key={s.codigo} className="user-card-item">
+                        <div className="user-info-row" style={{ alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{s.nome}</strong>
+                            <span style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>Tempo: {Math.floor(s.duracao_minutos/60).toString().padStart(2, '0')}:{(s.duracao_minutos%60).toString().padStart(2, '0')}</span>
+                          </div>
+                          <button className="btn-edit-user" onClick={() => onEditClick(s)} title="Editar Serviço">
+                            <IEdit /> <span>Editar</span>
+                          </button>
+                        </div>
+                        <div className="user-row-2" style={{ marginTop: '4px' }}>
+                           <span style={{ color: 'var(--primary-color)', fontWeight: '600' }}>{parseFloat(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        </div>
+                        <div className="user-row-3">
+                          <span className="status-indicator">
+                            {s.ativo ? '🟢 Ativo' : '🔴 Desativado'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </>
               )
