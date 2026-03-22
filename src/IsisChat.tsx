@@ -14,8 +14,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
   const [inputVal, setInputVal] = useState('');
   const [inputType, setInputType] = useState<'phone' | 'email'>('phone');
   const [step, setStep] = useState<'identification' | 'registration' | 'actions'>('identification');
@@ -247,7 +245,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   };
 
   const handleProfessionalSelectionFlow = (service: any, customGreeting?: string) => {
-    setSelectedService(service);
     
     // Filtra profissionais habilitados para este serviço
     const allowedProfs = professionals.filter(p => 
@@ -290,8 +287,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   };
 
   const handleDateTimeSelectionFlow = (service: any, professional: any, customGreeting?: string) => {
-     setSelectedService(service);
-     setSelectedProfessional(professional);
      
      const greetPrefix = customGreeting ? `${customGreeting} ` : '';
      const finalGreet = `${greetPrefix}Show! Você vai fazer **${service.nome}** com **${professional.nome}**. Qual **dia** fica melhor pra você?`;

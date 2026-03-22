@@ -130,7 +130,6 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
 
   const onAddClick = () => { setAuthAction({ type: 'novo' }); setAuthPassword(''); setAuthError(''); };
   const onEditClick = (s: any) => { setAuthAction({ type: 'edit', payload: s }); setAuthPassword(''); setAuthError(''); };
-  const onDeleteSvcClick = (s: any) => { setAuthAction({ type: 'delete', payload: s }); setAuthPassword(''); setAuthError(''); };
 
   const openNewForm = () => {
     setEditingSvc({
