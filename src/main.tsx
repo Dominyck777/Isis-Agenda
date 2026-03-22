@@ -17,3 +17,10 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW Reg Error:', err));
   });
 }
+
+// Global PWA Install Helper
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  (window as any).deferredPrompt = e;
+  window.dispatchEvent(new Event('pwa-installable'));
+});

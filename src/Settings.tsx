@@ -9,6 +9,7 @@ const ICalendar = () => <svg width="20" height="20" fill="none" stroke="currentC
 const ISettings = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const IUsers = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>;
 const IEdit = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.14l-2.81.936.936-2.81a4.5 4.5 0 011.14-1.89l12.655-12.655z" /></svg>;
+const IDownload = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M7 10l5 5m0 0l5-5m-5 5V3" /></svg>;
 
 const maskPhone = (val: string) => {
   let v = val.replace(/\D/g, '');
@@ -37,9 +38,24 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
   const [editingUser, setEditingUser] = useState<any>(null); // Se null = não editando. Se objeto = form populado
   // Agenda State
   const [configAgenda, setConfigAgenda] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     loadData();
+    
+    // PWA Install Logic
+    if ((window as any).deferredPrompt) {
+      setCanInstall(true);
+    }
+    const handler = () => setCanInstall(true);
+    window.addEventListener('pwa-installable', handler);
+    
+    // Detect iOS
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(ios);
+
+    return () => window.removeEventListener('pwa-installable', handler);
   }, []);
 
   const loadData = async () => {
@@ -177,6 +193,24 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     }
   };
 
+  const handleInstallApp = async () => {
+    if (isIOS) {
+       toast('Instalar no iOS: Toque em "Compartilhar" e depois "Adicionar à Tela de Início" 📲', 'info');
+       return;
+    }
+    const promptEvent = (window as any).deferredPrompt;
+    if (!promptEvent) {
+       toast('O aplicativo já está instalado ou seu navegador não suporta.', 'info');
+       return;
+    }
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === 'accepted') {
+       (window as any).deferredPrompt = null;
+       setCanInstall(false);
+    }
+  };
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-card" onClick={e => e.stopPropagation()}>
@@ -191,6 +225,10 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
             <option value="usuarios">👥 Equipe e Acessos</option>
             <option value="agenda">📅 Agenda de Trabalho</option>
           </select>
+          
+          <button className="mobile-install-btn" onClick={handleInstallApp}>
+            <IDownload /> {isIOS ? 'Instalar no iOS' : 'Instalar como WebApp'}
+          </button>
         </div>
 
         <div className="settings-body">
@@ -204,6 +242,15 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
             <button className={`nav-tab ${tab === 'agenda' ? 'active' : ''}`} onClick={() => { setTab('agenda'); setEditingUser(null); }}>
               <ICalendar /> Agenda de Trabalho
             </button>
+            
+            <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+               <button className="nav-tab" onClick={handleInstallApp} style={{ color: 'var(--primary-color)', fontWeight: 600, background: 'rgba(14, 165, 233, 0.05)', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
+                  <IDownload /> {isIOS ? 'Instalar no iOS' : 'Instalar como WebApp'}
+               </button>
+               <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0 8px' }}>
+                 {isIOS ? 'No iPhone, use o Safari para instalar.' : 'Instale para acesso rápido na tela inicial.'}
+               </p>
+            </div>
           </aside>
 
           <main className="settings-content">
