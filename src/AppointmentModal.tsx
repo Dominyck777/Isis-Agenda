@@ -234,7 +234,7 @@ export default function AppointmentModal({ isOpen, onClose, user, baseDate, base
       @media (max-width: 768px) { .resp-grid { grid-template-columns: 1fr; } }
     `}</style>
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 3000 }}>
-      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95%', padding: '24px', overflowY: 'auto' }}>
+      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', padding: '24px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
           <div>
             <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? 'Visualizar / Editar Agendamento' : 'Novo Agendamento na Grade'}</h3>
@@ -359,9 +359,9 @@ export default function AppointmentModal({ isOpen, onClose, user, baseDate, base
                </div>
             )}
 
-            <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
-              <button type="submit" className="btn-save" style={{ margin: 0, flex: 1, height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
-              <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, background: 'transparent', border: '1px solid var(--border-color)', padding: '0 24px', color: '#fff' }}>Fechar</button> 
+            <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
+              <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Fechar</button> 
             </div>
           </form>
         )}

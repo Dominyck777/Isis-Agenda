@@ -850,6 +850,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
       )}
+
+      {/* Botões Flutuantes Apenas para Mobile (Navegação de Dias/Semanas) */}
+      <div className="show-on-mobile" style={{ position: 'fixed', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', zIndex: 50, pointerEvents: 'none' }}>
+        <button onClick={handlePrevRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❮</button>
+        <button onClick={handleNextRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❯</button>
+      </div>
+
     </>
   );
 }
