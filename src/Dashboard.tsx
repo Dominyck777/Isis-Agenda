@@ -53,6 +53,7 @@ const IFolder = () => <svg width="20" height="20" fill="none" stroke="currentCol
 // Helpers de Data
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
   const day = d.getDay();
   const diff = d.getDate() - day;
   return new Date(d.setDate(diff));
