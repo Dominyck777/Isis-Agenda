@@ -17,12 +17,26 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [inputType, setInputType] = useState<'phone' | 'email'>(window.innerWidth < 768 ? 'email' : 'phone');
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Pega a URL string e tira - pra facilitar fallback
   const decodedNome = decodeURIComponent(nomeAcesso).replace(/-/g, '').toLowerCase();
 
   useEffect(() => {
     loadCompany();
+
+    // Ajuste dinâmico de altura para mobile (Teclado)
+    const vv = window.visualViewport;
+    if (vv) {
+      const handleResize = () => {
+        if (containerRef.current) {
+          containerRef.current.style.height = `${vv.height}px`;
+          scrollToBottom('smooth');
+        }
+      };
+      vv.addEventListener('resize', handleResize);
+      return () => vv.removeEventListener('resize', handleResize);
+    }
   }, []);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -227,7 +241,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputVal);
 
   return (
-    <div className="isis-container">
+    <div className="isis-container" ref={containerRef}>
        <header className="isis-header">
           <div className="header-left">
              <div className="avatar-wrapper">
