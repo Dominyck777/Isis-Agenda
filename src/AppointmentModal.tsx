@@ -4,7 +4,7 @@ import { toast } from './Toast';
 
 const IClose = () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
-export default function AppointmentModal({ isOpen, onClose, user, baseDate, baseHour, agendamentoItem, onSaveSuccess }: any) {
+export default function AppointmentModal({ isOpen, onClose, user, configAgenda, baseDate, baseHour, agendamentoItem, onSaveSuccess }: any) {
   const [loading, setLoading] = useState(true);
   
   const [clientes, setClientes] = useState<any[]>([]);
@@ -92,10 +92,28 @@ export default function AppointmentModal({ isOpen, onClose, user, baseDate, base
     fetchAgendamentosDia();
   }, [form.codigo_profissional, form.data, user?.codigo_empresa]);
 
+  const getWorkingRange = () => {
+    let earliest = 9;
+    let latest = 18;
+    if (configAgenda?.horarios) {
+      const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
+      if (openDays.length > 0) {
+        earliest = Math.min(...openDays.map((h: any) => parseInt(h.inicio.split(':')[0])));
+        const latestFromHours = openDays.map((h: any) => {
+          const [hh, mm] = h.fim.split(':').map(Number);
+          return hh + (mm > 0 ? 1 : 0);
+        });
+        latest = Math.max(...latestFromHours);
+      }
+    }
+    return { earliest, latest };
+  };
+
   const getHorariosGerados = () => {
     if (!form.data) return [];
+    const { earliest, latest } = getWorkingRange();
     const slots = [];
-    for(let h = 0; h <= 23; h++) {
+    for(let h = earliest; h < latest; h++) {
        for(let min of [0, 15, 30, 45]) {
           slots.push(`${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
        }
@@ -175,6 +193,15 @@ export default function AppointmentModal({ isOpen, onClose, user, baseDate, base
     const sObj = servicos.find(x => x.codigo.toString() === form.codigo_servico.toString());
     const duracao = sObj ? sObj.duracao_minutos : 30;
     const endObj = new Date(startObj.getTime() + duracao * 60000);
+
+    // Validação de Janela do Grid
+    const { earliest, latest } = getWorkingRange();
+    const startHour = startObj.getHours() + startObj.getMinutes() / 60;
+    const endHour = endObj.getHours() + endObj.getMinutes() / 60;
+    if (startHour < earliest || endHour > latest) {
+       toast(`⛔ Fora da janela permitida (${earliest.toString().padStart(2,'0')}:00 às ${latest.toString().padStart(2,'0')}:00)`, 'error');
+       return;
+    }
 
     // Conflito Check: Impede sobreposições com esse Profissional, exceto se for "cancelado"
     const { data: conflitos } = await supabase.from('agendamentos')

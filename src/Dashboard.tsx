@@ -181,18 +181,27 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [showSettingsPanel, user]);
 
-  let earliest = 8;
-  let latest = 20;
+  // Cálculo Dinâmico da Janela do Grid (Baseado estritamente nas Configurações da Empresa)
+  let earliest = 9;
+  let latest = 18;
 
-  if (configAgenda && configAgenda.horarios) {
-     const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
-     if (openDays.length > 0) {
-       const startHours = openDays.map((h: any) => parseInt((h.inicio || '08').split(':')[0], 10));
-       const endHours = openDays.map((h: any) => parseInt((h.fim || '18').split(':')[0], 10) + (parseInt((h.fim || '18').split(':')[1], 10) > 0 ? 1 : 0));
-       earliest = Math.min(...startHours);
-       latest = Math.max(...endHours);
-     }
+  if (configAgenda?.horarios) {
+    const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
+    if (openDays.length > 0) {
+      // Pega o menor horário de início e o maior de fim entre todos os dias configurados para definir a "Janela do Grid"
+      earliest = Math.min(...openDays.map((h: any) => parseInt(h.inicio.split(':')[0])));
+      
+      const latestFromHours = openDays.map((h: any) => {
+        const [hh, mm] = h.fim.split(':').map(Number);
+        return hh + (mm > 0 ? 1 : 0); // Arredonda para cima se houver minutos
+      });
+      latest = Math.max(...latestFromHours);
+    }
   }
+
+  // O Grid agora é estritamente limitado à "Janela Comercial". 
+  // Agendamentos fora dessa janela não expandem mais o grid visualmente.
+
 
   // Previna a quebra do array do Grid caso os horários sejam inconsistentes
   if (earliest < 0) earliest = 0;
@@ -478,35 +487,30 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       <style>{mobileStyles}</style>
       <div className="dash-layout">
         <header className="dash-header">
-          <div className="left">
-            <div className="show-on-mobile" style={{ fontSize: '1.5rem', cursor: 'pointer', marginRight: '16px', alignItems: 'center', color: 'var(--primary-color)' }} onClick={() => setIsMobileSidebarOpen(true)}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          <div className="left" style={{ gap: '12px', minWidth: 'fit-content' }}>
+            <div className="show-on-mobile" style={{ fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--primary-color)' }} onClick={() => setIsMobileSidebarOpen(true)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </div>
-            <div className="logo hide-on-mobile" style={{ gap: '12px' }}>
+            <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {user?.empresas?.logo_url ? (
-                <img src={user.empresas.logo_url} alt="Logo da Empresa" style={{ borderRadius: '6px', objectFit: 'cover', width: '44px', height: '44px' }} />
+                <img src={user.empresas.logo_url} alt="Logo" style={{ borderRadius: '8px', objectFit: 'cover', width: '44px', height: '44px', border: '2px solid #0ea5e9' }} />
               ) : (
-                <div style={{ width: '44px', height: '44px', borderRadius: '6px', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '1.25rem', border: '2px solid #0ea5e9' }}>
                   {user?.empresas?.nome_exibicao?.charAt(0) || 'I'}
                 </div>
               )}
-              <span style={{ fontSize: '1.15rem', fontWeight: 600 }}>{user?.empresas?.nome_exibicao || 'Sua Empresa'}</span>
+              <span className="hide-on-mobile" style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.empresas?.nome_exibicao || 'Sua Empresa'}</span>
             </div>
           </div>
           
-          <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Ocultado a pedido do usuario: Filtros Dia/Semana/Mês */}
-            {/*<div className="hide-on-mobile" style={{ display: 'flex', gap: '4px', background: 'var(--input-bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <button type="button" onClick={() => setViewMode('day')} style={{ background: viewMode === 'day' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'day' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Dia</button>
-              <button type="button" onClick={() => setViewMode('week')} style={{ background: viewMode === 'week' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'week' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Semana</button>
-              <button type="button" onClick={() => setViewMode('month')} style={{ background: viewMode === 'month' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'month' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Mês</button>
-            </div>*/}
-            <button className="btn-today hide-on-mobile" onClick={handleToday}>Hoje</button>
-            <div className="nav-arrows hide-on-mobile">
-              <button className="icon-btn" onClick={handlePrevRange}>❮</button>
-              <button className="icon-btn" onClick={handleNextRange}>❯</button>
+          <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px', zIndex: 10 }}>
+            {/* Nav Controls: Hoje + Arrows (❮ ❯) + Month Year ▼ */}
+            <button className="btn-today" onClick={handleToday} style={{ margin: 0, padding: '8px 20px', fontSize: '1rem', borderRadius: '6px', fontWeight: 600 }}>Hoje</button>
+            <div className="nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+              <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handlePrevRange}>❮</button>
+              <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handleNextRange}>❯</button>
             </div>
-            <h2 className="month" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0, cursor: 'pointer' }} onClick={() => setShowDatePicker(!showDatePicker)}>
+            <h2 className="month" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0, cursor: 'pointer', fontSize: '1.2rem', whiteSpace: 'nowrap' }} onClick={() => setShowDatePicker(!showDatePicker)}>
               {formatMonthYear(currentDate)} <span style={{fontSize: '0.6rem', opacity: 0.7}}>▼</span>
             </h2>
 
@@ -520,7 +524,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             )}
           </div>
 
-          <div className="right">
+          <div className="right" style={{ gap: '12px' }}>
             <button className="icon-btn" title="Catálogo de Cadastros" onClick={() => setShowServicesPanel(true)}><IFolder /></button>
             <button className="icon-btn" title="Configurações (Requer Admin)" onClick={handleSettingsClick}><ISettings /></button>
             <button className="icon-btn profile-btn" onClick={() => setIsLogoutModalOpen(true)} title="Conta">
@@ -853,11 +857,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {/* Botões Flutuantes Apenas para Mobile (Navegação de Dias/Semanas) */}
-      <div className="show-on-mobile" style={{ position: 'fixed', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', zIndex: 50, pointerEvents: 'none' }}>
-        <button onClick={handlePrevRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❮</button>
-        <button onClick={handleNextRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❯</button>
-      </div>
+
+
 
     </>
   );
