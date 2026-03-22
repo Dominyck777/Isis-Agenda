@@ -179,6 +179,7 @@
 
 .time-zone {
   width: 60px;
+  min-width: 60px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -385,7 +386,7 @@
   
   .icon-btn { width: 36px; height: 36px; padding: 6px; }
   .left, .right, .center { gap: 6px; }
-  .dash-header { padding: 0 12px; }
+  .dash-header { padding: 0 24px; }
 
   /* Main now handles both X and Y scrolling natively, keeping sticky headers attached */
   .cal-header-row, .cal-grid-scroll { min-width: 600px; }

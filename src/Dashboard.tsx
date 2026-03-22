@@ -188,10 +188,26 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
      const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
      if (openDays.length > 0) {
        const startHours = openDays.map((h: any) => parseInt((h.inicio || '08').split(':')[0], 10));
-       const endHours = openDays.map((h: any) => parseInt((h.fim || '18').split(':')[0], 10) + (parseInt((h.fim || '18').split(':')[1], 10) > 0 ? 1 : 0));
+       const endHours = openDays.map((h: any) => {
+         const [hPart, mPart] = (h.fim || '18').split(':');
+         return parseInt(hPart, 10) + (parseInt(mPart || '0', 10) > 0 ? 1 : 0);
+       });
        earliest = Math.min(...startHours);
        latest = Math.max(...endHours);
      }
+  }
+
+  // Considerar horários dos agendamentos efetivos para expandir a grade
+  if (agendamentos.length > 0) {
+    agendamentos.forEach(ag => {
+      const dIni = new Date(ag.data_hora_inicio);
+      const dFim = new Date(ag.data_hora_fim);
+      const hIni = dIni.getHours();
+      const hFim = dFim.getHours() + (dFim.getMinutes() > 0 ? 1 : 0);
+      
+      if (hIni < earliest) earliest = hIni;
+      if (hFim > latest) latest = hFim;
+    });
   }
 
   // Previna a quebra do array do Grid caso os horários sejam inconsistentes
@@ -853,11 +869,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {/* Botões Flutuantes Apenas para Mobile (Navegação de Dias/Semanas) */}
-      <div className="show-on-mobile" style={{ position: 'fixed', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', zIndex: 50, pointerEvents: 'none' }}>
-        <button onClick={handlePrevRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❮</button>
-        <button onClick={handleNextRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❯</button>
-      </div>
+
+
 
     </>
   );
