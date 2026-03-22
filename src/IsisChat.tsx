@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import './IsisChat.css';
 
@@ -16,6 +16,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [inputVal, setInputVal] = useState('');
   const [inputType, setInputType] = useState<'phone' | 'email'>(window.innerWidth < 768 ? 'email' : 'phone');
   const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Pega a URL string e tira - pra facilitar fallback
   const decodedNome = decodeURIComponent(nomeAcesso).replace(/-/g, '').toLowerCase();
@@ -23,6 +24,17 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   useEffect(() => {
     loadCompany();
   }, []);
+  
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+  };
+
+  const handleInputFocus = () => {
+    // Aguarda o teclado subir e o viewport redimensionar no mobile
+    setTimeout(() => scrollToBottom('smooth'), 300);
+  };
 
   const loadCompany = async () => {
     // Busca todas as empresas (são poucas) para fazer um match flexível ignorando espaços
@@ -278,6 +290,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                    </div>
                 </div>
              )}
+             <div ref={chatEndRef} />
           </div>
        </main>
 
@@ -289,6 +302,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                 placeholder={inputType === 'phone' ? "(00) 00000-0000" : "seu@email.com"} 
                 value={inputVal}
                 onChange={handleInputChange}
+                onFocus={handleInputFocus}
              />
              <button type="submit" className="send-btn" disabled={!isInputValid}>
                 <ISend />
