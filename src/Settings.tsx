@@ -307,37 +307,31 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                 )}
 
                 {!editingUser && (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="users-table">
-                      <thead>
-                        <tr>
-                          <th>Nome</th>
-                          <th>E-mail</th>
-                          <th>Nível de Acesso</th>
-                          <th>Status</th>
-                          <th>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {usuarios.map(u => (
-                          <tr key={u.codigo}>
-                            <td><strong>{u.nome}</strong> {u.codigo === user.codigo && <span style={{fontSize:'0.75rem', opacity:0.6}}>(Você)</span>}</td>
-                            <td>{u.email}</td>
-                            <td>
-                              {u.is_admin 
-                                ? <span className="badge badge-admin">Administrador</span> 
-                                : <span className="badge badge-user">Comum</span>}
-                            </td>
-                            <td>{u.ativo ? '🟢 Ativo' : '🔴 Inativo'}</td>
-                            <td>
-                              <button style={{ background:'transparent', border:'none', color:'var(--primary-color)', cursor:'pointer' }} title="Editar Perfil" onClick={() => openEditUserForm(u)}>
-                                <IEdit /> Editar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="users-list">
+                    {usuarios.map(u => (
+                      <div key={u.codigo} className="user-card-item">
+                        <div className="user-info-row main-row">
+                          <span>
+                            <strong>{u.nome}</strong> 
+                            {u.codigo === user.codigo && <span style={{fontSize:'0.75rem', opacity:0.6, marginLeft: '8px'}}>(Você)</span>}
+                          </span>
+                          <button className="btn-edit-user" onClick={() => openEditUserForm(u)} title="Editar Perfil">
+                            <IEdit /> <span>Editar</span>
+                          </button>
+                        </div>
+                        <div className="user-info-row email-row">
+                          {u.email}
+                        </div>
+                        <div className="user-info-row details-row">
+                          <span className={`badge ${u.is_admin ? 'badge-admin' : 'badge-user'}`}>
+                            {u.is_admin ? '🛡️ Administrador' : '👤 Comum'}
+                          </span>
+                          <span className="status-indicator">
+                            {u.ativo ? '🟢 Ativo' : '🔴 Inativo'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
