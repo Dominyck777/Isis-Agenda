@@ -4,7 +4,7 @@ import { toast } from './Toast';
 
 const IClose = () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
-export default function AppointmentModal({ isOpen, onClose, user, configAgenda, baseDate, baseHour, agendamentoItem, onSaveSuccess }: any) {
+export default function AppointmentModal({ isOpen, onClose, user, baseDate, baseHour, agendamentoItem, onSaveSuccess }: any) {
   const [loading, setLoading] = useState(true);
   
   const [clientes, setClientes] = useState<any[]>([]);

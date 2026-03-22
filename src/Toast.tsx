@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './Toast.css';
 
 export const toast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
