@@ -173,8 +173,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         const parsed = JSON.parse(data);
         setUser(parsed);
         // Se profissional, trava o filtro nele
-        if (parsed && !parsed.is_admin && parsed.codigo) {
-          setFilterProf(parsed.codigo.toString());
+        if (parsed && !parsed.is_admin && parsed.profissional_id) {
+          setFilterProf(parsed.profissional_id.toString());
         }
       }
     };
@@ -230,7 +230,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
          if (ag.status === 'cancelado') return false;
          
          // PRIVACIDADE: Não admins só veem seus PRÓPRIOS agendamentos
-         if (user && !user.is_admin && String(ag.codigo_profissional) !== String(user.codigo)) {
+         if (user && !user.is_admin && ag.codigo_profissional !== user.profissional_id) {
            return false;
          }
 
@@ -798,7 +798,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                  <div>
                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Filtrar Profissional</label>
-                   <select value={user && !user.is_admin ? user.codigo.toString() : tempFilterProf} onChange={e => setTempFilterProf(e.target.value)} disabled={user && !user.is_admin} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', opacity: (user && !user.is_admin) ? 0.6 : 1 }}>
+                   <select value={tempFilterProf} onChange={e => setTempFilterProf(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}>
                      <option value="">Todos os Profissionais</option>
                      {Object.entries(dicProfs).map(([id, nome]) => (
                        <option key={id} value={id}>{nome as string}</option>
@@ -841,7 +841,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                  {(() => {
                     const dailyAgs = agendamentos.filter(ag => {
                         const agDate = new Date(ag.data_hora_inicio).toDateString();
-                        return agDate === currentDate.toDateString() && (user.is_admin || String(ag.codigo_profissional) === String(user.codigo)) && ag.status !== 'cancelado';
+                        return agDate === currentDate.toDateString();
                     }).sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
 
                     if (dailyAgs.length === 0) {
@@ -922,7 +922,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                   }}
                 />
               </div>
-              {configError && <p style={{ color: isGooeyActive ? '#10b981' : '#ef4444', fontSize: '0.85rem', marginTop: '8px' }}>{isGooeyActive ? 'Acesso Permitido!' : configError}</p>}
+              {configError && <p style={{ color: isGooeyActive ? '#10b981' : '#ef4444', fontSize: '0.85rem', marginTop: '8px' }}>{isGooeyActive ? 'Acesso Permetido!' : configError}</p>}
               <button type="submit" className="btn-save" style={{ width: '100%', marginTop: '24px' }}>
                 {isGooeyActive ? 'ABRINDO...' : 'DESBLOQUEAR'}
               </button>

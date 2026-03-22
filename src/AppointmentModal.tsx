@@ -57,7 +57,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
        setForm({
          codigo_cliente: '',
          codigo_servico: '',
-         codigo_profissional: '',
+         codigo_profissional: user && !user.is_admin ? user.codigo : '',
          data: baseDate ? new Date(baseDate).toLocaleDateString('en-CA').split('T')[0] : new Date().toLocaleDateString('en-CA').split('T')[0],
          hora: baseHour !== null && baseHour !== undefined ? baseHour.toString().padStart(2, '0') + ':00' : '09:00',
          status: 'agendado',
@@ -206,6 +206,12 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
        return;
     }
 
+    // PRIVACIDADE: Não admins não podem agendar para outros
+    if (user && !user.is_admin && Number(form.codigo_profissional) !== Number(user.codigo)) {
+       toast('⛔ Você só pode criar agendamentos para você mesmo.', 'error');
+       return;
+    }
+
     // Conflito Check: Impede sobreposições com esse Profissional, exceto se for "cancelado"
     const { data: conflitos } = await supabase.from('agendamentos')
       .select('id')
@@ -338,14 +344,31 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
               <div className="form-group-flat full">
                 <label>Executado Por (Profissional)</label>
-                <select value={form.codigo_profissional} disabled={!form.codigo_servico} onChange={e => setForm({...form, codigo_profissional: e.target.value})} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', opacity: !form.codigo_servico ? 0.4 : 1, transition: '0.2s' }}>
+                <select 
+                  value={form.codigo_profissional} 
+                  disabled={!form.codigo_servico || (user && !user.is_admin)} 
+                  onChange={e => setForm({...form, codigo_profissional: e.target.value})} 
+                  required 
+                  style={{ 
+                    padding: '12px 14px', 
+                    borderRadius: '8px', 
+                    background: 'var(--input-bg)', 
+                    color: '#fff', 
+                    border: '1px solid var(--border-color)', 
+                    fontSize: '1rem', 
+                    outline: 'none', 
+                    opacity: (!form.codigo_servico || (user && !user.is_admin)) ? 0.6 : 1, 
+                    transition: '0.2s' 
+                  }}
+                >
                   <option value="">{form.codigo_servico ? '-- Escolher Profissional --' : 'Bloqueado (Escolha o Serviço)'}</option>
                   {form.codigo_servico && profissionais.map(p => {
                     const svc = servicos.find(s => s.codigo.toString() === form.codigo_servico.toString());
                     const isAllowed = svc ? (svc.profissionais_habilitados || []).includes(p.codigo) : true;
-                    return <option key={p.codigo} value={p.codigo} disabled={!isAllowed}>{p.nome} {!isAllowed ? '(Fora de Cobertura)' : ''}</option>
+                    return <option key={p.codigo} value={p.id}>{p.nome} {!isAllowed ? '(Fora de Cobertura)' : ''}</option>
                   })}
                 </select>
+                {user && !user.is_admin && <p style={{ fontSize: '0.7rem', color: 'var(--primary-color)', marginTop: '4px' }}>Você só pode realizar agendamentos em seu nome.</p>}
               </div>
 
               <div className="form-group-flat full">
