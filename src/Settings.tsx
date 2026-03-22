@@ -38,24 +38,16 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
   const [editingUser, setEditingUser] = useState<any>(null); // Se null = não editando. Se objeto = form populado
   // Agenda State
   const [configAgenda, setConfigAgenda] = useState<any>(null);
-  const [canInstall, setCanInstall] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     loadData();
     
-    // PWA Install Logic
-    if ((window as any).deferredPrompt) {
-      setCanInstall(true);
-    }
-    const handler = () => setCanInstall(true);
-    window.addEventListener('pwa-installable', handler);
-    
     // Detect iOS
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(ios);
 
-    return () => window.removeEventListener('pwa-installable', handler);
+    return () => {};
   }, []);
 
   const loadData = async () => {
@@ -207,7 +199,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     const { outcome } = await promptEvent.userChoice;
     if (outcome === 'accepted') {
        (window as any).deferredPrompt = null;
-       setCanInstall(false);
     }
   };
 
