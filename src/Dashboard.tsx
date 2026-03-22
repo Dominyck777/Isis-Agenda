@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
+import { toast } from './Toast';
 import CryptoJS from 'crypto-js';
 import SettingsPanel from './Settings';
 import ServicesPanel from './Services';
@@ -155,6 +156,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [isConfigAuthOpen, setIsConfigAuthOpen] = useState(false);
   const [configPassword, setConfigPassword] = useState('');
   const [configError, setConfigError] = useState('');
+  const [isGooeyActive, setIsGooeyActive] = useState(false);
+  const [isModalBorderActive, setIsModalBorderActive] = useState(false);
+  const [gooeyParticles, setGooeyParticles] = useState<any[]>([]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showServicesPanel, setShowServicesPanel] = useState(false);
@@ -439,9 +443,39 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     const isAdminValid = admins && admins.some(a => a.senha === hashedInput);
     
     if (isAdminValid || (user.is_admin && hashedInput === user.senha)) {
-      setIsConfigAuthOpen(false);
-      setShowSettingsPanel(true); // O Cofre abriu! Renderiza o Modal Mestre
+      // Ativar efeito Gooey!
+      const particles = Array.from({ length: 120 }).map((_, _i) => {
+        const side = Math.random() > 0.5 ? 1 : -1;
+        const startX = (Math.random() - 0.5) * 1400;
+        const startY = -1000 * side;
+        const endX = 0; // Vai direto para o centro
+        const endY = 0;
+        return {
+          id: Math.random(),
+          startX,
+          startY,
+          endX,
+          endY,
+          time: 1200 + Math.random() * 800,
+          color: ['#0ea5e9', '#38bdf8', '#7dd3fc', '#1d4ed8', '#2563eb'][Math.floor(Math.random() * 5)]
+        };
+      });
+      setGooeyParticles(particles);
+      setIsGooeyActive(true);
+      setConfigError('');
+
+      // Ativar brilho do modal quando as partículas estão entrando
+      setTimeout(() => setIsModalBorderActive(true), 400);
+
+      setTimeout(() => {
+        setIsConfigAuthOpen(false);
+        setIsGooeyActive(false);
+        setIsModalBorderActive(false);
+        setGooeyParticles([]);
+        setShowSettingsPanel(true);
+      }, 2000);
     } else {
+      toast('Acesso negado: Senha incorreta.', 'error');
       setConfigError('Senha incorreta! Contate um administrador.');
     }
   };
@@ -830,28 +864,55 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
       {/* Modal do Cofre Administrativo */}
       {isConfigAuthOpen && (
-        <div className="modal-overlay" onClick={() => setIsConfigAuthOpen(false)}>
-          <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setIsConfigAuthOpen(false)} style={{ zIndex: 5000 }}>
+          {isGooeyActive && (
+            <div className="gooey-particles-container" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 4999 }}>
+              {gooeyParticles.map(p => (
+                <span 
+                  key={p.id} 
+                  className="particle active" 
+                  style={{ 
+                    '--start-x': `${p.startX}px`, 
+                    '--start-y': `${p.startY}px`, 
+                    '--end-x': `${p.endX}px`, 
+                    '--end-y': `${p.endY}px`, 
+                    '--time': `${p.time}ms`,
+                    'background-color': p.color
+                  } as any}
+                />
+              ))}
+            </div>
+          )}
+
+          <div 
+            className={`modal-card ${isModalBorderActive ? 'border-blue-active' : ''}`} 
+            onClick={e => e.stopPropagation()} 
+            style={{ position: 'relative', transition: 'all 0.4s ease', zIndex: 5001 }}
+          >
             <h3 style={{ display:'flex', alignItems:'center', gap:'8px' }}><ISettings /> Acesso Restrito</h3>
             <p style={{ marginBottom: '20px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
               Digite a senha de administrador da empresa para destrancar.
             </p>
 
             <form onSubmit={handleConfigAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <input 
-                type="password" 
-                placeholder="Senha Admin..." 
-                value={configPassword} 
-                onChange={e => setConfigPassword(e.target.value)} 
-                required 
-                autoFocus
-                style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: '#fff', fontSize: '1rem', outline: 'none' }}
-              />
-              {configError && <span style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '-8px' }}>{configError}</span>}
-              <div className="modal-actions">
-                <button type="button" className="btn-sec" onClick={() => setIsConfigAuthOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn-pri" style={{ backgroundColor: 'var(--primary-color)' }}>Confirmar</button>
+              <div className="form-group-flat">
+                <input 
+                  type="password" 
+                  value={configPassword} 
+                  onChange={e => setConfigPassword(e.target.value)} 
+                  placeholder="Sua senha..."
+                  autoFocus
+                  style={{ 
+                    textAlign: 'center', 
+                    fontSize: '1.2rem', 
+                    letterSpacing: '4px'
+                  }}
+                />
               </div>
+              {configError && <p style={{ color: isGooeyActive ? '#10b981' : '#ef4444', fontSize: '0.85rem', marginTop: '8px' }}>{isGooeyActive ? 'Acesso Permetido!' : configError}</p>}
+              <button type="submit" className="btn-save" style={{ width: '100%', marginTop: '24px' }}>
+                {isGooeyActive ? 'ABRINDO...' : 'DESBLOQUEAR'}
+              </button>
             </form>
           </div>
         </div>
@@ -860,6 +921,15 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
 
 
+      {/* SVG Filter para o efeito Gooey */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+        <defs>
+          <filter id="gooey-filter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="gooey" />
+          </filter>
+        </defs>
+      </svg>
     </>
   );
 }

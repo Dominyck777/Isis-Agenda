@@ -423,3 +423,61 @@ button:active {
   transform: scale(0.92) !important;
   transition: transform 0.05s ease-in-out !important;
 }
+
+/* Gooey Effect Styles */
+.gooey-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.gooey-particles-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4999;
+  filter: url('#gooey-filter');
+}
+
+.particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.particle.active {
+  animation: gooey-particle-anim var(--time) ease-out forwards;
+}
+
+@keyframes gooey-particle-anim {
+  0% {
+    transform: translate(calc(-50% + var(--start-x)), calc(-50% + var(--start-y))) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--start-x) * 0.8), calc(-50% + var(--start-y) * 0.8)) scale(1.4);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+}
+
+.border-blue-active {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 25px var(--primary-color) !important;
+}
+
+/* SVG Filter (Inline in TSX usually, but can be defined here if needed as a data URI or just reference ID) */
+/* We will define the SVG filter in the TSX for better compatibility and control */
