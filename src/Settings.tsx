@@ -299,9 +299,9 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         </label>
                       </div>
                     </div>
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
-                      <button type="submit" className="btn-save" style={{ marginTop: 0 }}>Salvar Perfil</button>
-                      <button type="button" className="btn-save" style={{ marginTop: 0, background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => setEditingUser(null)}>Cancelar</button>
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                      <button type="submit" className="btn-save" style={{ margin: 0 }}>Salvar Perfil</button>
+                      <button type="button" className="btn-save" style={{ margin: 0, background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => setEditingUser(null)}>Cancelar</button>
                     </div>
                   </form>
                 )}

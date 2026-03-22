@@ -159,12 +159,14 @@
   background-color: var(--primary-color);
   color: #fff;
   border: none;
-  padding: 10px 24px;
+  padding: 12px 32px;
   border-radius: var(--radius-md);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 24px;
+  margin: 32px auto 0 auto;
+  display: block;
   transition: 0.2s;
+  min-width: 200px;
 }
 .btn-save:hover { filter: brightness(1.1); }
 
@@ -357,7 +359,7 @@
   content: "";
   position: absolute;
   left: 0;
-  top: 50%;
+  top: 10px; /* Fixed midpoint for 20px circle */
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
@@ -374,31 +376,13 @@
 }
 
 .custom-chk-input:checked + .custom-chk-label::before {
-  border-color: #10b981; /* Green when checked */
-  background-color: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
-}
-
-.custom-chk-label::after {
-  content: "";
-  position: absolute;
-  left: 6px; /* Centered: (20 - 8) / 2 */
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #fff;
-  opacity: 0;
-  transition: all 0.2s ease;
+  border-color: #fff; /* White border when checked */
+  background-color: #10b981; /* Solid green */
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
 }
 
 .checkbox-wrapper {
   position: relative;
-}
-
-.custom-chk-input:checked + .custom-chk-label::after {
-  opacity: 1;
 }
 
 .time-select-group {
