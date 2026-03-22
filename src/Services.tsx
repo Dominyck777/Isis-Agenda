@@ -279,11 +279,11 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                   <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button type="submit" className="btn-save" style={{ marginTop: 0, flex: 1 }}>{editingCli.codigo === 'novo' ? 'Cadastrar Cliente' : 'Atualizar Dados'}</button>
                     {editingCli.codigo !== 'novo' && (
-                       <button type="button" className="btn-save" style={{ marginTop: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', width: 'fit-content', padding: '0 16px' }} onClick={() => setConfirmDelete({ type: 'client', item: editingCli })} title="Apagar Cliente permanentemente">
+                       <button type="button" className="btn-save" style={{ marginTop: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', flex: 1 }} onClick={() => setConfirmDelete({ type: 'client', item: editingCli })} title="Apagar Cliente permanentemente">
                          <ITrash /> Apagar
                        </button>
                     )}
-                    <button type="button" className="btn-save" style={{ marginTop: 0, background: 'transparent', border: '1px solid var(--border-color)', width: 'fit-content', padding: '0 16px' }} onClick={() => setEditingCli(null)}>Voltar</button>
+                    <button type="button" className="btn-save" style={{ marginTop: 0, background: 'transparent', border: '1px solid var(--border-color)', flex: 1 }} onClick={() => setEditingCli(null)}>Voltar</button>
                   </div>
                 </form>
               ) : (
@@ -397,11 +397,11 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                   <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button type="submit" className="btn-save" style={{ marginTop: 0, flex: 1 }}>{editingSvc.codigo === 'novo' ? 'Criar Serviço' : 'Salvar Alterações'}</button>
                     {editingSvc.codigo !== 'novo' && (
-                       <button type="button" className="btn-save" style={{ marginTop: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', width: 'fit-content', padding: '0 16px' }} onClick={() => setConfirmDelete({ type: 'service', item: editingSvc })} title="Apagar Serviço permanentemente">
+                       <button type="button" className="btn-save" style={{ marginTop: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', flex: 1 }} onClick={() => setConfirmDelete({ type: 'service', item: editingSvc })} title="Apagar Serviço permanentemente">
                          <ITrash /> Apagar
                        </button>
                     )}
-                    <button type="button" className="btn-save" style={{ marginTop: 0, background: 'transparent', border: '1px solid var(--border-color)', width: 'fit-content', padding: '0 16px' }} onClick={() => setEditingSvc(null)}>Voltar</button>
+                    <button type="button" className="btn-save" style={{ marginTop: 0, background: 'transparent', border: '1px solid var(--border-color)', flex: 1 }} onClick={() => setEditingSvc(null)}>Voltar</button>
                   </div>
                 </form>
               ) : (

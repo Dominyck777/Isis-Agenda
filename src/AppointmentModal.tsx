@@ -307,7 +307,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
               <div className="form-group-flat full" style={{ gridColumn: '1 / -1' }}>
                 <label>Cliente (Base)</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <select value={form.codigo_cliente} onChange={e => { setForm({...form, codigo_cliente: e.target.value}); setShowQuickCli(false); }} required style={{ flex: 1, padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none' }}>
+                  <select value={form.codigo_cliente} onChange={e => { setForm({...form, codigo_cliente: e.target.value}); setShowQuickCli(false); }} required style={{ flex: 1, padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                     <option value="">-- Selecionar Cliente --</option>
                     <option value="avulso">👤 Cliente Sem Cadastro</option>
                     {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -334,11 +334,15 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
               <div className="form-group-flat full">
                 <label>Oferta / Serviço</label>
-                <select value={form.codigo_servico} onChange={e => {
-                   setForm({...form, codigo_servico: e.target.value, codigo_profissional: ''}); 
-                }} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none' }}>
-                  <option value="">-- Selecionar Serviço --</option>
-                  {servicos.map(s => <option key={s.codigo} value={s.codigo}>{s.nome} ({s.duracao_minutos} min)</option>)}
+                 <select value={form.codigo_servico} onChange={e => {
+                    const val = e.target.value;
+                    setForm((prev: any) => ({...prev, codigo_servico: val, codigo_profissional: user?.is_admin ? '' : (user?.codigo || prev.codigo_profissional)})); 
+                 }} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                   <option value="">-- Selecionar Serviço --</option>
+                   {servicos
+                     .filter(s => user?.is_admin || (s.profissionais_habilitados || []).includes(user?.codigo))
+                     .map(s => <option key={s.codigo} value={s.codigo}>{s.nome} ({s.duracao_minutos} min)</option>)
+                   }
                 </select>
               </div>
 
@@ -346,7 +350,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 <label>Executado Por (Profissional)</label>
                 <select 
                   value={form.codigo_profissional} 
-                  disabled={!form.codigo_servico || (user && !user.is_admin)} 
+                  disabled={user && !user.is_admin} 
                   onChange={e => setForm({...form, codigo_profissional: e.target.value})} 
                   required 
                   style={{ 
@@ -357,15 +361,20 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     border: '1px solid var(--border-color)', 
                     fontSize: '1rem', 
                     outline: 'none', 
-                    opacity: (!form.codigo_servico || (user && !user.is_admin)) ? 0.6 : 1, 
-                    transition: '0.2s' 
+                    opacity: (user && !user.is_admin) ? 1 : (!form.codigo_servico ? 0.6 : 1), 
+                    transition: '0.2s',
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <option value="">{form.codigo_servico ? '-- Escolher Profissional --' : 'Bloqueado (Escolha o Serviço)'}</option>
-                  {form.codigo_servico && profissionais.map(p => {
-                    const svc = servicos.find(s => s.codigo.toString() === form.codigo_servico.toString());
+                  <option value="">{(!form.codigo_servico && user?.is_admin) ? 'Escolha o Serviço Primeiro' : '-- Selecionar Profissional --'}</option>
+                  {(profissionais.length > 0) && profissionais.map(p => {
+                    const svc = form.codigo_servico ? servicos.find(s => s.codigo.toString() === form.codigo_servico.toString()) : null;
                     const isAllowed = svc ? (svc.profissionais_habilitados || []).includes(p.codigo) : true;
-                    return <option key={p.codigo} value={p.id}>{p.nome} {!isAllowed ? '(Fora de Cobertura)' : ''}</option>
+                    // Se não for admin, só mostra ele mesmo. Se for admin e tiver serviço, mostra conforme cobertura.
+                    if (!user?.is_admin && p.codigo !== user?.codigo) return null;
+                    return <option key={p.codigo} value={p.codigo}>{p.nome} {(!isAllowed && user?.is_admin) ? '(Fora de Cobertura)' : ''}</option>
                   })}
                 </select>
                 {user && !user.is_admin && <p style={{ fontSize: '0.7rem', color: 'var(--primary-color)', marginTop: '4px' }}>Você só pode realizar agendamentos em seu nome.</p>}
@@ -373,7 +382,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
               <div className="form-group-flat full">
                 <label>Data Escolhida</label>
-                <input type="date" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none' }} />
+                <input type="date" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }} />
               </div>
 
               <div className="form-group-flat full">
@@ -383,7 +392,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                    onChange={e => setForm({...form, hora: e.target.value})} 
                    disabled={!form.codigo_profissional || !form.data || !form.codigo_servico}
                    required 
-                   style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', opacity: (!form.codigo_profissional || !form.codigo_servico || !form.data) ? 0.4 : 1, transition: '0.2s' }}
+                   style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', opacity: (!form.codigo_profissional || !form.codigo_servico || !form.data) ? 0.4 : 1, transition: '0.2s', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 >
                    <option value="">
                      {(!form.codigo_profissional || !form.codigo_servico) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}
@@ -413,8 +422,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
             )}
 
             <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-              <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
-              <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Fechar</button> 
+              <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '48px', fontSize: '1rem', whiteSpace: 'nowrap' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
+              <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff', whiteSpace: 'nowrap' }}>Fechar</button> 
             </div>
           </form>
         )}

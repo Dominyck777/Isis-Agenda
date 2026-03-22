@@ -299,7 +299,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         </label>
                       </div>
                     </div>
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                    <div className="user-form-actions" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
                       <button type="submit" className="btn-save" style={{ margin: 0 }}>Salvar Perfil</button>
                       <button type="button" className="btn-save" style={{ margin: 0, background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => setEditingUser(null)}>Cancelar</button>
                     </div>
@@ -311,16 +311,27 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                     {/* Desktop View Table */}
                     <div className="hide-on-mobile" style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
                       <table className="users-table" style={{ margin: 0, border: 'none' }}>
-                        <thead><tr><th>Cód</th><th>Nome</th><th>Email</th><th>Acesso</th><th>Status</th><th>Ações</th></tr></thead>
+                        <thead><tr><th style={{ width: '60px' }}>Cód</th><th>Nome</th><th>Email</th><th style={{ width: '100px' }}>Acesso</th><th style={{ width: '100px' }}>Status</th><th style={{ width: '100px' }}>Ações</th></tr></thead>
                         <tbody>
                           {usuarios.map(u => (
                             <tr key={u.codigo}>
-                              <td style={{ color:'var(--text-muted)' }}>#{u.codigo.toString().padStart(4, '0')}</td>
+                              <td style={{ color:'var(--text-muted)' }}>{u.codigo.toString().padStart(2, '0')}</td>
                               <td><strong>{u.nome}</strong></td>
                               <td>{u.email}</td>
-                              <td><span className={`badge ${u.is_admin ? 'badge-admin' : 'badge-user'}`}>{u.is_admin ? '🛡️ Admin' : '👤 Comum'}</span></td>
-                              <td>{u.ativo ? '🟢 Ativo' : '🔴 Inativo'}</td>
-                              <td><button style={{ background:'transparent', border:'none', color:'#0ea5e9', cursor:'pointer' }} onClick={() => openEditUserForm(u)} title="Editar Perfil"><IEdit /> Editar</button></td>
+                              <td><span className={`badge ${u.is_admin ? 'badge-admin' : 'badge-user'}`}>{u.is_admin ? 'Admin' : 'Comum'}</span></td>
+                              <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle', color: u.ativo ? '#10b981' : '#ef4444', fontWeight: 500 }}>
+                                {u.ativo ? 'Ativo' : 'Inativo'}
+                              </td>
+                              <td style={{ verticalAlign: 'middle' }}>
+                                <button 
+                                  className="btn-edit-user" 
+                                  style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} 
+                                  onClick={() => openEditUserForm(u)} 
+                                  title="Editar Perfil"
+                                >
+                                  <IEdit /> Editar
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -336,7 +347,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                               <strong style={{ fontSize: '1.2rem', color: '#fff' }}>
                                 {u.nome} {u.codigo === user.codigo && <span style={{fontSize:'0.75rem', opacity:0.6}}>(Você)</span>}
                               </strong>
-                              <span style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>ID: #{u.codigo.toString().padStart(4, '0')}</span>
+                               <span style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>ID: {u.codigo.toString().padStart(2, '0')}</span>
                             </div>
                             <button className="btn-edit-user" onClick={() => openEditUserForm(u)} title="Editar Perfil">
                               <IEdit /> <span>Editar</span>
@@ -347,11 +358,11 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                           </div>
                           <div className="user-info-row details-row">
                             <span className={`badge ${u.is_admin ? 'badge-admin' : 'badge-user'}`}>
-                              {u.is_admin ? '🛡️ Administrador' : '👤 Comum'}
-                            </span>
-                            <span className="status-indicator">
-                              {u.ativo ? '🟢 Ativo' : '🔴 Inativo'}
-                            </span>
+                               {u.is_admin ? 'Administrador' : 'Comum'}
+                             </span>
+                             <span className="status-indicator" style={{ color: u.ativo ? '#10b981' : '#ef4444' }}>
+                               {u.ativo ? 'Ativo' : 'Inativo'}
+                             </span>
                           </div>
                         </div>
                       ))}
