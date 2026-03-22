@@ -14,10 +14,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [inputVal, setInputVal] = useState('');
   const [inputType, setInputType] = useState<'phone' | 'email'>('phone');
   const [step, setStep] = useState<'identification' | 'registration' | 'actions'>('identification');
@@ -313,7 +309,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
   const loadAvailableTimes = async (date: string, service: any, professional: any) => {
      setIsTyping(true);
-     setSelectedDate(date);
      
      try {
         // 1. Busca configurações da empresa/profissional
@@ -327,7 +322,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         const end = config?.hora_fim || '18:00';
         const intervalStart = config?.intervalo_inicio;
         const intervalEnd = config?.intervalo_fim;
-        const dur = service.duracao_minutos || 30;
 
         const addMinutes = (time: string, mins: number) => {
            const [h, m] = time.split(':').map(Number);
@@ -342,8 +336,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            if (!isInterval && !isTaken) slots.push(cur);
            cur = addMinutes(cur, 30); // Usando 30 min como step padrão de grade
         }
-
-        setAvailableTimes(slots);
 
         setMessages(prev => [...prev, {
            id: Date.now(),
