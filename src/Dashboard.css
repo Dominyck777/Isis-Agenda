@@ -363,6 +363,18 @@
 
 /* MOBILE RESPONSIVE QUERIES */
 @media (max-width: 768px) {
+  body {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  input, textarea, select {
+    -webkit-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
+  }
+
   .dash-sidebar { display: none; /* Hide Sidebar on mobile */ }
   .hide-on-mobile { display: none !important; }
   
@@ -392,3 +404,16 @@
   border-width: 2px !important;
 }
 
+/* Animação tátil para todos os botões e remoção do painel azul nativo */
+button {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  transition: transform 0.2s ease, background-color 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+button:focus {
+  outline: none;
+}
+button:active {
+  transform: scale(0.92) !important;
+  transition: transform 0.05s ease-in-out !important;
+}

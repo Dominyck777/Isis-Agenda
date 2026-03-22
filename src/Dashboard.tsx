@@ -53,6 +53,7 @@ const IFolder = () => <svg width="20" height="20" fill="none" stroke="currentCol
 // Helpers de Data
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
   const day = d.getDay();
   const diff = d.getDate() - day;
   return new Date(d.setDate(diff));
@@ -79,12 +80,55 @@ const getDaysOfWeek = (startDate: Date) => {
   });
 };
 
+/* Ocultado preventivamente para passar no Vercel Build (noUnusedLocals)
+const getDayArray = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  const todayStr = new Date().toDateString();
+  return [{ name: daysList[d.getDay()], dateNum: d.getDate(), fullDate: d, isToday: d.toDateString() === todayStr }];
+};
+
+const getMonthArray = (date: Date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  const todayStr = new Date().toDateString();
+
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - startDate.getDay()); 
+
+  const endDate = new Date(lastDay);
+  if (endDate.getDay() !== 6) {
+    endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
+  }
+
+  const arr = [];
+  let current = new Date(startDate);
+  while (current <= endDate) {
+    arr.push({
+      name: daysList[current.getDay()],
+      dateNum: current.getDate(),
+      fullDate: new Date(current),
+      isToday: current.toDateString() === todayStr,
+      isCurrentMonth: current.getMonth() === month
+    });
+    current.setDate(current.getDate() + 1);
+  }
+  return arr;
+};
+*/
+
 const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
 export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode] = useState<'day' | 'week' | 'month'>('week'); // Mantido como 'week' por padrão
   // Base Rules
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   
@@ -158,7 +202,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const hoursArray = Array.from({ length: (latest - earliest) + 1 }, (_, i) => i + earliest);
 
   const startOfWeekDate = getStartOfWeek(currentDate);
-  const currentWeekDays = getDaysOfWeek(startOfWeekDate);
+  // viewMode is hardcoded to week logic below since day/month are commented
+  const currentWeekDays = getDaysOfWeek(startOfWeekDate); 
 
   const filteredAgendamentos = React.useMemo(() => {
      return agendamentos.filter(ag => {
@@ -235,7 +280,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const reloadDashboardGrid = async () => {
      if (!user) return;
      const startOfWk = currentWeekDays[0].fullDate;
-     const endOfWk = currentWeekDays[6].fullDate;
+     const endOfWk = currentWeekDays[currentWeekDays.length - 1].fullDate;
      
      const { data: ags } = await supabase.from('agendamentos')
          .select('*')
@@ -288,7 +333,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => {
     reloadDashboardGrid();
-  }, [user, currentDate]);
+  }, [user, currentDate, viewMode]);
 
   // Hook Autônomo de Estado Mágico temporal
   useEffect(() => {
@@ -320,8 +365,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => clearInterval(interval);
   }, [user]);
 
-  const handlePrevWeek = () => setCurrentDate(addDays(currentDate, -7));
-  const handleNextWeek = () => setCurrentDate(addDays(currentDate, 7));
+  const handlePrevRange = () => setCurrentDate(addDays(currentDate, -7));
+  const handleNextRange = () => setCurrentDate(addDays(currentDate, 7));
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   const handleToday = () => setCurrentDate(new Date());
@@ -449,11 +494,17 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
           
-          <div className="center" style={{ position: 'relative' }}>
+          <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Ocultado a pedido do usuario: Filtros Dia/Semana/Mês */}
+            {/*<div className="hide-on-mobile" style={{ display: 'flex', gap: '4px', background: 'var(--input-bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <button type="button" onClick={() => setViewMode('day')} style={{ background: viewMode === 'day' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'day' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Dia</button>
+              <button type="button" onClick={() => setViewMode('week')} style={{ background: viewMode === 'week' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'week' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Semana</button>
+              <button type="button" onClick={() => setViewMode('month')} style={{ background: viewMode === 'month' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'month' ? '#fff' : 'var(--text-muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Mês</button>
+            </div>*/}
             <button className="btn-today hide-on-mobile" onClick={handleToday}>Hoje</button>
             <div className="nav-arrows hide-on-mobile">
-              <button className="icon-btn" onClick={handlePrevWeek}>❮</button>
-              <button className="icon-btn" onClick={handleNextWeek}>❯</button>
+              <button className="icon-btn" onClick={handlePrevRange}>❮</button>
+              <button className="icon-btn" onClick={handleNextRange}>❯</button>
             </div>
             <h2 className="month" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0, cursor: 'pointer' }} onClick={() => setShowDatePicker(!showDatePicker)}>
               {formatMonthYear(currentDate)} <span style={{fontSize: '0.6rem', opacity: 0.7}}>▼</span>
@@ -500,88 +551,145 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </aside>
 
-          <main className="dash-main">
-            <div className="cal-header-row">
-              <div className="time-zone">GMT-03</div>
-              <div className="grid-cells-container" style={{ borderBottom: 'none' }}>
-                {currentWeekDays.map((day, i) => (
-                  <div key={i} className="day-col-header">
-                    <span className="day-name">{day.name}</span>
-                    <div className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <main className="dash-main" style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Ocultado a pedido do usuario: viewMode === 'month' */}
+            {/*viewMode === 'month' ? (
+              <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="cal-header-row" style={{ paddingLeft: 0, paddingRight: 0 }}>
+                   {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((d, i) => (
+                     <div key={i} className="day-col-header" style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderRight: '1px solid var(--border-color)' }}>
+                       <span className="day-name">{d}</span>
+                     </div>
+                   ))}
+                </div>
+                <div className="month-grid-body" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: `repeat(${currentWeekDays.length / 7}, 1fr)` }}>
+                   {currentWeekDays.map((dayObj: any, i: number) => {
+                     const dayStr = dayObj.fullDate.toDateString();
+                     const dayAgs = filteredAgendamentos.filter(ag => new Date(ag.data_hora_inicio).toDateString() === dayStr)
+                       .sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
+                     
+                     return (
+                       <div key={i} className="month-cell" style={{ borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', padding: '4px', opacity: dayObj.isCurrentMonth ? 1 : 0.4, minHeight: '100px', display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: dayObj.isToday ? 'rgba(14, 165, 233, 0.05)' : 'transparent', overflow: 'hidden', cursor: 'pointer' }} onClick={() => openSlotModal(dayObj.fullDate, 9)}>
+                         <span style={{ fontSize: '0.85rem', fontWeight: dayObj.isToday ? 700 : 500, color: dayObj.isToday ? 'var(--primary-color)' : 'var(--text-muted)', textAlign: 'right', display: 'block', padding: '4px' }}>
+                           {dayObj.dateNum}
+                         </span>
+                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
+                           {dayAgs.slice(0, 4).map(ag => {
+                             let colorBase = '#0ea5e9';
+                             if (ag.status === 'em andamento') colorBase = '#f59e0b';
+                             if (ag.status === 'finalizado') colorBase = '#10b981';
+                             if (ag.status === 'cancelado') colorBase = '#ef4444';
+                             const obsText = ag.observacao || '';
+                             const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
+                             const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
+                             const isPulse = ag.status === 'em andamento';
 
-            <div className="cal-grid-scroll">
-              <div className="cal-grid">
-                <div className="grid-bg">
-                  {hoursArray.map((hour, idx) => (
-                    <div key={hour} className="grid-row">
-                      <div className="time-label" style={idx === 0 ? { transform: 'translateY(4px)' } : {}}>{hour.toString().padStart(2, '0')}:00</div>
-                      <div className="grid-cells-container">
-                        {currentWeekDays.map((day, i) => (
-                           <div 
-                             key={i} 
-                             className="cal-cell" 
-                             onClick={() => openSlotModal(day.fullDate, hour)}
-                             title={`Agendar ${hour.toString().padStart(2, '0')}:00`}
-                           ></div>
-                        ))}
+                             return (
+                               <div key={ag.id} className={`event-card-month ${isPulse ? 'pulsing' : ''}`} style={{ backgroundColor: `${colorBase}15`, borderLeft: `3px solid ${colorBase}`, padding: '4px', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', borderBottom: `1px solid ${colorBase}40` }} onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
+                                 <strong style={{ color: colorBase }}>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong> {displayClient}
+                               </div>
+                             );
+                           })}
+                           {dayAgs.length > 4 && (
+                              <div 
+                                style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'auto', fontWeight: 600, padding: '4px', cursor: 'pointer', background: 'var(--input-bg)', borderRadius: '4px' }}
+                                onClick={(e) => { e.stopPropagation(); setCurrentDate(dayObj.fullDate); setIsAgendamentosListOpen(true); }}
+                              >
+                                + {dayAgs.length - 4} itens
+                              </div>
+                           )}
+                         </div>
+                       </div>
+                     );
+                   })}
+                </div>
+              </div>
+            ) : (*/}
+              <>
+                <div className="cal-header-row">
+                  <div className="time-zone">GMT-03</div>
+                  <div className="grid-cells-container" style={{ borderBottom: 'none', gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}>
+                    {currentWeekDays.map((day, i) => (
+                      <div key={i} className="day-col-header">
+                        <span className="day-name">{day.name}</span>
+                        <div className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
-                <div className="events-layer">
-                  {filteredAgendamentos.map(ag => {
-                      const ini = new Date(ag.data_hora_inicio);
-                      const fim = new Date(ag.data_hora_fim);
-                      const dayStr = ini.toDateString();
-                      const dIdx = currentWeekDays.findIndex(d => d.fullDate.toDateString() === dayStr);
-                      if (dIdx === -1) return null;
-                      
-                      const startHour = ini.getHours() + ini.getMinutes() / 60;
-                      const endHour = fim.getHours() + fim.getMinutes() / 60;
-                      const topPixels = (startHour - earliest) > 0 ? (startHour - earliest) * 60 : 0;
-                      const rawHeight = (endHour - startHour) * 60;
-                      const clampHeight = rawHeight < 24 ? 24 : rawHeight;
-                      
-                      const { colIndex, numCols } = agStyles[ag.id] || { colIndex: 0, numCols: 1 };
-                      const leftPercent = `calc((100%/7 * ${dIdx}) + (100%/7 / ${numCols} * ${colIndex}) + 2px)`;
-                      const widthPercent = `calc(100%/7 / ${numCols} - 4px)`;
-                      
-                      let colorBase = '#0ea5e9';
-                      if (ag.status === 'em andamento') colorBase = '#f59e0b';
-                      if (ag.status === 'finalizado') colorBase = '#10b981';
-                      if (ag.status === 'cancelado') colorBase = '#ef4444';
-
-                      const isPulse = ag.status === 'em andamento';
-                      const isSmall = clampHeight <= 35;
-                      const obsText = ag.observacao || '';
-                      const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
-                      const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
-                      
-                      return (
-                        <div key={ag.id} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
-                             style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: leftPercent, width: widthPercent, borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
-                             onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
-                          <strong style={{ fontSize: isSmall ? '0.7rem' : '0.75rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: colorBase }}>
-                            {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
-                            {dicServicos[ag.codigo_servico] || 'Serviço'}
-                          </strong>
-                          <span style={{ fontSize: isSmall ? '0.65rem' : '0.7rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', opacity: 0.9 }}>
-                             {!isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - `} 
-                             {displayClient}
-                          </span>
-                          {!isSmall && clampHeight > 45 && <span style={{ fontSize: '0.65rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dicProfs[ag.codigo_profissional] || 'Equipe'}</span>}
-                          {ag.status === 'cancelado' && <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', backgroundColor: '#ef4444', transform: 'translateY(-50%)' }}></div>}
+                <div className="cal-grid-scroll" style={{ flex: 1 }}>
+                  <div className="cal-grid">
+                    <div className="grid-bg">
+                      {hoursArray.map((hour, idx) => (
+                        <div key={hour} className="grid-row">
+                          <div className="time-label" style={idx === 0 ? { transform: 'translateY(4px)' } : {}}>{hour.toString().padStart(2, '0')}:00</div>
+                          <div className="grid-cells-container" style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}>
+                            {currentWeekDays.map((day, i) => (
+                               <div 
+                                 key={i} 
+                                 className="cal-cell" 
+                                 onClick={() => openSlotModal(day.fullDate, hour)}
+                                 title={`Agendar ${hour.toString().padStart(2, '0')}:00`}
+                               ></div>
+                            ))}
+                          </div>
                         </div>
-                      );
-                  })}
+                      ))}
+                    </div>
+
+                    <div className="events-layer">
+                      {filteredAgendamentos.map(ag => {
+                          const ini = new Date(ag.data_hora_inicio);
+                          const fim = new Date(ag.data_hora_fim);
+                          const dayStr = ini.toDateString();
+                          const dIdx = currentWeekDays.findIndex(d => d.fullDate.toDateString() === dayStr);
+                          if (dIdx === -1) return null;
+                          
+                          const startHour = ini.getHours() + ini.getMinutes() / 60;
+                          const endHour = fim.getHours() + fim.getMinutes() / 60;
+                          const topPixels = (startHour - earliest) > 0 ? (startHour - earliest) * 60 : 0;
+                          const rawHeight = (endHour - startHour) * 60;
+                          const clampHeight = rawHeight < 24 ? 24 : rawHeight;
+                          
+                          const { colIndex, numCols } = agStyles[ag.id] || { colIndex: 0, numCols: 1 };
+                          const totalCols = currentWeekDays.length;
+                          const leftPercent = `calc((100%/${totalCols} * ${dIdx}) + (100%/${totalCols} / ${numCols} * ${colIndex}) + 2px)`;
+                          const widthPercent = `calc(100%/${totalCols} / ${numCols} - 4px)`;
+                          
+                          let colorBase = '#0ea5e9';
+                          if (ag.status === 'em andamento') colorBase = '#f59e0b';
+                          if (ag.status === 'finalizado') colorBase = '#10b981';
+                          if (ag.status === 'cancelado') colorBase = '#ef4444';
+
+                          const isPulse = ag.status === 'em andamento';
+                          const isSmall = clampHeight <= 35;
+                          const obsText = ag.observacao || '';
+                          const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
+                          const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
+                          
+                          return (
+                            <div key={ag.id} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
+                                 style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: leftPercent, width: widthPercent, borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
+                                 onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
+                              <strong style={{ fontSize: isSmall ? '0.7rem' : '0.75rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: colorBase }}>
+                                {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
+                                {dicServicos[ag.codigo_servico] || 'Serviço'}
+                              </strong>
+                              <span style={{ fontSize: isSmall ? '0.65rem' : '0.7rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', opacity: 0.9 }}>
+                                 {!isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - `} 
+                                 {displayClient}
+                              </span>
+                              {!isSmall && clampHeight > 45 && <span style={{ fontSize: '0.65rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dicProfs[ag.codigo_profissional] || 'Equipe'}</span>}
+                              {ag.status === 'cancelado' && <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', backgroundColor: '#ef4444', transform: 'translateY(-50%)' }}></div>}
+                            </div>
+                          );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            {/*)}*/}
           </main>
         </div>
       </div>
@@ -744,6 +852,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
       )}
+
+      {/* Botões Flutuantes Apenas para Mobile (Navegação de Dias/Semanas) */}
+      <div className="show-on-mobile" style={{ position: 'fixed', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', zIndex: 50, pointerEvents: 'none' }}>
+        <button onClick={handlePrevRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❮</button>
+        <button onClick={handleNextRange} style={{ pointerEvents: 'auto', background: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.6)', cursor: 'pointer', fontSize: '1.4rem' }}>❯</button>
+      </div>
+
     </>
   );
 }
