@@ -440,15 +440,18 @@
   font-weight: 600;
 }
 .chat-action-btn.menu-btn {
-  background: rgba(255,255,255,0.05);
-  border: 1px dashed rgba(255,255,255,0.2);
-  color: #38bdf8;
+  background: rgba(255, 255, 255, 0.03); /* Mais fosco */
+  backdrop-filter: blur(8px); /* Efeito de vidro fosco */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8; /* Cor mais neutra/fosca */
   margin-top: 8px;
   text-align: center;
+  font-size: 0.85rem;
 }
 .chat-action-btn.menu-btn:hover {
-  background: rgba(56, 189, 248, 0.1);
-  border-color: #38bdf8;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 .send-btn:active {
   transform: scale(0.85);
