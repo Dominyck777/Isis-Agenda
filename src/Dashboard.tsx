@@ -503,14 +503,14 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
           
-          <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px', zIndex: 10 }}>
+          <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', zIndex: 10 }}>
             {/* Nav Controls: Hoje + Arrows (❮ ❯) + Month Year ▼ */}
             <button className="btn-today" onClick={handleToday} style={{ margin: 0, padding: '8px 20px', fontSize: '1rem', borderRadius: '6px', fontWeight: 600 }}>Hoje</button>
             <div className="nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
               <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handlePrevRange}>❮</button>
               <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handleNextRange}>❯</button>
             </div>
-            <h2 className="month" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0, cursor: 'pointer', fontSize: '1.2rem', whiteSpace: 'nowrap' }} onClick={() => setShowDatePicker(!showDatePicker)}>
+            <h2 className="month" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setShowDatePicker(!showDatePicker)}>
               {formatMonthYear(currentDate)} <span style={{fontSize: '0.6rem', opacity: 0.7}}>▼</span>
             </h2>
 
@@ -524,7 +524,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             )}
           </div>
 
-          <div className="right" style={{ gap: '12px' }}>
+          <div className="right">
             <button className="icon-btn" title="Catálogo de Cadastros" onClick={() => setShowServicesPanel(true)}><IFolder /></button>
             <button className="icon-btn" title="Configurações (Requer Admin)" onClick={handleSettingsClick}><ISettings /></button>
             <button className="icon-btn profile-btn" onClick={() => setIsLogoutModalOpen(true)} title="Conta">
@@ -781,7 +781,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       {/* Modal de Lista do Dia (Cancelados Vislumbráveis) */}
       {isAgendamentosListOpen && (
         <div className="modal-overlay" onClick={() => setIsAgendamentosListOpen(false)} style={{ zIndex: 4000 }}>
-           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', padding: '24px', overflowY: 'auto', maxHeight: '90vh' }}>
+           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', padding: '24px', overflowY: 'auto', maxHeight: '90dvh' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                  <div>
                    <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>Lista de Agendamentos</h3>

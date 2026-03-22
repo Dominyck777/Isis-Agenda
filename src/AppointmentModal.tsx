@@ -264,7 +264,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       @media (max-width: 768px) { .resp-grid { grid-template-columns: 1fr; } }
     `}</style>
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 3000 }}>
-      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', padding: '24px', overflowY: 'auto' }}>
+      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95%', maxHeight: '90dvh', padding: '24px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
           <div>
             <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? 'Visualizar / Editar Agendamento' : 'Novo Agendamento na Grade'}</h3>

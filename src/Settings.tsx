@@ -362,18 +362,18 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
             ) : (
               <div className="tab-pane-agenda">
                 <h3>Grade e Horários de Trabalho</h3>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '12px', fontSize: '0.95rem' }}>Defina o <strong>expediente comercial</strong> para a Inteligência Artificial (Isis). A Ísis usará essas restrições para bloquear ou permitir marcações de clientes. <br/><span style={{ color: '#0ea5e9' }}>Note que Professiolais e Sócios utilizando este painel têm poder irrestrito para marcar clientes a qualquer momento, mesmo fora destes horários.</span></p>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '12px', fontSize: '0.95rem' }}>Defina o <strong>expediente comercial</strong> para a Inteligência Artificial (Isis). A Ísis usará essas restrições para bloquear ou permitir marcações de clientes.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {configAgenda?.horarios?.map((h: any, i: number) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', gap: '16px', flexWrap: 'wrap' }}>
-                      <div style={{ width: '150px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input type="checkbox" id={`chk-${i}`} checked={h.aberto} onChange={e => updateHorario(i, 'aberto', e.target.checked)} style={{ cursor: 'pointer', width: '18px', height: '18px' }} />
-                        <label htmlFor={`chk-${i}`} style={{ color: h.aberto ? '#fff' : 'var(--text-muted)', fontWeight: h.aberto ? 600 : 400, cursor: 'pointer' }}>{h.nome}</label>
-                      </div>
+                       <div className="checkbox-wrapper">
+                         <input type="checkbox" className="custom-chk-input" id={`chk-${i}`} checked={h.aberto} onChange={e => updateHorario(i, 'aberto', e.target.checked)} />
+                         <label htmlFor={`chk-${i}`} className="custom-chk-label">{h.nome}</label>
+                       </div>
                       {h.aberto ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="time-select-group">
                           <input type="time" value={h.inicio || '08:00'} onChange={e => updateHorario(i, 'inicio', e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
-                          <span style={{ color: 'var(--text-muted)' }}>até as</span>
+                          <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>até as</span>
                           <input type="time" value={h.fim || '18:00'} onChange={e => updateHorario(i, 'fim', e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
                         </div>
                       ) : (

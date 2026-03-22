@@ -1,8 +1,8 @@
 .dash-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100dvw;
   background-color: var(--bg-color);
   color: var(--text-main);
   overflow: hidden;
@@ -15,6 +15,8 @@
   padding: 0 16px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--surface-color);
+  position: relative;
+  z-index: 1000;
 }
 .left, .center, .right {
   display: flex;
@@ -180,8 +182,8 @@
 }
 
 .time-zone {
-  width: 60px;
-  min-width: 60px;
+  width: 45px;
+  min-width: 45px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -230,8 +232,8 @@
 }
 
 .time-label {
-  width: 60px;
-  min-width: 60px;
+  width: 45px;
+  min-width: 45px;
   text-align: right;
   padding-right: 8px;
   font-size: 0.7rem;
@@ -265,7 +267,7 @@
 .events-layer {
   position: absolute;
   top: 0;
-  left: 60px;
+  left: 45px;
   right: 0;
   bottom: 0;
   pointer-events: none;
@@ -383,12 +385,13 @@
   
   /* Text and Icon Adjustments */
   .btn-today { display: none; }
-  .month { font-size: 1.15rem; min-width: auto; }
-  .logo span { display: none; } /* Hide 'Isis Agenda' text to save space */
+  .month { font-size: 1rem; min-width: auto; margin-left: 4px; }
+  .logo { display: none !important; } /* Hide logo on mobile to save space */
+  .logo span { display: none; } 
   
-  .icon-btn { width: 36px; height: 36px; padding: 6px; }
-  .left, .right, .center { gap: 6px; }
-  .dash-header { padding: 0 24px; }
+  .icon-btn { width: 32px; height: 32px; padding: 4px; }
+  .left, .right, .center { gap: 4px; }
+  .dash-header { padding: 0 12px; }
 
   /* Main now handles both X and Y scrolling natively, keeping sticky headers attached */
   .cal-header-row, .cal-grid-scroll { min-width: 600px; }
