@@ -1,0 +1,45 @@
+{
+  "nomeProjeto": "Isis Agenda",
+  "descricao": "Sistema de Agendamentos para Salões de Beleza e similares",
+  "bancoDeDados": "Supabase (PostgreSQL)",
+  "tabelas": [
+    {
+      "nome": "empresas",
+      "descricao": "Gerencia as empresas que utilizam a plataforma",
+      "colunas": [
+        {"nome": "codigo", "tipo": "BIGINT", "detalhes": "Primary Key, Auto Increment (Inicia em 1000)"},
+        {"nome": "nome_exibicao", "tipo": "VARCHAR", "detalhes": "Nome visível na tela da assistente Isis"},
+        {"nome": "nome_fantasia", "tipo": "VARCHAR", "detalhes": "Nome Fantasia da empresa"},
+        {"nome": "cnpj", "tipo": "VARCHAR", "detalhes": "CNPJ da empresa (Unique)"},
+        {"nome": "telefone", "tipo": "VARCHAR", "detalhes": "Telefone de contato"},
+        {"nome": "email", "tipo": "VARCHAR", "detalhes": "E-mail de contato"},
+        {"nome": "endereco", "tipo": "TEXT", "detalhes": "Endereço completo"},
+        {"nome": "logo_url", "tipo": "TEXT", "detalhes": "URL da logo do salão"}
+      ]
+    },
+    {
+      "nome": "usuarios",
+      "descricao": "Gerencia os usuários (donos e funcionários) do sistema por empresa com autenticação customizada",
+      "colunas": [
+        {"nome": "codigo", "tipo": "BIGINT", "detalhes": "Primary Key, Auto Increment"},
+        {"nome": "ativo", "tipo": "BOOLEAN", "detalhes": "Status do usuário no sistema"},
+        {"nome": "nome", "tipo": "VARCHAR", "detalhes": "Nome completo"},
+        {"nome": "email", "tipo": "VARCHAR", "detalhes": "E-mail para login (Unique)"},
+        {"nome": "senha", "tipo": "VARCHAR", "detalhes": "Senha gerida manualmente pela aplicação (Hash)"},
+        {"nome": "is_admin", "tipo": "BOOLEAN", "detalhes": "Define se o usuário possui privilégios de Administrador na empresa (TRUE=Sim, FALSE=Não)"},
+        {"nome": "codigo_empresa", "tipo": "BIGINT", "detalhes": "Foreign Key vinculando à tabela empresas(codigo)"}
+      ]
+    },
+    {
+      "nome": "servicos",
+      "descricao": "Gerencia os serviços prestados pelas empresas",
+      "colunas": [
+        {"nome": "codigo", "tipo": "BIGINT", "detalhes": "Primary Key, Auto Increment"},
+        {"nome": "ativo", "tipo": "BOOLEAN", "detalhes": "Indica se o serviço ainda é oferecido"},
+        {"nome": "nome", "tipo": "VARCHAR", "detalhes": "Nome do serviço a ser prestado"},
+        {"nome": "valor", "tipo": "NUMERIC", "detalhes": "Valor cobrado pelo serviço"},
+        {"nome": "codigo_empresa", "tipo": "BIGINT", "detalhes": "Foreign Key vinculando à tabela empresas(codigo)"}
+      ]
+    }
+  ]
+}
