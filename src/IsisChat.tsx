@@ -77,7 +77,15 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [registrationData, setRegistrationData] = useState({ nome: '', telefone: '', email: '' });
   const [isTyping, setIsTyping] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [cliente, setCliente] = useState<any>(null);
+  const [cliente, _setCliente] = useState<any>(null);
+  const clienteRef = useRef<any>(null);
+  const [editingAg, setEditingAg] = useState<any>(null);
+
+  const setCliente = (val: any) => {
+    _setCliente(val);
+    clienteRef.current = val;
+  };
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -243,8 +251,19 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             setCliente(cliData); // Added this line
             setStep('actions');
             const firstName = (cliData.nome || '').split(' ')[0];
-            showMenu(`Que bom te ver de novo, **${firstName}**! 😊`);
+            
+            const greetings = [
+              `Que bom te ver de novo, **${firstName}**! 😊`,
+              `Que alegria te ver por aqui de novo, **${firstName}**! 😊`,
+              `Oi **${firstName}**, que bom que você voltou! Vamos agendar algo novo? 💜`,
+              `Seja bem-vindo(a) de volta, **${firstName}**! Como posso te ajudar hoje? ✨`,
+              `Olá **${firstName}**, é um prazer te atender novamente! 😊`
+            ];
+            const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
+            showMenu(randomGreet);
          } else {
+            setCliente(null);
+            setEditingAg(null);
             setStep('registration');
             setTimeout(() => scrollToBottom('smooth'), 100);
             setRegistrationData({
@@ -257,13 +276,22 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                id: Date.now() + 1, sender: 'isis',
                time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
                text: "Ops! Não encontrei o seu cadastro ainda. Mas não tem problema! 😊 Vamos fazer agora rapidinho para você poder agendar?",
-               actions: <div style={{ height: '8px' }}></div> // Place holder for "active" state to be cleaned
+               actions: <div style={{ height: '8px' }}></div>
             }]);
          }
       }, 2000);
   };
 
+  const handleWrongNumber = () => {
+    setCliente(null);
+    setEditingAg(null);
+    setStep('identification');
+    setInputVal('');
+    if (empresa) startWelcomeFlow(empresa);
+  };
+
   const showMenu = (customGreeting?: string) => {
+    setEditingAg(null);
     setIsTyping(true);
     setTimeout(() => {
        setIsTyping(false);
@@ -275,8 +303,9 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
           actions: (
             <div className="action-buttons-grid">
                <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
-               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📝 Editar agendamento'); }}>📝 Editar agendamento</button>
-               <button className="chat-action-btn cancel-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Finalizar agendamento'); }}>Finalizar agendamento</button>
+               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
+               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Informei o número errado'); handleWrongNumber(); }}>📱 Informei o número errado</button>
+               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
             </div>
           )
        }]);
@@ -298,7 +327,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       "Qual desses serviços você quer agendar?"
     ];
     const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
-    const finalGreet = customGreeting ? `${customGreeting} ${randomGreet}` : randomGreet;
+    const finalGreet = customGreeting || randomGreet;
 
     setIsTyping(true);
     setTimeout(() => {
@@ -419,8 +448,8 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         }
 
         const slots: string[] = [];
-        let curTimeStr = dayConfig.inicio || '08:00';
-        const endTimeStr = dayConfig.fim || '18:00';
+        let curTimeStr = dayConfig.inicio || '07:00';
+        const endTimeStr = dayConfig.fim || '22:00';
         const duracaoSvc = service.duracao_minutos || 30;
 
         const timeToMinutes = (t: string) => {
@@ -462,8 +491,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            currentMinutes += 15;
         }
 
-        const displaySlots = slots.slice(0, 15);
-
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
@@ -471,15 +498,25 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            text: `Encontrei estes horários disponíveis para **${service.nome}** com **${professional.nome}** no dia **${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}**:`,
            actions: (
               <div className="action-buttons-grid">
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {displaySlots.map(t => (
-                       <button key={t} className="chat-action-btn" style={{ textAlign: 'center' }} type="button" onClick={() => { clearLastIsisActions(); addUserMessage(`Quero para às ${t}`); handleConfirmAppointmentFlow(service, professional, date, t); }}>
-                          {t}
-                       </button>
-                    ))}
-                 </div>
-                 {slots.length > 15 && <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', marginTop: '4px' }}>Exibindo os primeiros 15 horários...</div>}
-                 {slots.length === 0 && (
+                 {slots.length > 0 ? (
+                    <div className="select-slot-wrapper">
+                       <select 
+                          className="chat-action-select" 
+                          defaultValue="" 
+                          onChange={(e) => {
+                             const val = e.target.value;
+                             if (val) {
+                                clearLastIsisActions();
+                                addUserMessage(`Quero para às ${val}`);
+                                handleConfirmAppointmentFlow(service, professional, date, val);
+                             }
+                          }}
+                       >
+                          <option value="" disabled>Selecione um horário...</option>
+                          {slots.map(t => <option key={t} value={t}>{t}</option>)}
+                       </select>
+                    </div>
+                 ) : (
                     <div style={{ fontSize: '0.9rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '8px', gridColumn: '1 / -1' }}>
                        Puxa, não encontrei nenhum horário livre para este dia. 😔<br/>
                        <small style={{ opacity: 0.8 }}>Horário atual em Brasília: {nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</small>
@@ -678,23 +715,46 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      const duracao = service.duracao_minutos || 30;
      const endObj = new Date(startObj.getTime() + duracao * 60000);
 
-     try {
-        // Gerar próximo código seqüencial para a empresa
-        const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
-        const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+     const currentCliente = cliente || clienteRef.current;
 
-        const { error } = await supabase.from('agendamentos').insert({
-           codigo: nextCod,
-           codigo_empresa: empresa.codigo,
-           codigo_servico: service.codigo,
-           codigo_cliente: cliente.id,
-           codigo_profissional: professional.codigo,
-           data_hora_inicio: startObj.toISOString(),
-           data_hora_fim: endObj.toISOString(),
-           status: 'agendado',
-           observacao: '✨ Agendamento realizado via Assistente Ísis',
-           isis_criou: true
-        });
+      if (!currentCliente) {
+         console.error('Erro: Cliente não identificado no momento da conclusão.');
+         toast('Ops! Tivemos um problema para identificar seu cadastro. Pode tentar informar seu telefone novamente?', 'error');
+         setStep('identification');
+         setIsTyping(false);
+         return;
+      }
+
+      try {
+         let error;
+         if (editingAg) {
+            const { error: err } = await supabase.from('agendamentos').update({
+               codigo_servico: service.codigo,
+               codigo_profissional: professional.codigo,
+               data_hora_inicio: startObj.toISOString(),
+               data_hora_fim: endObj.toISOString(),
+               observacao: '✨ Agendamento alterado via Assistente Ísis',
+            }).eq('id', editingAg.id);
+            error = err;
+         } else {
+            // Gerar próximo código seqüencial para a empresa
+            const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
+            const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+
+            const { error: err } = await supabase.from('agendamentos').insert({
+               codigo: nextCod,
+               codigo_empresa: empresa.codigo,
+               codigo_servico: service.codigo,
+               codigo_cliente: currentCliente.id,
+               codigo_profissional: professional.codigo,
+               data_hora_inicio: startObj.toISOString(),
+               data_hora_fim: endObj.toISOString(),
+               status: 'agendado',
+               observacao: '✨ Agendamento realizado via Assistente Ísis',
+               isis_criou: true
+            });
+            error = err;
+         }
 
         if (error) {
            console.error('Erro ao gravar agendamento:', error);
@@ -727,10 +787,12 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            ),
            actions: (
               <div className="action-buttons-grid">
-                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
+                  <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
               </div>
            )
-        }]);
+         }]);
         setTimeout(() => scrollToBottom('smooth'), 100);
 
      } catch (err) {
@@ -798,7 +860,15 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
              clearLastIsisActions(); // Limpa as ações (pergunta) da Isis após o cadastro
              setStep('actions');
              const firstName = registrationData.nome.split(' ')[0];
-             handleServiceSelectionFlow(`Perfeito, **${firstName}**! Cadastro realizado com sucesso. 🚀`);
+
+             const greetings = [
+              `Perfeito, **${firstName}**! Cadastro realizado com sucesso. 🚀`,
+              `Tudo pronto, **${firstName}**! Seu cadastro foi feito. 😊`,
+              `Show, **${firstName}**! Agora você já pode agendar seus horários. ✨`,
+              `Maravilha! **${firstName}**, seu cadastro está confirmadíssimo. 👍`
+             ];
+             const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
+             handleServiceSelectionFlow(randomGreet);
              setIsRegistering(false); 
           }, 1000);
 
@@ -808,6 +878,157 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setIsRegistering(false);
       }
   };
+
+   const handleFinalizeAtendimento = () => {
+      setIsTyping(true);
+      setTimeout(() => {
+         setIsTyping(false);
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            text: <>Foi um prazer te atender! Se precisar de algo mais, é só me chamar. Tenha um ótimo dia! 😊✨<br/><br/><strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
+
+   const handleCancelAppointmentFlow = async (ag: any) => {
+      setIsTyping(true);
+      setTimeout(async () => {
+         const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', ag.id);
+         setIsTyping(false);
+         if (error) {
+            toast('Erro ao cancelar agendamento.', 'error');
+            return;
+         }
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            status: 'success',
+            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            text: "Seu agendamento foi **cancelado com sucesso**. ✅",
+            actions: (
+               <div className="action-buttons-grid">
+                  <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
+               </div>
+            )
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
+
+   const handleEditAppointmentFlow = async () => {
+      const currentCli = cliente || clienteRef.current;
+      if (!currentCli) return;
+
+      setIsTyping(true);
+      const now = new Date().toISOString();
+
+      // 1. Fetch agendamentos (Simple query to avoid 400 join error)
+      const { data: rawAgs } = await supabase.from('agendamentos')
+         .select('*')
+         .eq('codigo_cliente', currentCli.id)
+         .eq('codigo_empresa', empresa.codigo)
+         .not('status', 'eq', 'cancelado')
+         .gte('data_hora_inicio', now)
+         .order('data_hora_inicio', { ascending: true });
+
+      setTimeout(async () => {
+         setIsTyping(false);
+         if (!rawAgs || rawAgs.length === 0) {
+            setMessages(prev => [...prev, {
+               id: Date.now(),
+               sender: 'isis',
+               time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+               text: "Você não tem nenhum agendamento futuro no momento. 😕 Deseja fazer um novo?",
+               actions: (
+                  <div className="action-buttons-grid">
+                     <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
+                     <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu(); }}>🏠 Menu Principal</button>
+                  </div>
+               )
+            }]);
+            return;
+         }
+
+         // 2. Fetch dependencies manually
+         const svcIds = [...new Set(rawAgs.map(ag => ag.codigo_servico))];
+         const profIds = [...new Set(rawAgs.map(ag => ag.codigo_profissional))];
+
+         const { data: svcs } = await supabase.from('servicos').select('*').in('codigo', svcIds);
+         const { data: profs } = await supabase.from('usuarios').select('*').in('codigo', profIds);
+
+         // 3. Map dependencies
+         const ags = rawAgs.map(ag => ({
+            ...ag,
+            servicos: svcs?.find(s => s.codigo === ag.codigo_servico),
+            usuarios: profs?.find(p => p.codigo === ag.codigo_profissional)
+         }));
+
+         if (ags.length === 1) {
+            handleReviewAppointmentFlow(ags[0]);
+         } else {
+            setMessages(prev => [...prev, {
+               id: Date.now(),
+               sender: 'isis',
+               time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+               text: "Você tem mais de um agendamento. Qual deles você deseja **revisar**?",
+               actions: (
+                  <div className="action-buttons-grid">
+                     {ags.map((ag: any) => (
+                        <button key={ag.id} className="chat-action-btn" type="button" onClick={() => { 
+                           clearLastIsisActions(); 
+                           addUserMessage(`Revisar: ${new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')} - ${ag.servicos?.nome}`);
+                           handleReviewAppointmentFlow(ag);
+                        }}>
+                           {new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')} às {new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - {ag.servicos?.nome}
+                        </button>
+                     ))}
+                     <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu(); }}>🏠 Menu Principal</button>
+                  </div>
+               )
+            }]);
+         }
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
+
+   const handleReviewAppointmentFlow = (ag: any) => {
+      setEditingAg(ag);
+      setIsTyping(true);
+      setTimeout(() => {
+         setIsTyping(false);
+         const svc = ag.servicos;
+         const prof = ag.usuarios;
+         const valorFormatado = parseFloat(svc?.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            text: (
+               <>
+                  Perfeito! Vamos revisar seu agendamento:<br/><br/>
+                  📅 <strong>{new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')}</strong> às <strong>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong><br/>
+                  ✨ <strong>{svc?.nome}</strong><br/>
+                  👤 <strong>{prof?.nome}</strong><br/>
+                  💰 Valor: <strong>{valorFormatado}</strong><br/><br/>
+                  O que você deseja fazer agora?
+               </>
+            ),
+            actions: (
+               <div className="action-buttons-grid">
+                  <button className="chat-action-btn pri" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Tudo certo! ✅'); showMenu('Maravilha! Agendamento revisado. Deseja algo mais?'); }}>Tudo certo! ✅</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📝 Editar agendamento'); handleServiceSelectionFlow("Vamos ajustar seu agendamento. Qual serviço você prefere agora?"); }}>📝 Editar agendamento</button>
+                  <button className="chat-action-btn cancel-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('❌ Cancelar agendamento'); handleCancelAppointmentFlow(ag); }}>❌ Cancelar agendamento</button>
+                  <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu(); }}>🏠 Menu Principal</button>
+               </div>
+            )
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
 
   if (loadingState === 'fetching' || (!empresa && loading)) return <div className="isis-container" style={{ backgroundColor: '#0d0d0f' }}></div>;
   if (!empresa) return <div className="isis-container" style={{ justifyContent: 'center', color: '#ef4444' }}><h2>Empresa "{decodedNome}" não encontrada.</h2></div>;
