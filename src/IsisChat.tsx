@@ -1,10 +1,67 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
+import { toast } from './Toast';
 import './IsisChat.css';
 
 const ISend = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ transform: 'rotate(90deg)' }}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>;
 const IEmail = () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>;
 const IPhone = () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.896-1.596-5.273-3.973-6.869-6.869l1.293-.97c.362-.271.527-.733.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>;
+const ICalendar = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>;
+const IArrowLeft = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>;
+const IArrowRight = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>;
+
+const Calendar = ({ value, onChange, onClose }: any) => {
+  const [viewDate, setViewDate] = useState(new Date());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const changeMonth = (offset: number) => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
+  };
+
+  const days = [];
+  const totalDays = daysInMonth(viewDate.getFullYear(), viewDate.getMonth());
+  const startOffset = firstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
+
+  for (let i = 0; i < startOffset; i++) days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+  for (let i = 1; i <= totalDays; i++) {
+    const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), i);
+    const isPast = d < today;
+    const isSelected = value === d.toISOString().split('T')[0];
+    const isToday = d.getTime() === today.getTime();
+
+    days.push(
+      <div 
+        key={i} 
+        className={`calendar-day ${isPast ? 'disabled' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
+        onClick={() => !isPast && (onChange(d.toISOString().split('T')[0]), onClose())}
+      >
+        {i}
+      </div>
+    );
+  }
+
+  return (
+    <div className="custom-calendar" onClick={e => e.stopPropagation()}>
+      <div className="calendar-header">
+        <button type="button" onClick={() => changeMonth(-1)}><IArrowLeft /></button>
+        <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
+        <button type="button" onClick={() => changeMonth(1)}><IArrowRight /></button>
+      </div>
+      <div className="calendar-weekdays">
+        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d}>{d}</div>)}
+      </div>
+      <div className="calendar-grid">
+        {days}
+      </div>
+    </div>
+  );
+};
 
 export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [empresa, setEmpresa] = useState<any>(null);
@@ -20,6 +77,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   const [registrationData, setRegistrationData] = useState({ nome: '', telefone: '', email: '' });
   const [isTyping, setIsTyping] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [cliente, setCliente] = useState<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -177,12 +235,12 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       } else {
           query = query.ilike('email', userMsg.trim());
       }
-
       const { data: cliData } = await query.single();
       
       setTimeout(() => {
          setIsTyping(false);
          if (cliData) {
+            setCliente(cliData); // Added this line
             setStep('actions');
             const firstName = (cliData.nome || '').split(' ')[0];
             showMenu(`Que bom te ver de novo, **${firstName}**! 😊`);
@@ -271,7 +329,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     
     // Filtra profissionais habilitados para este serviço
     const allowedProfs = professionals.filter(p => 
-       (service.profissionais_habilitados || []).includes(p.codigo)
+       (service.profissionais_habilitados || []).map(String).includes(String(p.codigo))
     );
 
     if (allowedProfs.length === 1) {
@@ -311,47 +369,122 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      setIsTyping(true);
      
      try {
-        // 1. Busca configurações da empresa/profissional
-        const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
-        // 2. Busca agendamentos do dia
-        const { data: appts } = await supabase.from('agendamentos').select('*').eq('codigo_empresa', empresa.codigo).eq('data', date).neq('status', 'cancelado');
-        
-        // Lógica simplificada de horários (aqui você pode integrar sua lógica real de AppointmentModal)
-        const slots: string[] = [];
-        let cur = config?.hora_inicio || '08:00';
-        const end = config?.hora_fim || '18:00';
-        const intervalStart = config?.intervalo_inicio;
-        const intervalEnd = config?.intervalo_fim;
-
-        const addMinutes = (time: string, mins: number) => {
-           const [h, m] = time.split(':').map(Number);
-           const total = h * 60 + m + mins;
-           return `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
+        // --- TRATAMENTO DE TIMEZONE (Horário de Brasília: UTC-3) ---
+        // Helper para criar data em UTC-3
+        const getBrasiliaDate = (base?: string | Date) => {
+           const d = base ? new Date(base) : new Date();
+           // Converte para o tempo de Brasília compensando o fuso local do dispositivo
+           const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+           return new Date(utc + (3600000 * -3));
         };
 
-        while (cur < end) {
-           const isInterval = intervalStart && cur >= intervalStart && cur < intervalEnd;
-           const isTaken = appts?.some(a => a.profissional_codigo === professional.codigo && a.hora === cur);
-           
-           if (!isInterval && !isTaken) slots.push(cur);
-           cur = addMinutes(cur, 30); // Usando 30 min como step padrão de grade
+        const now = new Date();
+        const nowBR = getBrasiliaDate();
+        
+        // 1. Busca configurações da empresa
+        const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
+        
+        // 2. Busca agendamentos do dia (usando range de 24h em Brasília)
+        const startOfDay = `${date}T00:00:00-03:00`;
+        const endOfDay = `${date}T23:59:59-03:00`;
+        
+        const { data: appts } = await supabase.from('agendamentos')
+           .select('*')
+           .eq('codigo_empresa', empresa.codigo)
+           .eq('codigo_profissional', professional.codigo)
+           .neq('status', 'cancelado')
+           .gte('data_hora_inicio', startOfDay)
+           .lte('data_hora_inicio', endOfDay);
+        
+        // 3. Determina dia da semana (Brasília)
+        const [y, m, d] = date.split('-').map(Number);
+        const slotDayDate = new Date(y, m - 1, d, 12, 0, 0); 
+        const dayOfWeek = slotDayDate.getDay(); 
+
+        const dayConfig = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+
+        if (!dayConfig || !dayConfig.aberto) {
+           setMessages(prev => [...prev, {
+              id: Date.now(),
+              sender: 'isis',
+              time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+              text: `Puxa, o estabelecimento ou o profissional não atende aos **${dayConfig?.nome || 'domingos'}**. 😕 Deseja escolher outro dia?`,
+              actions: (
+                 <div className="action-buttons-grid">
+                    <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(service, professional); }}>📅 Escolher outro dia</button>
+                 </div>
+              )
+           }]);
+           return;
         }
+
+        const slots: string[] = [];
+        let curTimeStr = dayConfig.inicio || '08:00';
+        const endTimeStr = dayConfig.fim || '18:00';
+        const duracaoSvc = service.duracao_minutos || 30;
+
+        const timeToMinutes = (t: string) => {
+           const [h, min] = t.split(':').map(Number);
+           return h * 60 + min;
+        };
+
+        const minutesToTime = (min: number) => {
+           const h = Math.floor(min / 60);
+           const minRem = min % 60;
+           return `${h.toString().padStart(2, '0')}:${minRem.toString().padStart(2, '0')}`;
+        };
+
+        let currentMinutes = timeToMinutes(curTimeStr);
+        const endMinutes = timeToMinutes(endTimeStr);
+
+        while (currentMinutes + duracaoSvc <= endMinutes) {
+           const tStr = minutesToTime(currentMinutes);
+           const slotStart = new Date(`${date}T${tStr}:00-03:00`);
+           const slotEnd = new Date(slotStart.getTime() + duracaoSvc * 60000);
+
+           // Regra 1: Horário já passou (comparado no tempo real)?
+           if (slotStart <= now) {
+              currentMinutes += 15;
+              continue;
+           }
+
+           // Regra 2: Conflito com agendamentos?
+           const hasConflict = appts?.some(ag => {
+              const agStart = new Date(ag.data_hora_inicio);
+              const agEnd = new Date(ag.data_hora_fim);
+              return (slotStart < agEnd && slotEnd > agStart);
+           });
+
+           if (!hasConflict) {
+              slots.push(tStr);
+           }
+           
+           currentMinutes += 15;
+        }
+
+        const displaySlots = slots.slice(0, 15);
 
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
-           time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: `Para o dia **${new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}**, encontrei estes horários livres:`,
+           time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+           text: `Encontrei estes horários disponíveis para **${service.nome}** com **${professional.nome}** no dia **${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}**:`,
            actions: (
               <div className="action-buttons-grid">
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {slots.map(t => (
+                    {displaySlots.map(t => (
                        <button key={t} className="chat-action-btn" style={{ textAlign: 'center' }} type="button" onClick={() => { clearLastIsisActions(); addUserMessage(`Quero para às ${t}`); handleConfirmAppointmentFlow(service, professional, date, t); }}>
                           {t}
                        </button>
                     ))}
                  </div>
-                 {slots.length === 0 && <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>Não há horários disponíveis para este dia.</div>}
+                 {slots.length > 15 && <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', marginTop: '4px' }}>Exibindo os primeiros 15 horários...</div>}
+                 {slots.length === 0 && (
+                    <div style={{ fontSize: '0.9rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '8px', gridColumn: '1 / -1' }}>
+                       Puxa, não encontrei nenhum horário livre para este dia. 😔<br/>
+                       <small style={{ opacity: 0.8 }}>Horário atual em Brasília: {nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</small>
+                    </div>
+                 )}
                  <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(service, professional, "Escolha outro dia:"); }}>📅 Mudar Dia</button>
               </div>
            )
@@ -360,13 +493,15 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
      } catch (err) {
         console.error('Erro ao carregar horários:', err);
+        toast('Ops! Tive um problema ao carregar os horários. Tente novamente.', 'error');
      } finally {
         setIsTyping(false);
      }
   };
 
+
+
   const handleDateTimeSelectionFlow = (service: any, professional: any, customGreeting?: string) => {
-     
      const greetPrefix = customGreeting ? `${customGreeting} ` : '';
      const finalGreet = `${greetPrefix}Show! Você escolheu **${service.nome}** com **${professional.nome}**. Qual **dia** fica melhor pra você?`;
 
@@ -378,27 +513,134 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            sender: 'isis',
            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
            text: finalGreet,
-           actions: (
-              <div className="action-buttons-grid">
-                 <input 
-                    type="date" 
-                    className="chat-action-btn" 
-                    style={{ background: 'rgba(255,255,255,0.05)', color: '#fff' }}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => { clearLastIsisActions(); addUserMessage(`Escolhi o dia ${new Date(e.target.value + 'T00:00:00').toLocaleDateString('pt-BR')}`); loadAvailableTimes(e.target.value, service, professional); }} 
-                 />
-                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Mudar Profissional'); handleProfessionalSelectionFlow(service); }}>⬅️ Mudar Profissional</button>
-              </div>
-           )
+           actions: <DateActions service={service} professional={professional} />
         }]);
         setTimeout(() => scrollToBottom('smooth'), 100);
      }, 1200);
+  };
+
+  const DateActions = ({ service, professional }: any) => {
+     const [showCustom, setShowCustom] = useState(false);
+     const [showCalendar, setShowCalendar] = useState(false);
+     const [dateInput, setDateInput] = useState('');
+     const [dateError, setDateError] = useState('');
+
+     // Filtra profissionais habilitados para este serviço para saber se mostramos o botão de mudar
+     const allowedProfsCount = professionals.filter(p => 
+        (service.profissionais_habilitados || []).map(String).includes(String(p.codigo))
+     ).length;
+
+     const handleQuickDate = (days: number, label: string) => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        const iso = d.toLocaleDateString('en-CA');
+        clearLastIsisActions();
+        addUserMessage(label);
+        loadAvailableTimes(iso, service, professional);
+     };
+
+     const validateDate = (dateStr: string) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+        
+        const selected = new Date(dateStr + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        if (selected < today) {
+           setDateError("Puxa, essa data já passou! 😅 Escolha uma data de hoje em diante.");
+           return false;
+        }
+        setDateError('');
+        return true;
+     };
+
+     const handleCustomDateSubmit = (dateStr: string) => {
+        if (!validateDate(dateStr)) return;
+
+        clearLastIsisActions();
+        addUserMessage(`Escolhi o dia ${new Date(dateStr + 'T00:00:00').toLocaleDateString('pt-BR')}`);
+        loadAvailableTimes(dateStr, service, professional);
+     };
+
+     if (!showCustom) {
+        return (
+           <div className="action-buttons-grid">
+              <button className="chat-action-btn" type="button" onClick={() => handleQuickDate(0, 'Hoje')}>Hoje</button>
+              <button className="chat-action-btn" type="button" onClick={() => handleQuickDate(1, 'Amanhã')}>Amanhã</button>
+              <button className="chat-action-btn" type="button" onClick={() => setShowCustom(true)}>📅 Outro dia</button>
+              
+              {allowedProfsCount > 1 && (
+                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Mudar Profissional'); handleProfessionalSelectionFlow(service); }}>⬅️ Mudar Profissional</button>
+              )}
+              
+              <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('🏠 Menu Principal'); showMenu(); }}>🏠 Menu Principal</button>
+           </div>
+        );
+     }
+
+     return (
+        <div className="action-buttons-grid">
+           <div className="date-input-container" style={{ position: 'relative' }}>
+              <input 
+                 type="text" 
+                 className="chat-action-btn date-input-field" 
+                 placeholder="Digite a data: DD/MM/AAAA"
+                 value={dateInput}
+                 onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (v.length > 8) v = v.slice(0, 8);
+                    if (v.length > 4) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
+                    else if (v.length > 2) v = `${v.slice(0,2)}/${v.slice(2)}`;
+                    setDateInput(v);
+                    
+                    if (v.length === 10) {
+                       const [d, m, y] = v.split('/');
+                       validateDate(`${y}-${m}-${d}`);
+                    } else {
+                       setDateError('');
+                    }
+                 }} 
+              />
+              <button type="button" className="calendar-trigger-btn" onClick={() => setShowCalendar(!showCalendar)}>
+                 <ICalendar />
+              </button>
+              {dateInput.length === 10 && !dateError && (
+                 <button type="button" className="confirm-date-btn" onClick={() => {
+                    const [d, m, y] = dateInput.split('/');
+                    handleCustomDateSubmit(`${y}-${m}-${d}`);
+                 }}>
+                    Confirmar
+                 </button>
+              )}
+
+              {showCalendar && (
+                 <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 1001, width: '100%' }}>
+                     <Calendar 
+                        value={dateInput.length === 10 ? `${dateInput.split('/')[2]}-${dateInput.split('/')[1]}-${dateInput.split('/')[0]}` : new Date().toLocaleDateString('en-CA')} 
+                       onChange={(d: string) => { 
+                          const [y, m, day] = d.split('-');
+                          setDateInput(`${day}/${m}/${y}`); 
+                          handleCustomDateSubmit(d); 
+                       }}
+                       onClose={() => setShowCalendar(false)}
+                    />
+                 </div>
+              )}
+           </div>
+           
+           {dateError && <div className="date-error-msg">{dateError}</div>}
+
+           <button className="chat-action-btn menu-btn" type="button" onClick={() => { setShowCustom(false); setDateError(''); setDateInput(''); }}>⬅️ Voltar</button>
+           <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('🏠 Menu Principal'); showMenu(); }}>🏠 Menu Principal</button>
+        </div>
+     );
   };
 
   const handleConfirmAppointmentFlow = (service: any, professional: any, date: string, time: string) => {
      setIsTyping(true);
      setTimeout(() => {
         setIsTyping(false);
+        const valorFormatado = parseFloat(service.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
@@ -406,21 +648,95 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            text: (
               <>
                  Confirmando seu agendamento:<br/><br/>
-                 📅 **{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}** às **{time}**<br/>
-                 ✨ **{service.nome}**<br/>
-                 👤 **{professional.nome}**<br/><br/>
+                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> às <strong>{time}</strong><br/>
+                 ✨ <strong>{service.nome}</strong><br/>
+                 👤 <strong>{professional.nome}</strong><br/>
+                 💰 Valor: <strong>{valorFormatado}</strong><br/><br/>
                  Posso confirmar?
               </>
            ),
            actions: (
               <div className="action-buttons-grid">
-                 <button className="chat-action-btn pri" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Sim, pode confirmar! ✅'); alert('Agendamento finalizado com sucesso! 🎉'); }}>✅ Confirmar Agendamento</button>
+                 <button className="chat-action-btn pri" type="button" onClick={() => { 
+                    clearLastIsisActions(); 
+                    addUserMessage('Sim, pode confirmar! ✅'); 
+                    handleCompleteAppointment(service, professional, date, time);
+                 }}>✅ Confirmar Agendamento</button>
                  <button className="chat-action-btn cancel-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Não, quero mudar algo.'); showMenu('Sem problemas! O que deseja mudar?'); }}>❌ Mudar/Cancelar</button>
               </div>
            )
         }]);
         setTimeout(() => scrollToBottom('smooth'), 100);
      }, 1200);
+  };
+
+  const handleCompleteAppointment = async (service: any, professional: any, date: string, time: string) => {
+     setIsTyping(true);
+     
+     // 1. Preparar Payload para o Banco
+     const startObj = new Date(`${date}T${time}:00`);
+     const duracao = service.duracao_minutos || 30;
+     const endObj = new Date(startObj.getTime() + duracao * 60000);
+
+     try {
+        // Gerar próximo código seqüencial para a empresa
+        const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
+        const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+
+        const { error } = await supabase.from('agendamentos').insert({
+           codigo: nextCod,
+           codigo_empresa: empresa.codigo,
+           codigo_servico: service.codigo,
+           codigo_cliente: cliente.id,
+           codigo_profissional: professional.codigo,
+           data_hora_inicio: startObj.toISOString(),
+           data_hora_fim: endObj.toISOString(),
+           status: 'agendado',
+           observacao: '✨ Agendamento realizado via Assistente Ísis',
+           isis_criou: true
+        });
+
+        if (error) {
+           console.error('Erro ao gravar agendamento:', error);
+           toast('Puxa, tive um probleminha técnico ao salvar seu horário. Por favor, tente novamente em instantes.', 'error');
+           setIsTyping(false);
+           return;
+        }
+
+        setIsTyping(false);
+        const valorFormatado = parseFloat(service.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        setMessages(prev => [...prev, {
+           id: Date.now(),
+           sender: 'isis',
+           status: 'success',
+           time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+           text: (
+              <>
+                 ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br/><br/>
+                 Resumo final:<br/>
+                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> às <strong>{time}</strong><br/>
+                 ✨ <strong>{service.nome}</strong><br/>
+                 👤 <strong>{professional.nome}</strong><br/>
+                 💰 Valor: <strong>{valorFormatado}</strong><br/>
+                 {empresa.endereco && (
+                    <>📍 Endereço: <strong>{empresa.endereco}</strong></>
+                 )}
+                 <br/>
+                 Te esperamos lá! 😊
+              </>
+           ),
+           actions: (
+              <div className="action-buttons-grid">
+                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
+              </div>
+           )
+        }]);
+        setTimeout(() => scrollToBottom('smooth'), 100);
+
+     } catch (err) {
+        console.error('Critical Error:', err);
+        setIsTyping(false);
+     }
   };
 
   const handleRegistrationSubmit = async (e: React.FormEvent) => {
@@ -473,7 +789,11 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
          setIsTyping(true);
          setTimeout(() => scrollToBottom('smooth'), 100);
-          setTimeout(() => {
+          setTimeout(async () => { // Made this async
+              // Busca o cliente recém criado para ter o ID correto
+              const { data: newCli } = await supabase.from('clientes').select('*').eq('codigo_empresa', empresa.codigo).eq('codigo', nextCod).single();
+              if (newCli) setCliente(newCli); // Added this line
+
              setIsTyping(false);
              clearLastIsisActions(); // Limpa as ações (pergunta) da Isis após o cadastro
              setStep('actions');
@@ -547,7 +867,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
              {messages.map(msg => (
                 <div key={msg.id} className={`chat-line ${msg.sender === 'user' ? 'user-line' : 'isis-line'}`}>
                    {msg.sender === 'isis' && <div className="isis-face chat-avatar"><img src="/isisneutraperfil.png" alt="Ísis" /></div>}
-                    <div className={`chat-bubble ${msg.sender}`}>
+                    <div className={`chat-bubble ${msg.sender} ${msg.status || ''}`}>
                        <div className="bubble-text">{formatMarkdown(msg.text)}</div>
                        {msg.actions && msg.actions}
                        <span className="bubble-time">{msg.time}</span>

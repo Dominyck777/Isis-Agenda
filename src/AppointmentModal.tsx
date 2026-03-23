@@ -283,14 +283,31 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                        Das {new Date(agendamentoItem.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} às {new Date(agendamentoItem.data_hora_fim).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                       <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '12px', backgroundColor: `${stColor}20`, color: stColor, textTransform: 'uppercase' }}>
-                          {form.status}
-                       </span>
-                       <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>
-                          {val}
-                       </span>
-                    </div>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '12px', backgroundColor: `${stColor}20`, color: stColor, textTransform: 'uppercase' }}>
+                           {form.status}
+                        </span>
+                        <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>
+                           {val}
+                        </span>
+                        {agendamentoItem.isis_criou && (
+                           <span style={{ 
+                              fontSize: '0.7rem', 
+                              fontWeight: 700, 
+                              padding: '4px 10px', 
+                              borderRadius: '12px', 
+                              background: 'linear-gradient(135deg, #0ea5e9 0%, #2dd4bf 100%)', 
+                              color: '#fff',
+                              boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)',
+                              display: 'flex',
+                              alignSelf: 'center',
+                              alignItems: 'center',
+                              gap: '4px'
+                           }}>
+                              ✨ Agendado pela Ísis
+                           </span>
+                        )}
+                     </div>
                  </div>
                );
             })()}
