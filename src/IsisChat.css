@@ -735,7 +735,7 @@
 .chat-action-select {
   width: 100%;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #27272a; /* Cinza fosco */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -746,7 +746,7 @@
   outline: none;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 20px center;
   background-size: 20px;
@@ -755,16 +755,16 @@
 }
 
 .chat-action-select:hover {
-  background-color: rgba(255, 255, 255, 0.07);
-  border-color: rgba(56, 189, 248, 0.4);
+  background-color: #3f3f46;
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
 .chat-action-select:focus {
-  border-color: #38bdf8;
-  background-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15), 0 12px 40px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: #3f3f46;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05), 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
 .chat-action-select option {
@@ -774,3 +774,18 @@
   font-size: 1rem;
 }
 
+.isis-footer-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 0;
+  background: transparent;
+  width: 100%;
+}
+
+.isis-footer-brand img {
+  height: 40px;
+  object-fit: contain;
+  opacity: 0.8;
+  filter: grayscale(1) brightness(1.5);
+}
