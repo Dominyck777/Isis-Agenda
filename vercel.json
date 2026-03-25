@@ -9,6 +9,12 @@
       ]
     },
     {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
        "source": "/sw.js",
        "headers": [
          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
@@ -22,6 +28,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|favicon.svg|manifest.json|pwa-.*.png|sw.js|isisneutraperfil.png).*)", "destination": "/index.html" }
   ]
 }

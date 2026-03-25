@@ -1,8 +1,6 @@
 // Service Worker for Isis Agenda PWA
 const CACHE_NAME = 'isis-agenda-v2';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/isisneutraperfil.png',
   '/favicon.svg'
