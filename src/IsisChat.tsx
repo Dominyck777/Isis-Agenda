@@ -457,7 +457,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
               id: Date.now(),
               sender: 'isis',
               time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-              text: `Puxa, o estabelecimento ou o profissional não atende aos **${dayConfig?.nome || 'domingos'}**. 😕 Deseja escolher outro dia?`,
+              text: `Poxa, o estabelecimento ou o profissional não atende aos **${dayConfig?.nome || 'domingos'}**. 😕 Deseja escolher outro dia?`,
               actions: (
                  <div className="action-buttons-grid">
                     <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(service, professional); }}>📅 Escolher outro dia</button>
@@ -538,7 +538,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                     </div>
                  ) : (
                     <div style={{ fontSize: '0.9rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '8px', gridColumn: '1 / -1' }}>
-                       Puxa, não encontrei nenhum horário livre para este dia. 😔<br/>
+                       Poxa, não encontrei nenhum horário livre para este dia. 😔<br/>
                        <small style={{ opacity: 0.8 }}>Horário atual em Brasília: {nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</small>
                     </div>
                  )}
@@ -604,7 +604,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         today.setHours(0,0,0,0);
 
         if (selected < today) {
-           setDateError("Puxa, essa data já passou! 😅 Escolha uma data de hoje em diante.");
+           setDateError("Poxa, essa data já passou! 😅 Escolha uma data de hoje em diante.");
            return false;
         }
         setDateError('');
@@ -641,7 +641,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
               <input 
                  type="text" 
                  className="chat-action-btn date-input-field" 
-                 placeholder="Digite a data: DD/MM/AAAA"
+                 placeholder="Ex: 25/03/2026"
                  value={dateInput}
                  onChange={(e) => {
                     let v = e.target.value.replace(/\D/g, '');
@@ -789,7 +789,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
         if (error) {
            console.error('Erro ao gravar agendamento:', error);
-           toast('Puxa, tive um probleminha técnico ao salvar seu horário. Por favor, tente novamente em instantes.', 'error');
+           toast('Poxa, tive um probleminha técnico ao salvar seu horário. Por favor, tente novamente em instantes.', 'error');
            setIsTyping(false);
            return;
         }

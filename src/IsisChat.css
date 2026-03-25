@@ -511,6 +511,19 @@
   .chat-bubble { max-width: 90%; }
   .form-row { flex-direction: column; }
   .isis-footer-brand { display: flex; } /* Mostra no mobile */
+  .isis-footer-brand img { height: 55px; opacity: 1; } /* Logo maior no mobile */
+}
+
+/* Tamanhos maiores para PC */
+@media (min-width: 769px) {
+  .isis-header .isis-face.small {
+     width: 60px;
+     height: 60px;
+  }
+  .chat-line .isis-face.chat-avatar {
+     width: 64px;
+     height: 64px;
+  }
 }
 
 /* Date Selection & Calendar Styles */
@@ -523,9 +536,15 @@
 
 .date-input-field {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: #27272a !important; /* Cinza fosco */
+  border: 1px solid rgba(255,255,255,0.1) !important;
   color: #fff !important;
   border-radius: 8px 0 0 8px !important;
+  outline: none;
+}
+
+.date-input-field::placeholder {
+  color: rgba(255,255,255,0.4);
 }
 
 .calendar-trigger-btn {
@@ -564,10 +583,14 @@
 }
 
 .date-error-msg {
-  color: #ef4444;
-  font-size: 0.75rem;
-  margin-top: 4px;
-  padding-left: 4px;
+  color: #fff;
+  background: rgba(185, 28, 28, 0.95); /* Vermelho mais sólido para legibilidade */
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   animation: shake 0.3s ease-in-out;
 }
 
