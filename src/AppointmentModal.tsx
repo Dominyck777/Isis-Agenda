@@ -273,7 +273,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95%', maxHeight: '90dvh', padding: '24px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
           <div>
-            <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? 'Visualizar / Editar Agendamento' : 'Novo Agendamento na Grade'}</h3>
+            <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
             {agendamentoItem && (() => {
                const svc = servicos.find(s => s.codigo.toString() === form.codigo_servico.toString());
                const val = svc?.valor ? Number(svc.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';

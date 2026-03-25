@@ -597,9 +597,14 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      };
 
      const validateDate = (dateStr: string) => {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const selected = new Date(y, m - 1, d);
         
-        const selected = new Date(dateStr + 'T00:00:00');
+        if (selected.getFullYear() !== y || selected.getMonth() !== m - 1 || selected.getDate() !== d) {
+           setDateError("Essa data não me parece certa! 🧐 Verifique o dia e o mês.");
+           return false;
+        }
+
         const today = new Date();
         today.setHours(0,0,0,0);
 
@@ -698,12 +703,14 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      setTimeout(() => {
         setIsTyping(false);
         const valorFormatado = parseFloat(service.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const currentEditingAg = editingAg || editingAgRef.current;
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
            text: (
               <>
+                 {currentEditingAg && <div style={{ marginBottom: '8px', fontSize: '0.85rem', opacity: 0.9 }}>📍 Editando Agendamento: <strong>#{currentEditingAg.codigo}</strong></div>}
                  Confirmando seu agendamento:<br/><br/>
                  📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{new Date(new Date(`${date}T${time}:00`).getTime() + (service.duracao_minutos || 30) * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong><br/>
                  ✨ <strong>{service.nome}</strong><br/>
@@ -756,9 +763,11 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
       try {
          let error;
+         let finalCodigo = '';
          const currentEditingAg = editingAg || editingAgRef.current;
 
          if (currentEditingAg) {
+            finalCodigo = currentEditingAg.codigo;
             const { error: err } = await supabase.from('agendamentos').update({
                codigo_servico: service.codigo,
                codigo_profissional: professional.codigo,
@@ -771,6 +780,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             // Gerar próximo código seqüencial para a empresa
             const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
             const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+            finalCodigo = nextCod.toString();
 
             const { error: err } = await supabase.from('agendamentos').insert({
                codigo: nextCod,
@@ -785,7 +795,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                isis_criou: true
             });
             error = err;
-         }
+          }
 
         if (error) {
            console.error('Erro ao gravar agendamento:', error);
@@ -803,7 +813,8 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
            text: (
               <>
-                 ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br/><br/>
+                 ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br/>
+                 Código: <strong>#{finalCodigo}</strong><br/><br/>
                  Resumo final:<br/>
                  📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{new Date(new Date(`${date}T${time}:00`).getTime() + (service.duracao_minutos || 30) * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong><br/>
                  ✨ <strong>{service.nome}</strong><br/>
@@ -1066,7 +1077,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
             text: (
                <>
-                  Perfeito! Vamos revisar seu agendamento:<br/><br/>
+                  Perfeito! Vamos revisar seu agendamento **#{ag.codigo}**:<br/><br/>
                   📅 <strong>{new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')}</strong> das <strong>{startStr}</strong> às <strong>{endStr}</strong><br/>
                   ✨ <strong>{svc?.nome}</strong><br/>
                   👤 <strong>{prof?.nome}</strong><br/>
