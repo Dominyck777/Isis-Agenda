@@ -67,8 +67,12 @@ export default function Login({ onSuccess }: { onSuccess?: () => void }) {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <div className="isis-avatar-container">
-             <img src="/isiscomprimentoperfil.png" alt="Assistente Ísis" className="isis-avatar" />
+          <div className="isis-avatar-container pulsing-avatar">
+             <div className="isis-face">
+                <img src="/isiscomprimentoperfil.png" alt="Assistente Ísis" className="isis-avatar" />
+             </div>
+             <div className="pulse-ring"></div>
+             <div className="pulse-ring delay"></div>
           </div>
           <h2 style={{ color: '#fff', fontSize: '1.6rem', fontWeight: 600, margin: '16px 0 8px', textAlign: 'center' }}>Ísis Agenda</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '32px', textAlign: 'center' }}>Bem-vindo(a) de volta! Acesse sua conta.</p>
