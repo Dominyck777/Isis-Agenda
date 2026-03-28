@@ -29,16 +29,25 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // Sequestra a Tela se o Pathname for a aba do Cliente
-  if (currentPath.startsWith('/hidden/') || currentPath.startsWith('/hiden/')) {
-    const divider = currentPath.startsWith('/hidden/') ? '/hidden/' : '/hiden/';
-    const nomeUrl = currentPath.split(divider)[1];
-    return (
-      <>
-        <IsisChat nomeAcesso={nomeUrl} />
-        <ToastContainer />
-      </>
-    );
+  // Sequestra a Tela se o Pathname for a aba do Cliente ou um slug direto
+  if (currentPath !== '/' && !currentPath.includes('.')) {
+    let nomeUrl = '';
+    if (currentPath.startsWith('/hidden/') || currentPath.startsWith('/hiden/')) {
+      const divider = currentPath.startsWith('/hidden/') ? '/hidden/' : '/hiden/';
+      nomeUrl = currentPath.split(divider)[1];
+    } else {
+      // Slug direto: /hairstylesalon -> hairstylesalon
+      nomeUrl = currentPath.startsWith('/') ? currentPath.slice(1) : currentPath;
+    }
+
+    if (nomeUrl) {
+      return (
+        <>
+          <IsisChat nomeAcesso={nomeUrl} />
+          <ToastContainer />
+        </>
+      );
+    }
   }
 
   return (

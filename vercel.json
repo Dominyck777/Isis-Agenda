@@ -28,6 +28,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!assets/|favicon.svg|manifest.json|pwa-.*.png|sw.js|isisneutraperfil.png).*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|.*\\..*).*)", "destination": "/index.html" }
   ]
 }
