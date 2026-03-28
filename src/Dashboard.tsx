@@ -171,7 +171,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [showServicesPanel, setShowServicesPanel] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomFactor, setZoomFactor] = useState(1.0);
   const lastPinchDistRef = useRef<number>(0);
   const gridScrollRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
@@ -190,9 +190,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       if (e.ctrlKey) {
         e.preventDefault();
         const delta = -e.deltaY;
-        setZoomLevel(prev => {
-          const next = prev + (delta > 0 ? 0.08 : -0.08);
-          return Math.min(Math.max(next, 0.6), 4);
+        setZoomFactor(prev => {
+          const next = prev + (delta > 0 ? 0.1 : -0.1);
+          return Math.min(Math.max(next, 1.0), 5.0);
         });
       }
     };
@@ -216,9 +216,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         const delta = dist - lastPinchDistRef.current;
         
         if (Math.abs(delta) > 2) {
-          setZoomLevel(prev => {
+          setZoomFactor(prev => {
             const next = prev + (delta > 0 ? 0.05 : -0.05);
-            return Math.min(Math.max(next, 0.6), 4);
+            return Math.min(Math.max(next, 1.0), 5.0);
           });
           lastPinchDistRef.current = dist;
         }
@@ -679,7 +679,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </aside>
 
-          <main className="dash-main" style={{ display: 'flex', flexDirection: 'column' }}>
+          <main className="dash-main" style={{ display: 'flex', flexDirection: 'column', '--days-count': currentWeekDays.length, '--zoom-factor': zoomFactor } as any}>
             {/* Ocultado a pedido do usuario: viewMode === 'month' */}
             {/*viewMode === 'month' ? (
               <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -732,16 +732,17 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                    })}
                 </div>
             ) : (*/}
-              <div className="dash-main" style={{ '--days-count': currentWeekDays.length, '--cell-width': `${140 * zoomLevel}px` } as any}>
                 {/* Header de Dias (Fixo no Topo) */}
                 <div className="cal-header-row" ref={headerScrollRef}>
                   <div style={{ width: '45px', flex: 'none' }}></div>
-                  {currentWeekDays.map((day, i) => (
-                    <div key={i} className="day-col-header">
-                      <span style={{ fontWeight: 500 }}>{day.name}</span>
-                      <span className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</span>
-                    </div>
-                  ))}
+                  <div className="grid-cells-container" style={{ borderBottom: 'none' }}>
+                    {currentWeekDays.map((day, i) => (
+                      <div key={i} className="day-col-header">
+                        <span style={{ fontWeight: 500 }}>{day.name}</span>
+                        <span className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div 
@@ -836,13 +837,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           );
                       })}
                     </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            {/*)}*/}
-          </main>
+              {/*)}*/}
+            </main>
+          </div>
         </div>
-      </div>
+
 
       {isMobileSidebarOpen && (
         <div className="modal-overlay show-on-mobile" style={{ zIndex: 9998 }} onClick={() => setIsMobileSidebarOpen(false)} />

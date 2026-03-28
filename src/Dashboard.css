@@ -168,10 +168,11 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Main avoids scrolling, children (grid-scroll) will */
+  overflow: hidden;
   position: relative;
   -webkit-overflow-scrolling: touch;
-  --cell-width: 1fr; /* Default */
+  --cell-width: 140px;
+  --min-cell-width: calc((100% - 45px) / var(--days-count, 7));
 }
 
 .cal-header-row {
@@ -199,14 +200,19 @@
   background-color: var(--bg-color);
 }
 
-.cal-header-row, .cal-grid {
-  width: fit-content;
-  min-width: calc(45px + (var(--days-count, 7) * var(--cell-width, 140px)));
+.cal-header-row {
+  width: 100%;
+  overflow: hidden;
+}
+
+.cal-grid {
+  width: 100%;
+  min-width: max-content;
 }
 
 .day-col-header {
-  width: var(--cell-width, 140px);
-  flex: none;
+  width: 100%;
+  min-width: var(--min-cell-width);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -218,7 +224,10 @@
 .day-number.active { background-color: var(--primary-color); color: #fff; }
 
 .cal-grid-scroll {
+  flex: 1;
+  overflow: auto;
   position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cal-grid {
@@ -251,7 +260,7 @@
 .grid-cells-container {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 140px));
+  grid-template-columns: repeat(var(--days-count, 7), calc(var(--min-cell-width) * var(--zoom-factor, 1)));
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -303,7 +312,6 @@
   right: 0;
   bottom: 0;
   pointer-events: none;
-  width: calc(var(--days-count, 7) * var(--cell-width, 140px));
 }
 
 .event-card {
