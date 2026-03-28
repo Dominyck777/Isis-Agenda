@@ -680,14 +680,25 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                         <div key={hour} className="grid-row">
                           <div className="time-label" style={idx === 0 ? { transform: 'translateY(4px)' } : {}}>{hour.toString().padStart(2, '0')}:00</div>
                           <div className="grid-cells-container" style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}>
-                            {currentWeekDays.map((day, i) => (
-                               <div 
-                                 key={i} 
-                                 className="cal-cell" 
-                                 onClick={() => openSlotModal(day.fullDate, hour)}
-                                 title={`Agendar ${hour.toString().padStart(2, '0')}:00`}
-                               ></div>
-                            ))}
+                            {currentWeekDays.map((day, i) => {
+                               const d = day.fullDate.getDay();
+                               const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
+                               const hourStr = hour.toString().padStart(2, '0') + ':00';
+                               const isFechado = !dayCfg || !dayCfg.aberto || hourStr < dayCfg.inicio || hourStr >= dayCfg.fim;
+                               const isAlmoco = !isFechado && dayCfg?.almoco_ativo && hourStr >= dayCfg.almoco_inicio && hourStr < dayCfg.almoco_fim;
+                               
+                               return (
+                                 <div 
+                                   key={i} 
+                                   className={`cal-cell ${isFechado ? 'cell-closed' : isAlmoco ? 'cell-lunch' : ''}`} 
+                                   onClick={() => openSlotModal(day.fullDate, hour)}
+                                   title={isFechado ? 'Fechado' : isAlmoco ? 'Horário de Almoço' : `Agendar ${hourStr}`}
+                                 >
+                                   {isFechado && <span className="closed-label">🔒 Fechado</span>}
+                                   {isAlmoco && <span className="lunch-label">☕ Almoço</span>}
+                                 </div>
+                               );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -723,10 +734,19 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
                           const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
                           
+                          // Check if this appointment is during lunch
+                          const dAg = ini.getDay();
+                          const dayCfgAg = configAgenda?.horarios?.find((h: any) => h.dia === dAg);
+                          const agStartStr = ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                          const isAlmocoAg = dayCfgAg?.almoco_ativo && agStartStr >= dayCfgAg.almoco_inicio && agStartStr < dayCfgAg.almoco_fim;
+
                           return (
                             <div key={ag.id} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
                                  style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: leftPercent, width: widthPercent, borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
+                              
+                              {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}
+                              
                               <strong style={{ fontSize: isSmall ? '0.7rem' : '0.75rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: colorBase }}>
                                 {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
                                 {dicServicos[ag.codigo_servico] || 'Serviço'}

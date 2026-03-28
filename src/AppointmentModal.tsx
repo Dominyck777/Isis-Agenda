@@ -110,32 +110,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   const getHorariosGerados = () => {
     if (!form.data) return [];
-    
-    // Pegar configuração do dia selecionado
-    const d = new Date(`${form.data}T12:00:00`).getDay();
-    const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
-    
-    // Pegar permissões do usuário logado (Admins tem passe livre)
-    const p = (user && !user.is_admin) 
-      ? (user.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false }) 
-      : { permitir_fora_horario: true, permitir_no_almoco: true };
-
     const { earliest, latest } = getWorkingRange();
     const slots = [];
-    
     for(let h = earliest; h < latest; h++) {
        for(let min of [0, 15, 30, 45]) {
-          const slotTime = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-          
-          // 1. Verificar Fora de Horário (Específico do dia)
-          const isFora = !dayCfg || !dayCfg.aberto || slotTime < dayCfg.inicio || slotTime >= dayCfg.fim;
-          if (isFora && !p.permitir_fora_horario) continue;
-          
-          // 2. Verificar Almoço
-          const isAlmoco = dayCfg?.almoco_ativo && slotTime >= dayCfg.almoco_inicio && slotTime < dayCfg.almoco_fim;
-          if (isAlmoco && !p.permitir_no_almoco) continue;
-
-          slots.push(slotTime);
+          slots.push(`${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
        }
     }
     return slots;
@@ -480,10 +459,20 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                              {(!form.codigo_profissional || !form.codigo_servico) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}
                            </option>
                            {form.codigo_profissional && form.codigo_servico && form.data && getHorariosGerados().map(slot => {
+                              const d = new Date(`${form.data}T12:00:00`).getDay();
+                              const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
+                              const p = (user && !user.is_admin) ? (user.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false }) : { permitir_fora_horario: true, permitir_no_almoco: true };
+
+                              const isFechadoSlot = !dayCfg || !dayCfg.aberto || slot < dayCfg.inicio || slot >= dayCfg.fim;
+                              const isAlmocoSlot = !isFechadoSlot && dayCfg?.almoco_ativo && slot >= dayCfg.almoco_inicio && slot < dayCfg.almoco_fim;
+                              
+                              const isRestrictedByPerm = (isFechadoSlot && !p.permitir_fora_horario) || (isAlmocoSlot && !p.permitir_no_almoco);
                               const isAval = isSlotDisponivel(slot);
+
                               return (
-                                <option key={slot} value={slot} disabled={!isAval}>
-                                  {slot} {!isAval ? '❌ (Ocupado)' : ''}
+                                <option key={slot} value={slot} disabled={!isAval || isRestrictedByPerm}>
+                                  {slot} 
+                                  {!isAval ? ' ❌ (Ocupado)' : isFechadoSlot ? ' 🔒 (Fechado)' : isAlmocoSlot ? ' ☕ (Almoço)' : ''}
                                 </option>
                               );
                            })}

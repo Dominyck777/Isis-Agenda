@@ -261,6 +261,37 @@
 }
 .cal-cell:last-child { border-right: none; }
 .cal-cell:hover { background-color: rgba(255, 255, 255, 0.08); }
+.cal-cell.cell-lunch {
+  background-color: rgba(245, 158, 11, 0.05) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lunch-label {
+  font-size: 0.7rem;
+  color: #f59e0b;
+  font-weight: 700;
+  opacity: 0.6;
+  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cal-cell.cell-closed {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: not-allowed;
+}
+.closed-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  opacity: 0.4;
+  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
 
 /* EVENTS */
