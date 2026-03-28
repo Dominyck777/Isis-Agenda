@@ -273,11 +273,16 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
     if (openDays.length > 0) {
       // Pega o menor horário de início e o maior de fim entre todos os dias configurados para definir a "Janela do Grid"
-      earliest = Math.min(...openDays.map((h: any) => parseInt(h.inicio.split(':')[0])));
+      earliest = Math.min(...openDays.map((h: any) => {
+        if (!h.inicio) return 9;
+        const part = h.inicio.split(':')[0];
+        return part ? parseInt(part) : 9;
+      }));
       
       const latestFromHours = openDays.map((h: any) => {
+        if (!h.fim) return 18;
         const [hh, mm] = h.fim.split(':').map(Number);
-        return hh + (mm > 0 ? 1 : 0); // Arredonda para cima se houver minutos
+        return (hh || 18) + (mm > 0 ? 1 : 0); 
       });
       latest = Math.max(...latestFromHours);
     }
@@ -679,7 +684,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </aside>
 
-          <main className="dash-main" style={{ display: 'flex', flexDirection: 'column', '--days-count': currentWeekDays.length, '--zoom-factor': zoomFactor } as any}>
+          <main className="dash-main" style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            '--days-count': currentWeekDays.length, 
+            '--zoom-factor': zoomFactor,
+            '--base-col-width': `calc((100vw - 45px) / ${currentWeekDays.length || 7})`
+          } as any}>
             {/* Ocultado a pedido do usuario: viewMode === 'month' */}
             {/*viewMode === 'month' ? (
               <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -734,14 +745,16 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             ) : (*/}
                 {/* Header de Dias (Fixo no Topo) */}
                 <div className="cal-header-row" ref={headerScrollRef}>
-                  <div style={{ width: '45px', flex: 'none' }}></div>
-                  <div id="grid-header-cells" className="grid-cells-container">
-                    {currentWeekDays.map((day, i) => (
-                      <div key={i} className="day-col-header">
-                        <span style={{ fontWeight: 500 }}>{day.name}</span>
-                        <span className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</span>
-                      </div>
-                    ))}
+                  <div className="header-inner">
+                    <div style={{ width: '45px', flex: 'none' }}></div>
+                    <div id="grid-header-cells" className="grid-cells-container">
+                      {currentWeekDays.map((day, i) => (
+                        <div key={i} className="day-col-header">
+                          <span style={{ fontWeight: 500 }}>{day.name}</span>
+                          <span className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

@@ -168,20 +168,23 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   position: relative;
-  -webkit-overflow-scrolling: touch;
-  --cell-width: 140px;
-  --min-cell-width: calc((100% - 45px) / var(--days-count, 7));
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  /* Base size for a column when zoom is 1.0 (approximates 100vw / 7) */
+  --base-col-width: calc((100vw - 45px) / var(--days-count, 7));
 }
 
 .cal-header-row {
   display: flex;
-  border-bottom: 1px solid var(--border-color);
+  width: 100%;
+  overflow: hidden;
   position: sticky;
   top: 0;
   z-index: 30;
   background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .time-zone {
@@ -200,16 +203,18 @@
   background-color: var(--bg-color);
 }
 
-.cal-header-row {
-  width: 100%;
-  overflow: hidden;
-  background-color: var(--bg-color); /* fallback */
+/* consolidated above */
+
+.header-inner {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  background-color: var(--surface-color);
 }
-/* Ensure header children have background and borders to cover scroll area */
+/* Ensure header children have background to cover scroll area */
 .cal-header-row > div {
   background-color: var(--surface-color);
   height: 100%;
-  border-bottom: 1px solid var(--border-color);
 }
 #grid-header-cells {
   background-color: var(--surface-color);
@@ -218,11 +223,12 @@
 .cal-grid {
   width: max-content;
   min-width: 100%;
+  position: relative;
 }
 
 .day-col-header {
   width: 100%;
-  min-width: var(--min-cell-width);
+  min-width: var(--base-col-width);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -240,9 +246,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.cal-grid {
-  position: relative;
-}
+/* cal-grid rule merged above */
 
 .grid-bg { 
   min-height: 100%; 
@@ -258,6 +262,7 @@
   height: 60px;
   width: max-content;
   min-width: 100%;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .time-label {
@@ -272,20 +277,17 @@
   z-index: 25;
   background-color: var(--bg-color);
   border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
   transform: translateY(-8px);
 }
 
 /* INTERACTIVE CELLS (Hover magic) */
 .grid-cells-container {
   display: grid;
-  grid-template-columns: repeat(var(--days-count, 7), calc(var(--min-cell-width) * var(--zoom-factor, 1)));
-  width: calc(var(--days-count, 7) * (var(--min-cell-width) * var(--zoom-factor, 1)));
+  grid-template-columns: repeat(var(--days-count, 7), calc(var(--base-col-width) * var(--zoom-factor, 1)));
 }
 
 .cal-cell {
   border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
   transition: background-color 0.1s;
   cursor: pointer;
 }
