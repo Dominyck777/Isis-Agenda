@@ -170,6 +170,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showServicesPanel, setShowServicesPanel] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isisNotifications, setIsisNotifications] = useState<any[]>([]);
 
   const [zoomFactor, setZoomFactor] = useState(1.0);
   const lastPinchDistRef = useRef<number>(0);
@@ -490,6 +491,43 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       });
     }, 60000); // 1 minuto de Polling Silencioso
     return () => clearInterval(interval);
+  }, [user]);
+
+  // Hook de Notificações em Tempo Real da Ísis
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('isis-realtime')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'agendamentos',
+        filter: `codigo_empresa=eq.${user.codigo_empresa}`
+      }, (payload: any) => {
+        if (payload.new.isis_criou) {
+          const id = Date.now() + Math.random();
+          const newNotif = {
+            id,
+            ...payload.new,
+            timestamp: Date.now()
+          };
+          setIsisNotifications(prev => [...prev, newNotif]);
+          
+          // Recarregar a grade para mostrar o novo agendamento
+          reloadDashboardGrid();
+
+          // Auto-remover após 30 segundos
+          setTimeout(() => {
+            setIsisNotifications(prev => prev.filter(n => n.id !== id));
+          }, 30000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handlePrevRange = () => setCurrentDate(addDays(currentDate, -7));
@@ -998,7 +1036,25 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                   {ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} às {fim.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
                                </strong>
                                <div style={{ fontSize: '0.9rem', marginTop: '4px', color: '#cbd5e1' }}>{dicServicos[ag.codigo_servico] || 'Serviço'} - {displayClient}</div>
-                               <div style={{ fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-muted)' }}>Profissional: {dicProfs[ag.codigo_profissional] || 'Equipe'} {isCancelled ? '(Cancelado)' : ''}</div>
+                                <div style={{ fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                   Profissional: {dicProfs[ag.codigo_profissional] || 'Equipe'} {isCancelled ? '(Cancelado)' : ''}
+                                   {ag.isis_criou && (
+                                     <span style={{ 
+                                       color: '#0ea5e9', 
+                                       whiteSpace: 'nowrap',
+                                       fontWeight: 700, 
+                                       fontSize: '0.7rem', 
+                                       display: 'flex', 
+                                       alignItems: 'center', 
+                                       gap: '4px',
+                                       background: 'rgba(14, 165, 233, 0.1)',
+                                       padding: '2px 6px',
+                                       borderRadius: '4px'
+                                     }}>
+                                       ✨ Ísis
+                                     </span>
+                                   )}
+                                </div>
                             </div>
                             <button className="btn-sec" style={{ margin: 0, padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => { setIsAgendamentosListOpen(false); openEditAgendamento(ag); }}>Detalhes</button>
                          </div>
@@ -1070,6 +1126,28 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
 
 
+
+      {/* Notificações flutuantes da Ísis */}
+      <div className="isis-notifications-container">
+        {isisNotifications.map(n => (
+          <div key={n.id} className="isis-notif-card" onClick={() => { setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); openEditAgendamento(n); }}>
+            <div className="isis-notif-avatar">
+              <img src="/isisneutraperfil.png" alt="Ísis" />
+              <div className="notif-badge">✨</div>
+            </div>
+            <div className="isis-notif-content">
+              <div className="isis-notif-header">
+                <strong>Novo Agendamento via Ísis</strong>
+                <button className="notif-close-btn" onClick={(e) => { e.stopPropagation(); setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); }}>✕</button>
+              </div>
+              <p>#{n.codigo} - {dicServicos[n.codigo_servico] || 'Serviço'}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                <span className="notif-time">{new Date(n.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • {new Date(n.data_hora_inicio).toLocaleDateString('pt-BR')}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* SVG Filter para o efeito Gooey */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
