@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase';
 import CryptoJS from 'crypto-js';
 import { toast } from './Toast';
 import './Settings.css';
+import { subscribeToPush, unsubscribeFromPush, checkPushSubscription } from './lib/push';
 
 const IClose = () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 const ICalendar = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
@@ -39,6 +40,8 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
   // Agenda State
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
   useEffect(() => {
     loadData();
@@ -46,6 +49,11 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     // Detect iOS
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(ios);
+
+    // Check push status
+    if ('serviceWorker' in navigator) {
+      checkPushSubscription().then(sub => setPushEnabled(!!sub));
+    }
 
     return () => {};
   }, []);
@@ -202,6 +210,49 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     }
   };
 
+  const handleTogglePush = async () => {
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush(user.codigo);
+        setPushEnabled(false);
+        toast('Notificações desativadas para este dispositivo.', 'success');
+      } else {
+        if (!vapidPublicKey) {
+          toast('VAPID Public Key não configurada no .env', 'error');
+          return;
+        }
+        await subscribeToPush(user.codigo, vapidPublicKey);
+        setPushEnabled(true);
+        toast('Notificações ativadas com sucesso!', 'success');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast('Erro ao configurar notificações: ' + err.message, 'error');
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    try {
+      toast('Enviando teste de notificação...', 'info');
+      const { data, error } = await supabase.functions.invoke('send-push', {
+        body: {
+          record: { codigo_profissional: user.codigo, data_hora_inicio: new Date().toISOString() },
+          table: 'agendamentos',
+          type: 'INSERT'
+        }
+      });
+      if (error) {
+        console.error('Erro ao invocar function:', error);
+        throw error;
+      }
+      toast('Comando de teste enviado! Verifique seu dispositivo.', 'success');
+      console.log('DEBUG: Test push response:', data);
+    } catch (err: any) {
+      console.error('Erro no teste de push:', err);
+      toast('Erro ao disparar teste: ' + err.message, 'error');
+    }
+  };
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-card" onClick={e => e.stopPropagation()}>
@@ -287,6 +338,40 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                 <button className="btn-save" onClick={handleSaveEmpresa} style={{ backgroundColor: isSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
                   {isSaved ? '✓ Salvo com Sucesso' : 'Salvar Alterações'}
                 </button>
+
+                <div style={{ marginTop: '40px', padding: '20px', background: 'rgba(14, 165, 233, 0.05)', borderRadius: '12px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                         <h4 style={{ margin: 0, color: 'var(--primary-color)' }}>Alertas e Notificações (Beta)</h4>
+                         <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            Receba alertas de novos agendamentos e cancelamentos diretamente no seu dispositivo.
+                         </p>
+                      </div>
+                      <button 
+                        onClick={handleTogglePush} 
+                        style={{ 
+                          padding: '8px 16px', 
+                          borderRadius: '8px', 
+                          border: 'none', 
+                          background: pushEnabled ? '#ef4444' : 'var(--primary-color)', 
+                          color: '#fff', 
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          minWidth: '140px'
+                        }}
+                      >
+                         {pushEnabled ? 'Desativar Push' : 'Ativar no Dispositivo'}
+                      </button>
+                   </div>
+                   <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={handleSendTestPush}
+                        style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.75rem', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer' }}
+                      >
+                        ⚡ Enviar Notificação de Teste
+                      </button>
+                   </div>
+                </div>
               </div>
             ) : tab === 'usuarios' ? (
               <div className="tab-pane-usuarios">
@@ -346,7 +431,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
 
                 {!editingUser && (
                   <>
-                    {/* Desktop View Table */}
                     <div className="hide-on-mobile" style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
                       <table className="users-table" style={{ margin: 0, border: 'none' }}>
                         <thead><tr><th style={{ width: '60px' }}>Cód</th><th>Nome</th><th>Email</th><th style={{ width: '100px' }}>Acesso</th><th style={{ width: '100px' }}>Status</th><th style={{ width: '100px' }}>Ações</th></tr></thead>
@@ -376,7 +460,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                       </table>
                     </div>
 
-                    {/* Mobile View Cards */}
                     <div className="show-on-mobile users-list">
                       {usuarios.map(u => (
                         <div key={u.codigo} className="user-card-item">

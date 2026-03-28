@@ -49,8 +49,38 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Network failed - try to return from cache
-        return caches.match(event.request);
+        // Network failed - return from cache or error response
+        return caches.match(event.request).then((cachedResponse) => {
+          return cachedResponse || new Response('Recurso não encontrado no cache.', { 
+            status: 404, 
+            statusText: 'Not Found',
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        });
       })
+  );
+});
+
+// -- PUSH NOTIFICATIONS --
+self.addEventListener('push', (event) => {
+  console.log('DEBUG: Push event received!', event);
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || 'Isis Agenda';
+  const options = {
+    body: data.body || 'Você tem uma nova atualização!',
+    icon: '/isisneutraperfil.png',
+    badge: '/favicon.svg',
+    data: data.url || '/'
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow(event.notification.data)
   );
 });
