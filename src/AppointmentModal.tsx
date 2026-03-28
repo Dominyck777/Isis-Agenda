@@ -97,10 +97,15 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     if (configAgenda?.horarios) {
       const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
       if (openDays.length > 0) {
-        earliest = Math.min(...openDays.map((h: any) => parseInt(h.inicio.split(':')[0])));
+        earliest = Math.min(...openDays.map((h: any) => {
+          if (!h.inicio) return 9;
+          const part = h.inicio.split(':')[0];
+          return part ? parseInt(part) : 9;
+        }));
         const latestFromHours = openDays.map((h: any) => {
+          if (!h.fim) return 18;
           const [hh, mm] = h.fim.split(':').map(Number);
-          return hh + (mm > 0 ? 1 : 0);
+          return (hh || 18) + (mm > 0 ? 1 : 0);
         });
         latest = Math.max(...latestFromHours);
       }

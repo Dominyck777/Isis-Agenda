@@ -268,6 +268,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   let earliest = 9;
   let latest = 18;
+  
+  // Hoisting fix: removed temporary placement here
 
   if (configAgenda?.horarios) {
     const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
@@ -302,6 +304,24 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const startOfWeekDate = getStartOfWeek(currentDate);
   // viewMode is hardcoded to week logic below since day/month are commented
   const currentWeekDays = getDaysOfWeek(startOfWeekDate); 
+
+  // Calcula a largura da coluna baseada na tela disponível (mínimo de preenchimento de 100%)
+  const [baseColWidth, setBaseColWidth] = useState(140);
+  
+  useEffect(() => {
+    const calcBase = () => {
+      const w = window.innerWidth;
+      const sidebar = 45;
+      const count = currentWeekDays.length || 7;
+      setBaseColWidth((w - sidebar) / count);
+    };
+    calcBase();
+    window.addEventListener('resize', calcBase);
+    return () => window.removeEventListener('resize', calcBase);
+  }, [currentWeekDays.length]);
+
+  const currentColWidth = baseColWidth * zoomFactor;
+  const totalGridWidth = 45 + (currentWeekDays.length * currentColWidth) + 1; // +1px buffer for subpixel edge case
 
   const filteredAgendamentos = React.useMemo(() => {
      return agendamentos.filter(ag => {
@@ -689,7 +709,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             flexDirection: 'column', 
             '--days-count': currentWeekDays.length, 
             '--zoom-factor': zoomFactor,
-            '--base-col-width': `calc((100vw - 45px) / ${currentWeekDays.length || 7})`
+            '--base-col-width': `calc((100dvw - 45px) / ${currentWeekDays.length || 7})`
           } as any}>
             {/* Ocultado a pedido do usuario: viewMode === 'month' */}
             {/*viewMode === 'month' ? (
@@ -745,7 +765,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             ) : (*/}
                 {/* Header de Dias (Fixo no Topo) */}
                 <div className="cal-header-row" ref={headerScrollRef}>
-                  <div className="header-inner">
+                  <div className="header-inner" style={{ width: `${totalGridWidth}px` }}>
                     <div style={{ width: '45px', flex: 'none' }}></div>
                     <div id="grid-header-cells" className="grid-cells-container">
                       {currentWeekDays.map((day, i) => (
@@ -763,8 +783,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                   ref={gridScrollRef} 
                   onScroll={handleGridScroll}
                 >
-                  <div className="cal-grid">
-                    <div className="grid-bg">
+                  <div className="cal-grid" style={{ width: `${totalGridWidth}px` }}>
+                    <div className="grid-bg" style={{ width: `${totalGridWidth}px` }}>
                       {hoursArray.map((hour, idx) => (
                         <div key={hour} className="grid-row">
                           <div className="time-label" style={idx === 0 ? { transform: 'translateY(4px)' } : {}}>{hour.toString().padStart(2, '0')}:00</div>
@@ -808,9 +828,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           const clampHeight = rawHeight < 24 ? 24 : rawHeight;
                           
                           const { colIndex, numCols } = agStyles[ag.id] || { colIndex: 0, numCols: 1 };
-                          const colWidthVar = `(var(--min-cell-width) * var(--zoom-factor, 1))`;
-                          const leftPercent = `calc(${dIdx} * ${colWidthVar} + (${colWidthVar} / ${numCols} * ${colIndex}) + 2px)`;
-                          const widthPercent = `calc(${colWidthVar} / ${numCols} - 4px)`;
+                          const cardLeft = (dIdx * currentColWidth) + (colIndex * (currentColWidth / numCols)) + 2;
+                          const cardWidth = (currentColWidth / numCols) - 4;
                           
                           let colorBase = '#0ea5e9';
                           if (ag.status === 'em andamento') colorBase = '#f59e0b';
@@ -830,7 +849,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
                           return (
                             <div key={ag.id} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
-                                 style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: leftPercent, width: widthPercent, borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
+                                 style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: cardLeft + 'px', width: cardWidth + 'px', borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                               
                               {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}

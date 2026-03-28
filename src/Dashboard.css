@@ -170,10 +170,10 @@
   flex-direction: column;
   position: relative;
   width: 100%;
-  max-width: 100%;
+  max-width: 100dvw;
   overflow: hidden;
-  /* Base size for a column when zoom is 1.0 (approximates 100vw / 7) */
-  --base-col-width: calc((100vw - 45px) / var(--days-count, 7));
+  /* Base size for a column when zoom is 1.0 (approximates (100% - 45px) / 7) */
+  --base-col-width: calc((100% - 45px) / var(--days-count, 7));
 }
 
 .cal-header-row {
@@ -284,6 +284,7 @@
 .grid-cells-container {
   display: grid;
   grid-template-columns: repeat(var(--days-count, 7), calc(var(--base-col-width) * var(--zoom-factor, 1)));
+  min-width: max-content;
 }
 
 .cal-cell {
