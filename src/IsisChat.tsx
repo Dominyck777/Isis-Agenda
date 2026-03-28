@@ -457,7 +457,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
               id: Date.now(),
               sender: 'isis',
               time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-              text: `Poxa, o estabelecimento ou o profissional não atende aos **${dayConfig?.nome || 'domingos'}**. 😕 Deseja escolher outro dia?`,
+              text: `Poxa, o estabelecimento não atende **${dayConfig?.nome || 'domingo'}**. 😕 Deseja escolher outro dia?`,
               actions: (
                  <div className="action-buttons-grid">
                     <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(service, professional); }}>📅 Escolher outro dia</button>
@@ -486,10 +486,24 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         let currentMinutes = timeToMinutes(curTimeStr);
         const endMinutes = timeToMinutes(endTimeStr);
 
+         const hasLunch = dayConfig.almoco_ativo;
+         const lunchStartRem = hasLunch ? timeToMinutes(dayConfig.almoco_inicio) : 0;
+         const lunchEndRem = hasLunch ? timeToMinutes(dayConfig.almoco_fim) : 0;
+
         while (currentMinutes + duracaoSvc <= endMinutes) {
            const tStr = minutesToTime(currentMinutes);
            const slotStart = new Date(`${date}T${tStr}:00-03:00`);
            const slotEnd = new Date(slotStart.getTime() + duracaoSvc * 60000);
+
+            // Regra 0: Horário de Almoço?
+            if (hasLunch) {
+               const slotStartMinutes = currentMinutes;
+               const slotEndMinutes = currentMinutes + duracaoSvc;
+               if (slotStartMinutes < lunchEndRem && slotEndMinutes > lunchStartRem) {
+                  currentMinutes = lunchEndRem;
+                  continue;
+               }
+            }
 
            // Regra 1: Horário já passou (comparado no tempo real)?
            if (slotStart <= now) {

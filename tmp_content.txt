@@ -1,0 +1,8 @@
+﻿        let currentMinutes = timeToMinutes(curTimeStr);
+        const endMinutes = timeToMinutes(endTimeStr);
+
+        while (currentMinutes + duracaoSvc <= endMinutes) {
+           const tStr = minutesToTime(currentMinutes);
+           const slotStart = new Date(`${date}T${tStr}:00-03:00`);
+           const slotEnd = new Date(slotStart.getTime() + duracaoSvc * 60000);
+
