@@ -430,6 +430,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   const handleSettingsClick = () => {
     if (!user) return;
+    if (user.is_admin) {
+      setShowSettingsPanel(true);
+      return;
+    }
     setConfigPassword('');
     setConfigError('');
     setIsConfigAuthOpen(true);
@@ -911,8 +915,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               <div className="form-group-flat">
                 <input 
                   type="password" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={configPassword} 
-                  onChange={e => setConfigPassword(e.target.value)} 
+                  onChange={e => setConfigPassword(e.target.value.replace(/\D/g, ''))} 
                   placeholder="Sua senha..."
                   autoFocus
                   style={{ 

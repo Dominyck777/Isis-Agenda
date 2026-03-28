@@ -110,11 +110,32 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   const getHorariosGerados = () => {
     if (!form.data) return [];
+    
+    // Pegar configuração do dia selecionado
+    const d = new Date(`${form.data}T12:00:00`).getDay();
+    const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
+    
+    // Pegar permissões do usuário logado (Admins tem passe livre)
+    const p = (user && !user.is_admin) 
+      ? (user.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false }) 
+      : { permitir_fora_horario: true, permitir_no_almoco: true };
+
     const { earliest, latest } = getWorkingRange();
     const slots = [];
+    
     for(let h = earliest; h < latest; h++) {
        for(let min of [0, 15, 30, 45]) {
-          slots.push(`${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+          const slotTime = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+          
+          // 1. Verificar Fora de Horário (Específico do dia)
+          const isFora = !dayCfg || !dayCfg.aberto || slotTime < dayCfg.inicio || slotTime >= dayCfg.fim;
+          if (isFora && !p.permitir_fora_horario) continue;
+          
+          // 2. Verificar Almoço
+          const isAlmoco = dayCfg?.almoco_ativo && slotTime >= dayCfg.almoco_inicio && slotTime < dayCfg.almoco_fim;
+          if (isAlmoco && !p.permitir_no_almoco) continue;
+
+          slots.push(slotTime);
        }
     }
     return slots;
@@ -221,8 +242,9 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
         // 2. Checar Horário de Almoço
         const isAlmoco = dayCfg?.almoco_ativo && form.hora >= dayCfg.almoco_inicio && form.hora < dayCfg.almoco_fim;
+        
         if (isAlmoco && !p.permitir_no_almoco) {
-            toast('⛔ Você não tem permissão para agendar no horário de almoço.', 'error');
+            toast('⛔ Bloqueado: Você não tem permissão para agendar no horário de almoço.', 'error');
             return;
         }
     }

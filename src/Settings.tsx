@@ -203,9 +203,21 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
       }
 
       const { error } = await supabase.from('usuarios').update(payload).eq('codigo', editingUser.codigo);
-      
+
       if (error) toast('Erro ao atualizar: ' + error.message, 'error');
-      else { toast('Perfil atualizado com sucesso!', 'success'); setEditingUser(null); loadData(); }
+      else { 
+        toast('Perfil atualizado com sucesso!', 'success'); 
+        
+        // Se o usuário editado for o usuário logado, atualiza o localStorage
+        if (Number(editingUser.codigo) === Number(user.codigo)) {
+           const updatedUser = { ...user, ...payload };
+           localStorage.setItem('isis_user', JSON.stringify(updatedUser));
+           window.dispatchEvent(new Event('isis_user_updated'));
+        }
+
+        setEditingUser(null); 
+        loadData(); 
+      }
     }
   };
 
