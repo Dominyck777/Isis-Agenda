@@ -796,7 +796,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
             finalCodigo = nextCod.toString();
 
-            const { error: err } = await supabase.from('agendamentos').insert({
+            const payload = {
                codigo: nextCod,
                codigo_empresa: empresa.codigo,
                codigo_servico: service.codigo,
@@ -807,16 +807,22 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                status: 'agendado',
                observacao: '✨ Agendamento realizado via Assistente Ísis',
                isis_criou: true
-            });
+            };
+
+            console.log('--- ÍSIS CHAT: TENTANDO GRAVAR AGENDAMENTO ---', payload);
+
+            const { error: err } = await supabase.from('agendamentos').insert(payload);
             error = err;
           }
 
         if (error) {
-           console.error('Erro ao gravar agendamento:', error);
+           console.error('--- ÍSIS CHAT: ERRO AO GRAVAR ---', error);
            toast('Poxa, tive um probleminha técnico ao salvar seu horário. Por favor, tente novamente em instantes.', 'error');
            setIsTyping(false);
            return;
         }
+
+        console.log('--- ÍSIS CHAT: AGENDAMENTO GRAVADO COM SUCESSO! ---');
 
         setIsTyping(false);
         const valorFormatado = parseFloat(service.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
