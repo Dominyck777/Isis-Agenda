@@ -179,12 +179,14 @@
 .cal-header-row {
   display: flex;
   width: 100%;
+  max-width: 100dvw;
   overflow: hidden;
   position: sticky;
   top: 0;
   z-index: 30;
   background-color: var(--bg-color);
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .time-zone {
@@ -207,8 +209,9 @@
 
 .header-inner {
   display: flex;
-  width: max-content;
-  min-width: 100%;
+  width: var(--total-grid-width);
+  min-width: var(--total-grid-width);
+  flex-shrink: 0;
   background-color: var(--surface-color);
 }
 /* Ensure header children have background to cover scroll area */
@@ -221,14 +224,17 @@
 }
 
 .cal-grid {
-  width: max-content;
-  min-width: 100%;
+  width: var(--total-grid-width);
+  min-width: var(--total-grid-width);
   position: relative;
+  flex-shrink: 0;
 }
 
 .day-col-header {
-  width: 100%;
-  min-width: var(--base-col-width);
+  width: var(--current-col-width);
+  min-width: var(--current-col-width);
+  max-width: var(--current-col-width);
+  flex: 0 0 var(--current-col-width);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -237,13 +243,17 @@
   font-size: 0.75rem;
   color: var(--text-muted);
 }
-.day-number.active { background-color: var(--primary-color); color: #fff; }
+.day-number { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.day-number.active { background-color: var(--primary-color); color: #fff; border-radius: 50%; }
 
 .cal-grid-scroll {
   flex: 1;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   position: relative;
   -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  width: 100%;
 }
 
 /* cal-grid rule merged above */
@@ -252,16 +262,17 @@
   min-height: 100%; 
   top: 0; 
   bottom: 0; 
-  width: max-content;
-  min-width: 100%;
+  width: var(--total-grid-width);
+  min-width: var(--total-grid-width);
   background-color: var(--bg-color);
 }
 
 .grid-row {
   display: flex;
   height: 60px;
-  width: max-content;
-  min-width: 100%;
+  width: var(--total-grid-width);
+  min-width: var(--total-grid-width);
+  flex-shrink: 0;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -283,7 +294,7 @@
 /* INTERACTIVE CELLS (Hover magic) */
 .grid-cells-container {
   display: grid;
-  grid-template-columns: repeat(var(--days-count, 7), calc(var(--base-col-width) * var(--zoom-factor, 1)));
+  grid-template-columns: repeat(var(--days-count, 7), var(--current-col-width));
   min-width: max-content;
 }
 
@@ -457,8 +468,11 @@
   .left, .right, .center { gap: 4px; }
   .dash-header { padding: 0 12px; }
 
-  /* Main now handles both X and Y scrolling natively, keeping sticky headers attached */
-  .cal-header-row, .cal-grid-scroll { min-width: 600px; }
+  /* Main handles both X and Y scrolling natives */
+  .cal-header-row, .cal-grid-scroll { 
+    min-width: 0; 
+    width: 100%;
+  }
   
   .day-col-header { padding: 8px 0; }
   .day-number { width: 36px; height: 36px; font-size: 1.25rem; }

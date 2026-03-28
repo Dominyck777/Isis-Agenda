@@ -313,7 +313,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       const w = window.innerWidth;
       const sidebar = 45;
       const count = currentWeekDays.length || 7;
-      setBaseColWidth((w - sidebar) / count);
+      // Define a largura base para ser 120px ou 16dvw, o que for maior, garantindo scroll no mobile
+      const targetWidth = Math.max(w * 0.16, 120);
+      const minToFill = (w - sidebar) / count;
+      setBaseColWidth(Math.max(targetWidth, minToFill));
     };
     calcBase();
     window.addEventListener('resize', calcBase);
@@ -709,7 +712,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             flexDirection: 'column', 
             '--days-count': currentWeekDays.length, 
             '--zoom-factor': zoomFactor,
-            '--base-col-width': `calc((100dvw - 45px) / ${currentWeekDays.length || 7})`
+            '--current-col-width': `${currentColWidth}px`,
+            '--total-grid-width': `${totalGridWidth}px`
           } as any}>
             {/* Ocultado a pedido do usuario: viewMode === 'month' */}
             {/*viewMode === 'month' ? (
@@ -766,7 +770,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                 {/* Header de Dias (Fixo no Topo) */}
                 <div className="cal-header-row" ref={headerScrollRef}>
                   <div className="header-inner" style={{ width: `${totalGridWidth}px` }}>
-                    <div style={{ width: '45px', flex: 'none' }}></div>
+                    <div style={{ width: '45px', flex: 'none', position: 'sticky', left: 0, zIndex: 100, backgroundColor: 'var(--surface-color)', borderRight: '1px solid var(--border-color)' }}></div>
                     <div id="grid-header-cells" className="grid-cells-container">
                       {currentWeekDays.map((day, i) => (
                         <div key={i} className="day-col-header">
