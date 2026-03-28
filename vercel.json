@@ -1,6 +1,4 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*).html",
@@ -28,11 +26,12 @@
     }
   ],
   "rewrites": [
-    { "source": "/assets/(.*)", "destination": "/assets/$1" },
-    { "source": "/favicon.png", "destination": "/favicon.png" },
+    { "source": "/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/favicon.ico", "destination": "/favicon.ico" },
+    { "source": "/favicon.png", "destination": "/favicon.png" },
+    { "source": "/favicon.svg", "destination": "/favicon.svg" },
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
