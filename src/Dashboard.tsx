@@ -735,7 +735,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                 {/* Header de Dias (Fixo no Topo) */}
                 <div className="cal-header-row" ref={headerScrollRef}>
                   <div style={{ width: '45px', flex: 'none' }}></div>
-                  <div className="grid-cells-container" style={{ borderBottom: 'none' }}>
+                  <div id="grid-header-cells" className="grid-cells-container">
                     {currentWeekDays.map((day, i) => (
                       <div key={i} className="day-col-header">
                         <span style={{ fontWeight: 500 }}>{day.name}</span>
@@ -795,9 +795,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           const clampHeight = rawHeight < 24 ? 24 : rawHeight;
                           
                           const { colIndex, numCols } = agStyles[ag.id] || { colIndex: 0, numCols: 1 };
-                          const totalCols = currentWeekDays.length;
-                          const leftPercent = `calc((100%/${totalCols} * ${dIdx}) + (100%/${totalCols} / ${numCols} * ${colIndex}) + 2px)`;
-                          const widthPercent = `calc(100%/${totalCols} / ${numCols} - 4px)`;
+                          const colWidthVar = `(var(--min-cell-width) * var(--zoom-factor, 1))`;
+                          const leftPercent = `calc(${dIdx} * ${colWidthVar} + (${colWidthVar} / ${numCols} * ${colIndex}) + 2px)`;
+                          const widthPercent = `calc(${colWidthVar} / ${numCols} - 4px)`;
                           
                           let colorBase = '#0ea5e9';
                           if (ag.status === 'em andamento') colorBase = '#f59e0b';
@@ -810,7 +810,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
                           const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
                           
-                          // Check if this appointment is during lunch
                           const dAg = ini.getDay();
                           const dayCfgAg = configAgenda?.horarios?.find((h: any) => h.dia === dAg);
                           const agStartStr = ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
