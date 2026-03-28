@@ -68,18 +68,27 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
 
     const { data: cfg } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', user.codigo_empresa).single();
     if (cfg) {
+      // Garantir que campos de almoço existam nos horários salvos
+      if (cfg.horarios) {
+        cfg.horarios = cfg.horarios.map((h: any) => ({
+          almoco_ativo: false,
+          almoco_inicio: '12:00',
+          almoco_fim: '13:00',
+          ...h
+        }));
+      }
       setConfigAgenda(cfg);
     } else {
       setConfigAgenda({
         codigo_empresa: user.codigo_empresa,
         horarios: [
-          {dia: 0, nome: "Domingo", aberto: false, inicio: "08:00", fim: "12:00"},
-          {dia: 1, nome: "Segunda-feira", aberto: true, inicio: "08:00", fim: "18:00"},
-          {dia: 2, nome: "Terça-feira", aberto: true, inicio: "08:00", fim: "18:00"},
-          {dia: 3, nome: "Quarta-feira", aberto: true, inicio: "08:00", fim: "18:00"},
-          {dia: 4, nome: "Quinta-feira", aberto: true, inicio: "08:00", fim: "18:00"},
-          {dia: 5, nome: "Sexta-feira", aberto: true, inicio: "08:00", fim: "18:00"},
-          {dia: 6, nome: "Sábado", aberto: true, inicio: "08:00", fim: "14:00"}
+          {dia: 0, nome: "Domingo", aberto: false, inicio: "08:00", fim: "12:00", almoco_ativo: false, almoco_inicio: "12:00", almoco_fim: "13:00"},
+          {dia: 1, nome: "Segunda-feira", aberto: true, inicio: "08:00", fim: "18:00", almoco_ativo: true, almoco_inicio: "12:00", almoco_fim: "13:00"},
+          {dia: 2, nome: "Terça-feira", aberto: true, inicio: "08:00", fim: "18:00", almoco_ativo: true, almoco_inicio: "12:00", almoco_fim: "13:00"},
+          {dia: 3, nome: "Quarta-feira", aberto: true, inicio: "08:00", fim: "18:00", almoco_ativo: true, almoco_inicio: "12:00", almoco_fim: "13:00"},
+          {dia: 4, nome: "Quinta-feira", aberto: true, inicio: "08:00", fim: "18:00", almoco_ativo: true, almoco_inicio: "12:00", almoco_fim: "13:00"},
+          {dia: 5, nome: "Sexta-feira", aberto: true, inicio: "08:00", fim: "18:00", almoco_ativo: true, almoco_inicio: "12:00", almoco_fim: "13:00"},
+          {dia: 6, nome: "Sábado", aberto: true, inicio: "08:00", fim: "14:00", almoco_ativo: false, almoco_inicio: "12:00", almoco_fim: "13:00"}
         ]
       });
     }
@@ -146,12 +155,17 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
       email: '',
       senhaText: '',
       is_admin: false,
-      ativo: true
+      ativo: true,
+      permissoes: { permitir_fora_horario: false, permitir_no_almoco: false }
     });
   };
 
   const openEditUserForm = (u: any) => {
-    setEditingUser({ ...u, senhaText: '' }); // senha vazia significa "não alterar"
+    setEditingUser({ 
+      ...u, 
+      senhaText: '', 
+      permissoes: u.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false } 
+    });
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -167,7 +181,8 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
         senha: hashPassword(editingUser.senhaText),
         codigo_empresa: user.codigo_empresa,
         is_admin: editingUser.is_admin,
-        ativo: editingUser.ativo
+        ativo: editingUser.ativo,
+        permissoes: editingUser.permissoes
       });
 
       if (error) toast('Erro ao criar: ' + error.message, 'error');
@@ -179,7 +194,8 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
         nome: editingUser.nome,
         email: editingUser.email,
         is_admin: editingUser.is_admin,
-        ativo: editingUser.ativo
+        ativo: editingUser.ativo,
+        permissoes: editingUser.permissoes
       };
       
       if (editingUser.senhaText) {
@@ -373,10 +389,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         <input type="password" value={editingUser.senhaText} onChange={e => setEditingUser({...editingUser, senhaText: e.target.value})} required={editingUser.codigo === 'novo'} placeholder="***" minLength={6} />
                       </div>
                       
-                      <div className="form-group-flat" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginTop: '24px' }}>
-                        <input type="checkbox" id="isAdminCheck" checked={editingUser.is_admin} onChange={e => setEditingUser({...editingUser, is_admin: e.target.checked})} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                        <label htmlFor="isAdminCheck" style={{ cursor: 'pointer', color: '#fff' }}>Permissão de Administrador</label>
-                      </div>
 
                       <div className="form-group-flat" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginTop: '24px' }}>
                         <input 
@@ -390,6 +402,29 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         <label htmlFor="isActiveCheck" style={{ cursor: editingUser.codigo === user.codigo ? 'not-allowed' : 'pointer', color: editingUser.codigo === user.codigo ? 'gray' : '#fff' }}>
                           Usuário Ativo no Sistema
                         </label>
+                      </div>
+
+                      <div className="form-group-flat full" style={{ borderTop: '1px solid var(--border-color)', marginTop: '24px', paddingTop: '16px', gridColumn: '1 / -1' }}>
+                         <label style={{ color: 'var(--primary-color)', fontSize: '0.9rem', marginBottom: '16px', display: 'block', fontWeight: 600 }}>Permissões de Acesso</label>
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                               <input type="checkbox" id="isAdminCheck" checked={editingUser.is_admin} onChange={e => setEditingUser({...editingUser, is_admin: e.target.checked})} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                               <label htmlFor="isAdminCheck" style={{ cursor: 'pointer', color: '#fff', fontWeight: 500 }}>Permissão de Administrador (Acesso Total)</label>
+                            </div>
+                            
+                            {!editingUser.is_admin && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '28px', borderLeft: '2px solid rgba(14, 165, 233, 0.2)', marginTop: '4px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                   <input type="checkbox" id="permFora" checked={editingUser.permissoes?.permitir_fora_horario} onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, permitir_fora_horario: e.target.checked }})} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                                   <label htmlFor="permFora" style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Permitir agendar fora do horário de funcionamento</label>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                   <input type="checkbox" id="permAlmoco" checked={editingUser.permissoes?.permitir_no_almoco} onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, permitir_no_almoco: e.target.checked }})} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                                   <label htmlFor="permAlmoco" style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Permitir agendar dentro do horário de almoço</label>
+                                </div>
+                              </div>
+                            )}
+                         </div>
                       </div>
                     </div>
                     <div className="user-form-actions" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -477,6 +512,18 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                           <input type="time" value={h.inicio || '08:00'} onChange={e => updateHorario(i, 'inicio', e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
                           <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>até as</span>
                           <input type="time" value={h.fim || '18:00'} onChange={e => updateHorario(i, 'fim', e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px', borderLeft: '1px solid var(--border-color)', paddingLeft: '12px' }}>
+                             <input type="checkbox" id={`alm-${i}`} checked={h.almoco_ativo} onChange={e => updateHorario(i, 'almoco_ativo', e.target.checked)} style={{ cursor: 'pointer' }} />
+                             <label htmlFor={`alm-${i}`} style={{ fontSize: '0.8rem', color: h.almoco_ativo ? 'var(--primary-color)' : 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Possui Almoço?</label>
+                             {h.almoco_ativo && (
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                 <input type="time" value={h.almoco_inicio || '12:00'} onChange={e => updateHorario(i, 'almoco_inicio', e.target.value)} style={{ padding: '2px 4px', fontSize: '0.8rem', borderRadius: '4px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
+                                 <span style={{ fontSize: '0.7rem' }}>-</span>
+                                 <input type="time" value={h.almoco_fim || '13:00'} onChange={e => updateHorario(i, 'almoco_fim', e.target.value)} style={{ padding: '2px 4px', fontSize: '0.8rem', borderRadius: '4px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
+                               </div>
+                             )}
+                          </div>
                         </div>
                       ) : (
                         <span style={{ color: '#ef4444', fontSize: '0.9rem', fontStyle: 'italic', marginLeft: '12px' }}>🔒 Fechado esse dia</span>

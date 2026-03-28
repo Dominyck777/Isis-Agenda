@@ -197,14 +197,36 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     const duracao = sObj ? sObj.duracao_minutos : 30;
     const endObj = new Date(startObj.getTime() + duracao * 60000);
 
-    // Validação de Janela do Grid
+    // Validação de Janela do Grid (Global)
     const { earliest, latest } = getWorkingRange();
     const startHour = startObj.getHours() + startObj.getMinutes() / 60;
     const endHour = endObj.getHours() + endObj.getMinutes() / 60;
     if (startHour < earliest || endHour > latest) {
-       toast(`⛔ Fora da janela permitida (${earliest.toString().padStart(2,'0')}:00 às ${latest.toString().padStart(2,'0')}:00)`, 'error');
+       toast(`⛔ Fora da janela permitida no sistema (${earliest.toString().padStart(2,'0')}:00 às ${latest.toString().padStart(2,'0')}:00)`, 'error');
        return;
     }
+
+    // --- NOVA VALIDAÇÃO DE PERMISSÕES ---
+    if (user && !user.is_admin) {
+        const d = new Date(`${form.data}T12:00:00`).getDay();
+        const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
+        const p = user.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false };
+
+        // 1. Checar Fora de Horário de Funcionamento (Específico do dia)
+        const isFora = !dayCfg || !dayCfg.aberto || form.hora < dayCfg.inicio || form.hora >= dayCfg.fim;
+        if (isFora && !p.permitir_fora_horario) {
+            toast('⛔ Você não tem permissão para agendar fora do horário de funcionamento.', 'error');
+            return;
+        }
+
+        // 2. Checar Horário de Almoço
+        const isAlmoco = dayCfg?.almoco_ativo && form.hora >= dayCfg.almoco_inicio && form.hora < dayCfg.almoco_fim;
+        if (isAlmoco && !p.permitir_no_almoco) {
+            toast('⛔ Você não tem permissão para agendar no horário de almoço.', 'error');
+            return;
+        }
+    }
+    // --- FIM DA VALIDAÇÃO DE PERMISSÕES ---
 
     // PRIVACIDADE: Não admins não podem agendar para outros
     if (user && !user.is_admin && Number(form.codigo_profissional) !== Number(user.codigo)) {
@@ -404,25 +426,50 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
               <div className="form-group-flat full">
                 <label>Hora de Chegada (Início)</label>
-                <select 
-                   value={form.hora} 
-                   onChange={e => setForm({...form, hora: e.target.value})} 
-                   disabled={!form.codigo_profissional || !form.data || !form.codigo_servico}
-                   required 
-                   style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', opacity: (!form.codigo_profissional || !form.codigo_servico || !form.data) ? 0.4 : 1, transition: '0.2s', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
-                >
-                   <option value="">
-                     {(!form.codigo_profissional || !form.codigo_servico) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}
-                   </option>
-                   {form.codigo_profissional && form.codigo_servico && form.data && getHorariosGerados().map(slot => {
-                      const isAval = isSlotDisponivel(slot);
-                      return (
-                        <option key={slot} value={slot} disabled={!isAval}>
-                          {slot} {!isAval ? '❌ (Ocupado)' : ''}
-                        </option>
-                      );
-                   })}
-                </select>
+                   {(() => {
+                     const d = form.data ? new Date(`${form.data}T12:00:00`).getDay() : null;
+                     const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
+                     const isAlmoco = dayCfg?.almoco_ativo && form.hora && form.hora >= dayCfg.almoco_inicio && form.hora < dayCfg.almoco_fim;
+                     
+                     return (
+                       <>
+                        <select 
+                           value={form.hora} 
+                           onChange={e => setForm({...form, hora: e.target.value})} 
+                           disabled={!form.codigo_profissional || !form.data || !form.codigo_servico}
+                           required 
+                           style={{ 
+                             padding: '12px 14px', 
+                             borderRadius: '8px', 
+                             background: 'var(--input-bg)', 
+                             color: '#fff', 
+                             border: isAlmoco ? '2px solid #f59e0b' : '1px solid var(--border-color)', 
+                             boxShadow: isAlmoco ? '0 0 10px rgba(245, 158, 11, 0.2)' : 'none',
+                             fontSize: '1rem', 
+                             outline: 'none', 
+                             opacity: (!form.codigo_profissional || !form.codigo_servico || !form.data) ? 0.4 : 1, 
+                             transition: '0.2s', 
+                             width: '100%', 
+                             maxWidth: '100%', 
+                             boxSizing: 'border-box' 
+                           }}
+                        >
+                           <option value="">
+                             {(!form.codigo_profissional || !form.codigo_servico) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}
+                           </option>
+                           {form.codigo_profissional && form.codigo_servico && form.data && getHorariosGerados().map(slot => {
+                              const isAval = isSlotDisponivel(slot);
+                              return (
+                                <option key={slot} value={slot} disabled={!isAval}>
+                                  {slot} {!isAval ? '❌ (Ocupado)' : ''}
+                                </option>
+                              );
+                           })}
+                        </select>
+                        {isAlmoco && <p style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '6px', fontWeight: 600 }}>⚠️ Atenção: Este horário coincide com o intervalo de almoço.</p>}
+                       </>
+                     );
+                   })()}
               </div>
 
             </div>
