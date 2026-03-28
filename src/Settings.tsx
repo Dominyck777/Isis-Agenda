@@ -231,28 +231,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     }
   };
 
-  const handleSendTestPush = async () => {
-    try {
-      toast('Enviando teste de notificação...', 'info');
-      const { data, error } = await supabase.functions.invoke('send-push', {
-        body: {
-          record: { codigo_profissional: user.codigo, data_hora_inicio: new Date().toISOString() },
-          table: 'agendamentos',
-          type: 'INSERT'
-        }
-      });
-      if (error) {
-        console.error('Erro ao invocar function:', error);
-        throw error;
-      }
-      toast('Comando de teste enviado! Verifique seu dispositivo.', 'success');
-      console.log('DEBUG: Test push response:', data);
-    } catch (err: any) {
-      console.error('Erro no teste de push:', err);
-      toast('Erro ao disparar teste: ' + err.message, 'error');
-    }
-  };
-
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-card" onClick={e => e.stopPropagation()}>
@@ -361,14 +339,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         }}
                       >
                          {pushEnabled ? 'Desativar Push' : 'Ativar no Dispositivo'}
-                      </button>
-                   </div>
-                   <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                      <button 
-                        onClick={handleSendTestPush}
-                        style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.75rem', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer' }}
-                      >
-                        ⚡ Enviar Notificação de Teste
                       </button>
                    </div>
                 </div>

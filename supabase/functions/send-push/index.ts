@@ -8,72 +8,92 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { record, table, type } = await req.json();
+    const payload = await req.json();
+    const { record, old_record, table, type } = payload;
 
     const publicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
     const privateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const subject = "mailto:contato@fluxo7.com";
-
-    webpush.setVapidDetails(subject, publicKey, privateKey);
+    
+    webpush.setVapidDetails("mailto:contato@fluxo7.com", publicKey, privateKey);
     const supabase = createClient(supabaseUrl, supabaseServiceRole);
 
-    let recipientId = null;
-    let title = "Isis Agenda";
+    let recipientId = record?.codigo_profissional;
+    let title = "";
     let body = "";
 
     if (table === "agendamentos") {
-      recipientId = record.codigo_profissional;
-      const dataHora = new Date(record.data_hora_inicio).toLocaleString('pt-BR');
-      
+      const dataHora = record.data_hora_inicio 
+        ? new Date(record.data_hora_inicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : "Horário não definido";
+
       if (type === "INSERT") {
         title = "📅 Novo Agendamento";
-        body = `Novo horário marcado para ${dataHora}`;
-      } else if (type === "UPDATE" && record.status === "cancelado") {
-        title = "❌ Cancelamento";
-        body = `O horário de ${dataHora} foi cancelado.`;
+        body = `Um novo horário foi marcado para ${dataHora}.`;
+      } 
+      else if (type === "UPDATE") {
+        // FILTRO: Só notifica se algo importante mudar (status ou horário)
+        const statusAlterado = record.status !== old_record?.status;
+        const horarioAlterado = record.data_hora_inicio !== old_record?.data_hora_inicio;
+
+        if (statusAlterado && record.status === "cancelado") {
+          title = "❌ Agendamento Cancelado";
+          body = `O horário de ${dataHora} foi cancelado.`;
+        } else if (statusAlterado || horarioAlterado) {
+          title = "🔄 Agendamento Alterado";
+          body = `O agendamento para ${dataHora} foi atualizado.`;
+        } else {
+          // Ignora updates secundários (ex: logs internos)
+          return new Response("Ignorado: Sem alterações relevantes");
+        }
       }
+    } 
+    else if (payload.test) {
+      title = "🔔 Teste de Notificação";
+      body = "Suas notificações push estão funcionando!";
+      recipientId = payload.usuario_codigo;
     }
 
-    if (!recipientId) return new Response("Ok (sem destinatário)");
+    if (!title || !recipientId) {
+      return new Response("Ignorado: Payload não reconhecido ou sem destinatário");
+    }
 
-    // Busca subscriptions
     const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("*")
       .eq("usuario_codigo", recipientId);
 
-    if (subs) {
-      for (const sub of subs) {
+    if (!subs || subs.length === 0) {
+       return new Response("Nenhum dispositivo encontrado.");
+    }
+
+    await Promise.all(
+      subs.map(async (sub) => {
         try {
           const pushSubscription = {
             endpoint: sub.endpoint,
-            keys: {
-              auth: sub.auth,
-              p256dh: sub.p256dh,
-            },
+            keys: { auth: sub.auth, p256dh: sub.p256dh },
           };
           await webpush.sendNotification(pushSubscription, JSON.stringify({ title, body, url: '/' }));
         } catch (e) {
-          console.error("Erro ao enviar push:", e);
+          console.error("Erro no envio:", e.message);
         }
-      }
-    }
+      })
+    );
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

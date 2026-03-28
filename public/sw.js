@@ -63,7 +63,6 @@ self.addEventListener('fetch', (event) => {
 
 // -- PUSH NOTIFICATIONS --
 self.addEventListener('push', (event) => {
-  console.log('DEBUG: Push event received!', event);
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'Isis Agenda';
   const options = {

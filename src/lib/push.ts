@@ -28,19 +28,15 @@ export async function subscribeToPush(usuarioCodigo: number, vapidPublicKey: str
   }
 
   const registration = await navigator.serviceWorker.ready;
-  console.log('DEBUG: Service Worker pronto.');
   
   // 2. Verifica se já existe uma inscrição
   let subscription = await registration.pushManager.getSubscription();
-  console.log('DEBUG: Inscrição existente:', !!subscription);
   
   if (!subscription) {
-    console.log('DEBUG: Gerando nova inscrição com chave VAPID...');
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
     });
-    console.log('DEBUG: Nova inscrição gerada.');
   }
 
   // Prepara dados para o Supabase
