@@ -497,15 +497,22 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     if (!user) return;
 
+    console.log('Iniciando subscrição em tempo real para empresa:', user.codigo_empresa);
+
     const channel = supabase
       .channel('isis-realtime')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'agendamentos',
-        filter: `codigo_empresa=eq.${user.codigo_empresa}`
+        table: 'agendamentos'
       }, (payload: any) => {
-        if (payload.new.isis_criou) {
+        console.log('Evento de INSERT recebido:', payload);
+        
+        const isMinhaEmpresa = String(payload.new.codigo_empresa) === String(user.codigo_empresa);
+        const isCriadoPelaIsis = payload.new.isis_criou === true || payload.new.isis_criou === 'true';
+
+        if (isMinhaEmpresa && isCriadoPelaIsis) {
+          console.log('Notificação da Ísis disparada!');
           const id = Date.now() + Math.random();
           const newNotif = {
             id,
@@ -514,18 +521,19 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           };
           setIsisNotifications(prev => [...prev, newNotif]);
           
-          // Recarregar a grade para mostrar o novo agendamento
           reloadDashboardGrid();
 
-          // Auto-remover após 30 segundos
           setTimeout(() => {
             setIsisNotifications(prev => prev.filter(n => n.id !== id));
           }, 30000);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Status da subscrição Ísis:', status);
+      });
 
     return () => {
+      console.log('Limpando subscrição Ísis');
       supabase.removeChannel(channel);
     };
   }, [user]);
