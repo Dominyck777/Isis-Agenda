@@ -28,6 +28,11 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!assets/|.*\\..*).*)", "destination": "/index.html" }
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/favicon.png", "destination": "/favicon.png" },
+    { "source": "/favicon.ico", "destination": "/favicon.ico" },
+    { "source": "/manifest.json", "destination": "/manifest.json" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
