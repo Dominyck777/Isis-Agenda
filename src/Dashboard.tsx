@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 import { toast } from './Toast';
 import CryptoJS from 'crypto-js';
@@ -45,6 +45,13 @@ function hashPassword(password: string) {
 }
 
 // Ícones SVG minimalistas
+const IVoid = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+  </svg>
+);
+
 const IPlus = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
 
 const ISettings = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
@@ -162,9 +169,78 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showServicesPanel, setShowServicesPanel] = useState(false);
-
-  // Nav Dropdown
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const lastPinchDistRef = useRef<number>(0);
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleGridScroll = useCallback(() => {
+    if (gridScrollRef.current && headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = gridScrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  useEffect(() => {
+    const grid = gridScrollRef.current;
+    if (!grid) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const delta = -e.deltaY;
+        setZoomLevel(prev => {
+          const next = prev + (delta > 0 ? 0.08 : -0.08);
+          return Math.min(Math.max(next, 0.6), 4);
+        });
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        lastPinchDistRef.current = Math.hypot(
+          e.touches[0].pageX - e.touches[1].pageX,
+          e.touches[0].pageY - e.touches[1].pageY
+        );
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && lastPinchDistRef.current > 0) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].pageX - e.touches[1].pageX,
+          e.touches[0].pageY - e.touches[1].pageY
+        );
+        const delta = dist - lastPinchDistRef.current;
+        
+        if (Math.abs(delta) > 2) {
+          setZoomLevel(prev => {
+            const next = prev + (delta > 0 ? 0.05 : -0.05);
+            return Math.min(Math.max(next, 0.6), 4);
+          });
+          lastPinchDistRef.current = dist;
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      lastPinchDistRef.current = 0;
+    };
+
+    grid.addEventListener('wheel', handleWheel, { passive: false });
+    grid.addEventListener('touchstart', handleTouchStart, { passive: true });
+    grid.addEventListener('touchmove', handleTouchMove, { passive: false });
+    grid.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      grid.removeEventListener('wheel', handleWheel);
+      grid.removeEventListener('touchstart', handleTouchStart);
+      grid.removeEventListener('touchmove', handleTouchMove);
+      grid.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     const loadUser = () => {
@@ -172,7 +248,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       if (data) {
         const parsed = JSON.parse(data);
         setUser(parsed);
-        // Se profissional, trava o filtro nele
         if (parsed && !parsed.is_admin && parsed.codigo) {
           setFilterProf(parsed.codigo.toString());
         }
@@ -183,7 +258,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => window.removeEventListener('isis_user_updated', loadUser);
   }, []);
 
-  // Realimenta as dinâmicas de Horários sempre que o usuário abrir ou fechar as Configurações
   useEffect(() => {
     if (user && !showSettingsPanel) {
       supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', user.codigo_empresa).single().then(({data: cfg}) => {
@@ -192,7 +266,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [showSettingsPanel, user]);
 
-  // Cálculo Dinâmico da Janela do Grid (Baseado estritamente nas Configurações da Empresa)
   let earliest = 9;
   let latest = 18;
 
@@ -658,28 +731,30 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                      );
                    })}
                 </div>
-              </div>
             ) : (*/}
-              <>
-                <div className="cal-header-row">
-                  <div className="time-zone">GMT-03</div>
-                  <div className="grid-cells-container" style={{ borderBottom: 'none', gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}>
-                    {currentWeekDays.map((day, i) => (
-                      <div key={i} className="day-col-header">
-                        <span className="day-name">{day.name}</span>
-                        <div className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</div>
-                      </div>
-                    ))}
-                  </div>
+              <div className="dash-main" style={{ '--days-count': currentWeekDays.length, '--cell-width': `${140 * zoomLevel}px` } as any}>
+                {/* Header de Dias (Fixo no Topo) */}
+                <div className="cal-header-row" ref={headerScrollRef}>
+                  <div style={{ width: '45px', flex: 'none' }}></div>
+                  {currentWeekDays.map((day, i) => (
+                    <div key={i} className="day-col-header">
+                      <span style={{ fontWeight: 500 }}>{day.name}</span>
+                      <span className={`day-number ${day.isToday ? 'active' : ''}`}>{day.dateNum}</span>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="cal-grid-scroll" style={{ flex: 1 }}>
+                <div 
+                  className="cal-grid-scroll" 
+                  ref={gridScrollRef} 
+                  onScroll={handleGridScroll}
+                >
                   <div className="cal-grid">
                     <div className="grid-bg">
                       {hoursArray.map((hour, idx) => (
                         <div key={hour} className="grid-row">
                           <div className="time-label" style={idx === 0 ? { transform: 'translateY(4px)' } : {}}>{hour.toString().padStart(2, '0')}:00</div>
-                          <div className="grid-cells-container" style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}>
+                          <div className="grid-cells-container">
                             {currentWeekDays.map((day, i) => {
                                const d = day.fullDate.getDay();
                                const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
@@ -692,9 +767,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                    key={i} 
                                    className={`cal-cell ${isFechado ? 'cell-closed' : isAlmoco ? 'cell-lunch' : ''}`} 
                                    onClick={() => openSlotModal(day.fullDate, hour)}
-                                   title={isFechado ? 'Fechado' : isAlmoco ? 'Horário de Almoço' : `Agendar ${hourStr}`}
+                                   title={isFechado ? 'Fechado' : isAlmoco ? 'Almoço' : `Agendar ${hourStr}`}
                                  >
-                                   {isFechado && <span className="closed-label">🔒 Fechado</span>}
+                                   {isFechado && <span className="closed-label"><IVoid /></span>}
                                    {isAlmoco && <span className="lunch-label">☕ Almoço</span>}
                                  </div>
                                );
@@ -761,9 +836,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           );
                       })}
                     </div>
-                  </div>
                 </div>
-              </>
+              </div>
+            </div>
             {/*)}*/}
           </main>
         </div>

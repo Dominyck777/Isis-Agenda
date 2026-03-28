@@ -472,7 +472,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                               return (
                                 <option key={slot} value={slot} disabled={!isAval || isRestrictedByPerm}>
                                   {slot} 
-                                  {!isAval ? ' ❌ (Ocupado)' : isFechadoSlot ? ' 🔒 (Fechado)' : isAlmocoSlot ? ' ☕ (Almoço)' : ''}
+                                  {!isAval ? ' ❌ (Ocupado)' : isFechadoSlot ? ' ⊘' : isAlmocoSlot ? ' ☕ (Almoço)' : ''}
                                 </option>
                               );
                            })}

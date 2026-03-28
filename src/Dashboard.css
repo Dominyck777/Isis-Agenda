@@ -166,10 +166,12 @@
 /* MAIN CALENDAR GRID */
 .dash-main {
   flex: 1;
-  display: block;
-  overflow: auto; /* Ambos X e Y aqui para alinhar sticky headers */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Main avoids scrolling, children (grid-scroll) will */
   position: relative;
   -webkit-overflow-scrolling: touch;
+  --cell-width: 1fr; /* Default */
 }
 
 .cal-header-row {
@@ -197,8 +199,14 @@
   background-color: var(--bg-color);
 }
 
+.cal-header-row, .cal-grid {
+  width: fit-content;
+  min-width: calc(45px + (var(--days-count, 7) * var(--cell-width, 140px)));
+}
+
 .day-col-header {
-  flex: 1;
+  width: var(--cell-width, 140px);
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -206,13 +214,6 @@
   padding: 12px 0;
   font-size: 0.75rem;
   color: var(--text-muted);
-}
-.day-number {
-  width: 44px; height: 44px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem;
-  border-radius: 50%;
-  margin-top: 4px;
 }
 .day-number.active { background-color: var(--primary-color); color: #fff; }
 
@@ -250,7 +251,7 @@
 .grid-cells-container {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 140px));
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -302,6 +303,7 @@
   right: 0;
   bottom: 0;
   pointer-events: none;
+  width: calc(var(--days-count, 7) * var(--cell-width, 140px));
 }
 
 .event-card {
