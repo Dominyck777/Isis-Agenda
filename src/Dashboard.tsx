@@ -537,18 +537,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             timestamp: Date.now()
           };
           setIsisNotifications(prev => [...prev, newNotif]);
-          
           reloadDashboardGrid();
-
-          setTimeout(() => {
-            // Primeiro ativa a animação de saída
-            setIsisNotifications(prev => prev.map(x => x.id === id ? { ...x, exiting: true } : x));
-            
-            // Depois de 500ms (tempo da animação), remove do array
-            setTimeout(() => {
-              setIsisNotifications(prev => prev.filter(n => n.id !== id));
-            }, 500);
-          }, 30000);
         }
       })
       .subscribe((status) => {
@@ -560,6 +549,32 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       supabase.removeChannel(channel);
     };
   }, [user]);
+
+  // Hook de Gerenciamento do Ciclo de Vida das Notificações (Saída automática após 30s)
+  useEffect(() => {
+    if (isisNotifications.length === 0) return;
+
+    const agora = Date.now();
+    const timers = isisNotifications.map(n => {
+       // Se a notificação ainda não tem o temporizador agendado no Dashboard
+       if (!n.exiting) {
+          const tempoRestante = 30000 - (agora - n.timestamp);
+          return setTimeout(() => {
+             console.log('Iniciando animação de saída para:', n.id);
+             setIsisNotifications(prev => prev.map(x => x.id === n.id ? { ...x, exiting: true, exitedAt: Date.now() } : x));
+             
+             // Agenda a remoção definitiva logo após a animação de 500ms
+             setTimeout(() => {
+               console.log('Removendo notificação definitivamente:', n.id);
+               setIsisNotifications(prev => prev.filter(x => x.id !== n.id));
+             }, 600);
+          }, Math.max(0, tempoRestante));
+       }
+       return null;
+    });
+
+    return () => timers.forEach(t => t && clearTimeout(t));
+  }, [isisNotifications.length]);
 
   const handlePrevRange = () => setCurrentDate(addDays(currentDate, -7));
   const handleNextRange = () => setCurrentDate(addDays(currentDate, 7));
