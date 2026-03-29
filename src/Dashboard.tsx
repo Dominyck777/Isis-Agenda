@@ -39,12 +39,12 @@ const mobileStyles = `
   }
 `;
 
-// Função auxiliar para re-autenticação admin
+// FunÃ§Ã£o auxiliar para re-autenticaÃ§Ã£o admin
 function hashPassword(password: string) {
   return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
 }
 
-// Ícones SVG minimalistas
+// Ãcones SVG minimalistas
 const IVoid = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
     <circle cx="12" cy="12" r="10" />
@@ -74,12 +74,12 @@ const addDays = (date: Date, days: number) => {
 };
 
 const formatMonthYear = (date: Date) => {
-  const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const months = ['Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   return `${months[date.getMonth()]} de ${date.getFullYear()}`;
 };
 
 const getDaysOfWeek = (startDate: Date) => {
-  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÃB'];
   const todayStr = new Date().toDateString();
   
   return Array.from({ length: 7 }).map((_, i) => {
@@ -92,7 +92,7 @@ const getDaysOfWeek = (startDate: Date) => {
 const getDayArray = (date: Date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÃB'];
   const todayStr = new Date().toDateString();
   return [{ name: daysList[d.getDay()], dateNum: d.getDate(), fullDate: d, isToday: d.toDateString() === todayStr }];
 };
@@ -103,7 +103,7 @@ const getMonthArray = (date: Date) => {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
-  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  const daysList = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÃB'];
   const todayStr = new Date().toDateString();
 
   const startDate = new Date(firstDay);
@@ -136,7 +136,7 @@ const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.get
 export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode] = useState<'day' | 'week' | 'month'>('week'); // Mantido como 'week' por padrão
+  const [viewMode] = useState<'day' | 'week' | 'month'>('week'); // Mantido como 'week' por padrÃ£o
   // Base Rules
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   
@@ -275,7 +275,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   if (configAgenda?.horarios) {
     const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
     if (openDays.length > 0) {
-      // Pega o menor horário de início e o maior de fim entre todos os dias configurados para definir a "Janela do Grid"
+      // Pega o menor horÃ¡rio de inÃ­cio e o maior de fim entre todos os dias configurados para definir a "Janela do Grid"
       earliest = Math.min(...openDays.map((h: any) => {
         if (!h.inicio) return 9;
         const part = h.inicio.split(':')[0];
@@ -291,11 +291,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }
 
-  // O Grid agora é estritamente limitado à "Janela Comercial". 
-  // Agendamentos fora dessa janela não expandem mais o grid visualmente.
+  // O Grid agora Ã© estritamente limitado Ã  "Janela Comercial". 
+  // Agendamentos fora dessa janela nÃ£o expandem mais o grid visualmente.
 
 
-  // Previna a quebra do array do Grid caso os horários sejam inconsistentes
+  // Previna a quebra do array do Grid caso os horÃ¡rios sejam inconsistentes
   if (earliest < 0) earliest = 0;
   if (latest > 23) latest = 23;
   if (latest <= earliest) latest = earliest + 8; 
@@ -306,7 +306,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   // viewMode is hardcoded to week logic below since day/month are commented
   const currentWeekDays = getDaysOfWeek(startOfWeekDate); 
 
-  // Calcula a largura da coluna baseada na tela disponível (mínimo de preenchimento de 100%)
+  // Calcula a largura da coluna baseada na tela disponÃ­vel (mÃ­nimo de preenchimento de 100%)
   const [baseColWidth, setBaseColWidth] = useState(140);
   
   useEffect(() => {
@@ -331,7 +331,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
      return agendamentos.filter(ag => {
          if (ag.status === 'cancelado') return false;
          
-         // PRIVACIDADE: Não admins só veem seus PRÓPRIOS agendamentos
+         // PRIVACIDADE: NÃ£o admins sÃ³ veem seus PRÃ“PRIOS agendamentos
          if (user && !user.is_admin && String(ag.codigo_profissional) !== String(user.codigo)) {
            return false;
          }
@@ -417,7 +417,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
          .lte('data_hora_fim', new Date(endOfWk.getTime() + 86400000).toISOString());
      
      if (ags) {
-        // Auto-avaliação do Status por Tempo Real (Hora de Brasília)
+        // Auto-avaliaÃ§Ã£o do Status por Tempo Real (Hora de BrasÃ­lia)
         const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
         const nowMs = now.getTime();
         ags.forEach(ag => {
@@ -463,7 +463,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     reloadDashboardGrid();
   }, [user, currentDate, viewMode]);
 
-  // Hook Autônomo de Estado Mágico temporal
+  // Hook AutÃ´nomo de Estado MÃ¡gico temporal
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
@@ -493,11 +493,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => clearInterval(interval);
   }, [user]);
 
-  // Hook de Notificações em Tempo Real da Ísis
+  // Hook de NotificaÃ§Ãµes em Tempo Real da Ãsis
   useEffect(() => {
     if (!user) return;
 
-    console.log('Iniciando subscrição em tempo real para empresa:', user.codigo_empresa);
+    console.log('Iniciando subscriÃ§Ã£o em tempo real para empresa:', user.codigo_empresa);
 
     const channel = supabase
       .channel('isis-realtime')
@@ -512,9 +512,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         const isCriadoPelaIsis = payload.new.isis_criou === true || payload.new.isis_criou === 'true';
 
         if (isMinhaEmpresa && isCriadoPelaIsis) {
-          console.log('Notificação da Ísis disparada!');
+          console.log('NotificaÃ§Ã£o da Ãsis disparada!');
           
-          // Busca o nome do serviço se não estiver no dicionário
+          // Busca o nome do serviÃ§o se nÃ£o estiver no dicionÃ¡rio
           const svcId = payload.new.codigo_servico;
           if (svcId && !dicServicos[svcId]) {
             supabase.from('servicos').select('nome').eq('codigo', svcId).single().then(({data}) => {
@@ -522,7 +522,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             });
           }
 
-          // Busca o nome do profissional se não estiver no dicionário
+          // Busca o nome do profissional se nÃ£o estiver no dicionÃ¡rio
           const profId = payload.new.codigo_profissional;
           if (profId && !dicProfs[profId]) {
             supabase.from('usuarios').select('nome').eq('codigo', profId).single().then(({data}) => {
@@ -541,31 +541,31 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         }
       })
       .subscribe((status) => {
-        console.log('Status da subscrição Ísis:', status);
+        console.log('Status da subscriÃ§Ã£o Ãsis:', status);
       });
 
     return () => {
-      console.log('Limpando subscrição Ísis');
+      console.log('Limpando subscriÃ§Ã£o Ãsis');
       supabase.removeChannel(channel);
     };
   }, [user]);
 
-  // Hook de Gerenciamento do Ciclo de Vida das Notificações (Saída automática após 30s)
+  // Hook de Gerenciamento do Ciclo de Vida das NotificaÃ§Ãµes (SaÃ­da automÃ¡tica apÃ³s 30s)
   useEffect(() => {
     if (isisNotifications.length === 0) return;
 
     const agora = Date.now();
     const timers = isisNotifications.map(n => {
-       // Se a notificação ainda não tem o temporizador agendado no Dashboard
+       // Se a notificaÃ§Ã£o ainda nÃ£o tem o temporizador agendado no Dashboard
        if (!n.exiting) {
           const tempoRestante = 30000 - (agora - n.timestamp);
           return setTimeout(() => {
-             console.log('Iniciando animação de saída para:', n.id);
+             console.log('Iniciando animaÃ§Ã£o de saÃ­da para:', n.id);
              setIsisNotifications(prev => prev.map(x => x.id === n.id ? { ...x, exiting: true, exitedAt: Date.now() } : x));
              
-             // Agenda a remoção definitiva logo após a animação de 500ms
+             // Agenda a remoÃ§Ã£o definitiva logo apÃ³s a animaÃ§Ã£o de 500ms
              setTimeout(() => {
-               console.log('Removendo notificação definitivamente:', n.id);
+               console.log('Removendo notificaÃ§Ã£o definitivamente:', n.id);
                setIsisNotifications(prev => prev.filter(x => x.id !== n.id));
              }, 600);
           }, Math.max(0, tempoRestante));
@@ -605,7 +605,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     setIsApptModalOpen(true);
   };
 
-  // Fluxo de Desbloqueio das Configurações
+  // Fluxo de Desbloqueio das ConfiguraÃ§Ãµes
   const openFilterModal = () => {
     setIsMobileSidebarOpen(false);
     setTempFilterProf(filterProf);
@@ -629,7 +629,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     setConfigError('Autenticando...');
     const hashedInput = hashPassword(configPassword);
     
-    // Qualquer usuário admin cadastrado para essa empresa serve para liberar a tranca!
+    // Qualquer usuÃ¡rio admin cadastrado para essa empresa serve para liberar a tranca!
     const { data: admins, error } = await supabase
       .from('usuarios')
       .select('senha')
@@ -666,7 +666,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       setIsGooeyActive(true);
       setConfigError('');
 
-      // Ativar brilho do modal quando as partículas estão entrando
+      // Ativar brilho do modal quando as partÃ­culas estÃ£o entrando
       setTimeout(() => setIsModalBorderActive(true), 400);
 
       setTimeout(() => {
@@ -691,8 +691,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         <div className="mini-cal-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
           <h4 style={{ margin: 0 }}>{formatMonthYear(currentDate)}</h4>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ cursor: 'pointer', padding: '0 4px' }} onClick={handlePrevMonth}>❮</span>
-            <span style={{ cursor: 'pointer', padding: '0 4px' }} onClick={handleNextMonth}>❯</span>
+            <span style={{ cursor: 'pointer', padding: '0 4px' }} onClick={handlePrevMonth}>â®</span>
+            <span style={{ cursor: 'pointer', padding: '0 4px' }} onClick={handleNextMonth}>â¯</span>
           </div>
         </div>
 
@@ -740,14 +740,14 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
           
           <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', zIndex: 10 }}>
-            {/* Nav Controls: Hoje + Arrows (❮ ❯) + Month Year ▼ */}
+            {/* Nav Controls: Hoje + Arrows (â® â¯) + Month Year â–¼ */}
             <button className="btn-today" onClick={handleToday} style={{ margin: 0, padding: '8px 20px', fontSize: '1rem', borderRadius: '6px', fontWeight: 600 }}>Hoje</button>
             <div className="nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-              <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handlePrevRange}>❮</button>
-              <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handleNextRange}>❯</button>
+              <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handlePrevRange}>â®</button>
+              <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handleNextRange}>â¯</button>
             </div>
             <h2 className="month" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setShowDatePicker(!showDatePicker)}>
-              {formatMonthYear(currentDate)} <span style={{fontSize: '0.6rem', opacity: 0.7}}>▼</span>
+              {formatMonthYear(currentDate)} <span style={{fontSize: '0.6rem', opacity: 0.7}}>â–¼</span>
             </h2>
 
             {showDatePicker && (
@@ -761,8 +761,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
 
           <div className="right">
-            <button className="icon-btn" title="Catálogo de Cadastros" onClick={() => setShowServicesPanel(true)}><IFolder /></button>
-            <button className="icon-btn" title="Configurações (Requer Admin)" onClick={handleSettingsClick}><ISettings /></button>
+            <button className="icon-btn" title="CatÃ¡logo de Cadastros" onClick={() => setShowServicesPanel(true)}><IFolder /></button>
+            <button className="icon-btn" title="ConfiguraÃ§Ãµes (Requer Admin)" onClick={handleSettingsClick}><ISettings /></button>
             <button className="icon-btn profile-btn" onClick={() => setIsLogoutModalOpen(true)} title="Conta">
               {user ? <div className="avatar-letter">{user.nome.charAt(0)}</div> : <ILogout />}
             </button>
@@ -803,7 +803,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             {/*viewMode === 'month' ? (
               <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="cal-header-row" style={{ paddingLeft: 0, paddingRight: 0 }}>
-                   {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((d, i) => (
+                   {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÃB'].map((d, i) => (
                      <div key={i} className="day-col-header" style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderRight: '1px solid var(--border-color)' }}>
                        <span className="day-name">{d}</span>
                      </div>
@@ -889,10 +889,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                    key={i} 
                                    className={`cal-cell ${isFechado ? 'cell-closed' : isAlmoco ? 'cell-lunch' : ''}`} 
                                    onClick={() => openSlotModal(day.fullDate, hour)}
-                                   title={isFechado ? 'Fechado' : isAlmoco ? 'Almoço' : `Agendar ${hourStr}`}
+                                   title={isFechado ? 'Fechado' : isAlmoco ? 'AlmoÃ§o' : `Agendar ${hourStr}`}
                                  >
                                    {isFechado && <span className="closed-label"><IVoid /></span>}
-                                   {isAlmoco && <span className="lunch-label">☕ Almoço</span>}
+                                   {isAlmoco && <span className="lunch-label">â˜• AlmoÃ§o</span>}
                                  </div>
                                );
                             })}
@@ -940,7 +940,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                  style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: cardLeft + 'px', width: cardWidth + 'px', borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                               
-                              {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}
+                              {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>â˜• ALMOÃ‡O</span>}
                               
                               <strong style={{ fontSize: isSmall ? '0.7rem' : '0.75rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: colorBase }}>
                                 {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
@@ -995,7 +995,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         <div className="modal-overlay" onClick={() => setIsLogoutModalOpen(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: '12px' }}>Sair da conta?</h3>
-            <p style={{ margin: 0 }}>Você está logado como: <strong>{user?.nome}</strong></p>
+            <p style={{ margin: 0 }}>VocÃª estÃ¡ logado como: <strong>{user?.nome}</strong></p>
             <p style={{ marginTop: '4px' }}>Deseja relogar?</p>
             <div className="modal-actions" style={{ marginTop: '24px' }}>
               <button className="btn-sec" onClick={() => setIsLogoutModalOpen(false)}>Cancelar</button>
@@ -1044,24 +1044,34 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {/* Modal de Lista do Dia (Cancelados Vislumbráveis) */}
+      {/* Modal de Lista do Dia (Cancelados VislumbrÃ¡veis) */}
       {isAgendamentosListOpen && (
         <div className="modal-overlay" onClick={() => setIsAgendamentosListOpen(false)} style={{ zIndex: 4000 }}>
            <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', padding: '24px', overflowY: 'auto', maxHeight: '90dvh' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-                 <div>
-                   <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>Lista de Agendamentos</h3>
-                   <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
-                 </div>
-                 <button style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setIsAgendamentosListOpen(false)}>✕</button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <button className="icon-btn" onClick={() => setCurrentDate(addDays(currentDate, -1))} style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>❮</button>
+                      <button className="icon-btn" onClick={() => setCurrentDate(addDays(currentDate, 1))} style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>❯</button>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.1rem' }}>Agendamentos do Dia</h3>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                        {currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button className="btn-today hide-on-mobile" onClick={() => setCurrentDate(new Date())} style={{ padding: '6px 12px', fontSize: '0.8rem', margin: 0 }}>Hoje</button>
+                    <button style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px' }} onClick={() => setIsAgendamentosListOpen(false)}>✕</button>
+                  </div>
+               </div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                  {(() => {
                     const dailyAgs = agendamentos.filter(ag => {
                         const agDate = new Date(ag.data_hora_inicio).toDateString();
-                        return agDate === currentDate.toDateString() && (user.is_admin || String(ag.codigo_profissional) === String(user.codigo)) && ag.status !== 'cancelado';
-                    }).sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
+                        return agDate === currentDate.toDateString() && (user.is_admin || String(ag.codigo_profissional) === String(user.codigo));
+                     }).sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
 
                     if (dailyAgs.length === 0) {
                        return <div style={{ padding: '24px', textAlign: 'center', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--text-muted)' }}>Nenhum agendamento para este dia.</div>;
@@ -1097,7 +1107,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                        padding: '2px 6px',
                                        borderRadius: '4px'
                                      }}>
-                                       ✨ Ísis
+                                       âœ¨ Ãsis
                                      </span>
                                    )}
                                 </div>
@@ -1173,23 +1183,23 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
 
 
-      {/* Notificações flutuantes da Ísis */}
+      {/* NotificaÃ§Ãµes flutuantes da Ãsis */}
       <div className="isis-notifications-container">
         {isisNotifications.map(n => (
           <div key={n.id} className={`isis-notif-card ${n.exiting ? 'exiting' : ''}`} onClick={() => { setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); openEditAgendamento(n); }}>
             <div className="isis-notif-avatar">
-              <img src="/isisneutraperfil.png" alt="Ísis" />
-              <div className="notif-badge">✨</div>
+              <img src="/isisneutraperfil.png" alt="Ãsis" />
+              <div className="notif-badge">âœ¨</div>
             </div>
             <div className="isis-notif-content">
               <div className="isis-notif-header">
-                <strong>Novo Agendamento via Ísis</strong>
+                <strong>Novo Agendamento via Ãsis</strong>
                 <button className="notif-close-btn" onClick={(e) => { e.stopPropagation(); setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); }}>✕</button>
               </div>
-              <p>📍 {dicServicos[n.codigo_servico] || 'Serviço'}</p>
+              <p>ðŸ“ {dicServicos[n.codigo_servico] || 'Serviço'}</p>
               <p style={{ fontSize: '0.8rem', opacity: 0.8, color: '#94a3b8' }}>👤 {dicProfs[n.codigo_profissional] || 'Equipe'}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                <span className="notif-time">{new Date(n.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • {new Date(n.data_hora_inicio).toLocaleDateString('pt-BR')}</span>
+                <span className="notif-time">{new Date(n.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} â€¢ {new Date(n.data_hora_inicio).toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
             <div className="notif-progress-container">
@@ -1211,3 +1221,4 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     </>
   );
 }
+
