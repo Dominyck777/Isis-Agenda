@@ -541,7 +541,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           reloadDashboardGrid();
 
           setTimeout(() => {
-            setIsisNotifications(prev => prev.filter(n => n.id !== id));
+            // Primeiro ativa a animação de saída
+            setIsisNotifications(prev => prev.map(x => x.id === id ? { ...x, exiting: true } : x));
+            
+            // Depois de 500ms (tempo da animação), remove do array
+            setTimeout(() => {
+              setIsisNotifications(prev => prev.filter(n => n.id !== id));
+            }, 500);
           }, 30000);
         }
       })
@@ -1155,7 +1161,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       {/* Notificações flutuantes da Ísis */}
       <div className="isis-notifications-container">
         {isisNotifications.map(n => (
-          <div key={n.id} className="isis-notif-card" onClick={() => { setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); openEditAgendamento(n); }}>
+          <div key={n.id} className={`isis-notif-card ${n.exiting ? 'exiting' : ''}`} onClick={() => { setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); openEditAgendamento(n); }}>
             <div className="isis-notif-avatar">
               <img src="/isisneutraperfil.png" alt="Ísis" />
               <div className="notif-badge">✨</div>
