@@ -1,4 +1,4 @@
-.dash-layout {
+﻿.dash-layout {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -205,8 +205,6 @@
   background-color: var(--bg-color);
 }
 
-/* consolidated above */
-
 .header-inner {
   display: flex;
   width: var(--total-grid-width);
@@ -214,7 +212,6 @@
   flex-shrink: 0;
   background-color: var(--surface-color);
 }
-/* Ensure header children have background to cover scroll area */
 .cal-header-row > div {
   background-color: var(--surface-color);
   height: 100%;
@@ -255,8 +252,6 @@
   min-width: 0;
   width: 100%;
 }
-
-/* cal-grid rule merged above */
 
 .grid-bg { 
   min-height: 100%; 
@@ -337,7 +332,6 @@
   letter-spacing: 0.5px;
 }
 
-
 /* EVENTS */
 .events-layer {
   position: absolute;
@@ -365,7 +359,6 @@
 }
 .event-card:hover { filter: brightness(1.2); z-index: 10; transform: scale(1.02); }
 .event-card strong { font-size: 0.8rem; margin-bottom: 2px;}
-
 
 /* MODAL */
 .modal-overlay {
@@ -514,7 +507,7 @@ button:active {
   inset: 0;
   pointer-events: none;
   z-index: 4999;
-  filter: url('#gooey-filter');
+  filter: url("#gooey-filter");
 }
 
 .particle {
@@ -557,8 +550,6 @@ button:active {
   box-shadow: 0 0 25px var(--primary-color) !important;
 }
 
-/* SVG Filter (Inline in TSX usually, but can be defined here if needed as a data URI or just reference ID) */
-/* We will define the SVG filter in the TSX for better compatibility and control */
 /* Notificações da Ísis */
 .isis-notifications-container {
   position: fixed;
@@ -574,26 +565,28 @@ button:active {
 
 .isis-notif-card {
   pointer-events: auto;
-  background: rgba(13, 13, 15, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(14, 165, 233, 0.3);
-  border-radius: 12px;
-  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.95); /* Azul marinho profundo */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid #0ea5e9;
+  border-radius: 16px;
+  padding: 16px 20px;
   display: flex;
-  gap: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  gap: 16px;
+  box-shadow: 0 12px 40px rgba(14, 165, 233, 0.3);
   animation: slideInNotif 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-width: 310px;
 }
 
 .isis-notif-card:hover {
-  background: rgba(20, 20, 22, 0.9);
-  border-color: rgba(14, 165, 233, 0.6);
-  transform: translateY(-2px);
+  background: rgba(30, 41, 59, 0.98);
+  border-color: #38bdf8;
+  transform: translateY(-4px);
+  box-shadow: 0 15px 45px rgba(14, 165, 233, 0.4);
 }
 
 .isis-notif-avatar {
@@ -602,27 +595,28 @@ button:active {
 }
 
 .isis-notif-avatar img {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   object-fit: cover;
   border: 2px solid #0ea5e9;
 }
 
 .notif-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -6px;
+  right: -6px;
   background: #0ea5e9;
   color: white;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+  font-size: 0.8rem;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.6);
+  border: 2px solid #0f172a;
 }
 
 .isis-notif-content {
@@ -634,21 +628,23 @@ button:active {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .isis-notif-header strong {
-  font-size: 0.85rem;
-  color: #0ea5e9;
+  font-size: 0.95rem;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .notif-close-btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
   padding: 4px;
-  font-size: 0.8rem;
+  font-size: 1rem;
   line-height: 1;
   transition: color 0.2s;
 }
@@ -659,21 +655,43 @@ button:active {
 
 .isis-notif-content p {
   margin: 0;
-  font-size: 0.85rem;
-  color: #cbd5e1;
+  font-size: 0.9rem;
+  color: #f1f5f9;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .notif-time {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.notif-progress-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.notif-progress-bar {
+  height: 100%;
+  background: #38bdf8;
+  width: 100%;
+  animation: notifProgress 30s linear forwards;
+}
+
+@keyframes notifProgress {
+  from { width: 100%; }
+  to { width: 0%; }
 }
 
 @keyframes slideInNotif {
   from {
-    transform: translateX(100%) scale(0.9);
+    transform: translateX(120%) scale(0.8);
     opacity: 0;
   }
   to {
@@ -690,3 +708,4 @@ button:active {
     max-width: none;
   }
 }
+@media (max-width: 400px) { .isis-notif-card { min-width: 0; padding: 12px; gap: 10px; } .isis-notif-header strong { font-size: 0.85rem; } .isis-notif-content p { font-size: 0.8rem; } }

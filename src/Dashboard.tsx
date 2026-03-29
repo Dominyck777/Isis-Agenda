@@ -513,6 +513,15 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
         if (isMinhaEmpresa && isCriadoPelaIsis) {
           console.log('Notificação da Ísis disparada!');
+          
+          // Busca o nome do serviço se não estiver no dicionário para a notificação não vir como "Serviço"
+          const svcId = payload.new.codigo_servico;
+          if (svcId && !dicServicos[svcId]) {
+            supabase.from('servicos').select('nome').eq('codigo', svcId).single().then(({data}) => {
+              if (data) setDicServicos((prev: any) => ({...prev, [svcId]: data.nome}));
+            });
+          }
+
           const id = Date.now() + Math.random();
           const newNotif = {
             id,
@@ -1152,6 +1161,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                 <span className="notif-time">{new Date(n.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • {new Date(n.data_hora_inicio).toLocaleDateString('pt-BR')}</span>
               </div>
+            </div>
+            <div className="notif-progress-container">
+              <div className="notif-progress-bar"></div>
             </div>
           </div>
         ))}
