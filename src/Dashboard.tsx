@@ -514,11 +514,19 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         if (isMinhaEmpresa && isCriadoPelaIsis) {
           console.log('Notificação da Ísis disparada!');
           
-          // Busca o nome do serviço se não estiver no dicionário para a notificação não vir como "Serviço"
+          // Busca o nome do serviço se não estiver no dicionário
           const svcId = payload.new.codigo_servico;
           if (svcId && !dicServicos[svcId]) {
             supabase.from('servicos').select('nome').eq('codigo', svcId).single().then(({data}) => {
               if (data) setDicServicos((prev: any) => ({...prev, [svcId]: data.nome}));
+            });
+          }
+
+          // Busca o nome do profissional se não estiver no dicionário
+          const profId = payload.new.codigo_profissional;
+          if (profId && !dicProfs[profId]) {
+            supabase.from('usuarios').select('nome').eq('codigo', profId).single().then(({data}) => {
+              if (data) setDicProfs((prev: any) => ({...prev, [profId]: data.nome}));
             });
           }
 
@@ -1157,7 +1165,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                 <strong>Novo Agendamento via Ísis</strong>
                 <button className="notif-close-btn" onClick={(e) => { e.stopPropagation(); setIsisNotifications(prev => prev.filter(x => x.id !== n.id)); }}>✕</button>
               </div>
-              <p>#{n.codigo} - {dicServicos[n.codigo_servico] || 'Serviço'}</p>
+              <p>📍 {dicServicos[n.codigo_servico] || 'Serviço'}</p>
+              <p style={{ fontSize: '0.8rem', opacity: 0.8, color: '#94a3b8' }}>👤 {dicProfs[n.codigo_profissional] || 'Equipe'}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                 <span className="notif-time">{new Date(n.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • {new Date(n.data_hora_inicio).toLocaleDateString('pt-BR')}</span>
               </div>
