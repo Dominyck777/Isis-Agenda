@@ -171,6 +171,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [showServicesPanel, setShowServicesPanel] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isisNotifications, setIsisNotifications] = useState<any[]>([]);
+  const [showModalDatePicker, setShowModalDatePicker] = useState(false);
 
   const [zoomFactor, setZoomFactor] = useState(1.0);
   const lastPinchDistRef = useRef<number>(0);
@@ -1054,11 +1055,35 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                       <button className="icon-btn" onClick={() => setCurrentDate(addDays(currentDate, -1))} style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>❮</button>
                       <button className="icon-btn" onClick={() => setCurrentDate(addDays(currentDate, 1))} style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>❯</button>
                     </div>
-                    <div>
+                    <div style={{ position: 'relative' }}>
                       <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.1rem' }}>Agendamentos do Dia</h3>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                      <p 
+                        style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'capitalize', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => setShowModalDatePicker(!showModalDatePicker)}
+                      >
                         {currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                        <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>▼</span>
                       </p>
+
+                      {showModalDatePicker && (
+                        <>
+                          <div style={{ position: 'fixed', inset: 0, zIndex: 4100 }} onClick={() => setShowModalDatePicker(false)} />
+                          <div className="floating-datepicker" style={{ 
+                            position: 'absolute', 
+                            top: '100%', 
+                            left: 0, 
+                            background: 'var(--surface-color)', 
+                            padding: '16px', 
+                            borderRadius: '8px', 
+                            zIndex: 4101, 
+                            border: '1px solid var(--border-color)', 
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.5)', 
+                            marginTop: '8px' 
+                          }}>
+                            {renderMiniCalendar()}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1107,7 +1132,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                        padding: '2px 6px',
                                        borderRadius: '4px'
                                      }}>
-                                       âœ¨ Ãsis
+                                       ✨ Ísis
                                      </span>
                                    )}
                                 </div>
