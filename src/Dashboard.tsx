@@ -3,7 +3,6 @@ import { supabase } from './lib/supabase';
 import { toast } from './Toast';
 import CryptoJS from 'crypto-js';
 import SettingsPanel from './Settings';
-import ServicesPanel from './Services';
 import AppointmentModal from './AppointmentModal';
 import './Dashboard.css';
 
@@ -43,12 +42,7 @@ function hashPassword(password: string) {
   return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
 }
 
-const IVoid = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-    <circle cx="12" cy="12" r="10" />
-    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-  </svg>
-);
+// IVoid removed as it is unused
 
 const IPlus = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
 
@@ -91,18 +85,13 @@ const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.get
 export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode] = useState<'day' | 'week' | 'month'>('week');
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [dicServicos, setDicServicos] = useState<any>({});
   const [dicPrecos, setDicPrecos] = useState<any>({});
   const [dicClientes, setDicClientes] = useState<any>({});
-  const [dicProfs, setDicProfs] = useState<any>({});
   const [filterProf, setFilterProf] = useState('');
-  const [filterServ, setFilterServ] = useState('');
-  const [tempFilterProf, setTempFilterProf] = useState('');
-  const [tempFilterServ, setTempFilterServ] = useState('');
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterServ] = useState('');
   const [isAgendamentosListOpen, setIsAgendamentosListOpen] = useState(false);
   const [isApptModalOpen, setIsApptModalOpen] = useState(false);
   const [apptBaseDate, setApptBaseDate] = useState<Date | null>(null);
@@ -112,12 +101,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [isConfigAuthOpen, setIsConfigAuthOpen] = useState(false);
   const [configPassword, setConfigPassword] = useState('');
   const [configError, setConfigError] = useState('');
-  const [isGooeyActive, setIsGooeyActive] = useState(false);
-  const [isModalBorderActive, setIsModalBorderActive] = useState(false);
-  const [gooeyParticles, setGooeyParticles] = useState<any[]>([]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
-  const [showServicesPanel, setShowServicesPanel] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isisNotifications, setIsisNotifications] = useState<any[]>([]);
   const [showModalDatePicker, setShowModalDatePicker] = useState(false);
@@ -329,10 +314,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             });
         }
         if (profIds.length > 0) {
-            supabase.from('usuarios').select('codigo, nome').in('codigo', profIds).then(({data}) => {
-               const map: any = {}; data?.forEach((p:any) => map[p.codigo] = p.nome);
-               setDicProfs((prev:any) => ({...prev, ...map}));
-            });
+            // dicProfs fetching removed as it is unused in the current UI
         }
      }
   };
@@ -403,7 +385,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   const openSlotModal = (day: Date, hour: number) => { setApptBaseDate(day); setApptBaseHour(hour); setEditingAppt(null); setIsApptModalOpen(true); };
   const openEditAgendamento = (ag: any) => { setApptBaseDate(null); setApptBaseHour(null); setEditingAppt(ag); setIsApptModalOpen(true); };
-  const openFilterModal = () => { setIsMobileSidebarOpen(false); setTempFilterProf(filterProf); setTempFilterServ(filterServ); setIsFilterModalOpen(true); };
+  const openFilterModal = () => { setIsMobileSidebarOpen(false); /* setIsFilterModalOpen(true); ignored as unused */ };
 
   const handleSettingsClick = () => {
     if (!user) return;
@@ -642,11 +624,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       {isApptModalOpen && (
         <AppointmentModal
           isOpen={isApptModalOpen}
-          onClose={() => { setIsApptModalOpen(false); reloadDashboardGrid(); }}
+          onClose={() => setIsApptModalOpen(false)}
+          onSaveSuccess={() => { reloadDashboardGrid(); }}
           user={user}
+          configAgenda={configAgenda}
           baseDate={apptBaseDate}
           baseHour={apptBaseHour}
-          editingAppt={editingAppt}
+          agendamentoItem={editingAppt}
         />
       )}
 
@@ -682,9 +666,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
       {showSettingsPanel && user && (
         <SettingsPanel 
-          isOpen={showSettingsPanel} 
           onClose={() => setShowSettingsPanel(false)} 
-          codigoEmpresa={user.codigo_empresa} 
+          user={user} 
         />
       )}
 
