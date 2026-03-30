@@ -860,22 +860,102 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
                           return (
                             <div key={ag.id} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
-                                 style={{ position: 'absolute', zIndex: 10, top: topPixels + 'px', height: clampHeight + 'px', left: cardLeft + 'px', width: cardWidth + 'px', borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, display: 'flex', flexDirection: isSmall ? 'row' : 'column', padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', alignItems: isSmall ? 'center' : 'flex-start', gap: isSmall ? '6px' : '2px' }}
+                                 style={{ 
+                                   position: 'absolute', zIndex: 10, top: topPixels + 'px', 
+                                   height: clampHeight + 'px', left: cardLeft + 'px', width: cardWidth + 'px', 
+                                   borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, 
+                                   display: 'flex', flexDirection: isSmall ? 'row' : 'column', 
+                                   padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', 
+                                   cursor: 'pointer', overflow: 'hidden', 
+                                   alignItems: isSmall ? 'center' : 'stretch', 
+                                   lineHeight: 1.2
+                                 }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                               
                               {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}
                               
-                              <strong style={{ fontSize: isSmall ? '0.7rem' : '0.75rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: colorBase }}>
-                                {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
-                                {ag.servicos_selecionados && Array.isArray(ag.servicos_selecionados) && ag.servicos_selecionados.filter((x: any) => x).length > 0
-                                  ? ag.servicos_selecionados.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
-                                  : (dicServicos[ag.codigo_servico] || 'Serviço')}
-                              </strong>
-                              <span style={{ fontSize: isSmall ? '0.65rem' : '0.7rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', opacity: 0.9 }}>
-                                 {!isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - `} 
-                                 {displayClient}
-                              </span>
-                              {!isSmall && clampHeight > 45 && <span style={{ fontSize: '0.65rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dicProfs[ag.codigo_profissional] || 'Equipe'}</span>}
+                              {clampHeight > 60 && !isSmall ? (
+                                <>
+                                  {/* Primeiro Grid: Apenas Serviços */}
+                                  <div style={{ height: '52px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <strong style={{ 
+                                      fontSize: '0.85rem', 
+                                      whiteSpace: 'normal', 
+                                      color: colorBase,
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden'
+                                    }}>
+                                      {ag.servicos_selecionados && Array.isArray(ag.servicos_selecionados) && ag.servicos_selecionados.filter((x: any) => x).length > 0
+                                        ? ag.servicos_selecionados.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
+                                        : (dicServicos[ag.codigo_servico] || 'Serviço')}
+                                    </strong>
+                                  </div>
+
+                                  {/* Outros Grids: Divididos igualmente */}
+                                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly', padding: '4px 0' }}>
+                                    <span style={{ 
+                                      fontSize: '0.75rem', 
+                                      whiteSpace: 'normal', 
+                                      opacity: 0.9,
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      fontWeight: 500
+                                    }}>
+                                       {ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - {displayClient}
+                                    </span>
+
+                                    <span style={{ 
+                                      fontSize: '0.7rem', opacity: 0.7, 
+                                      whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'
+                                    }}>
+                                      👤 {dicProfs[ag.codigo_profissional] || 'Equipe'}
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  {/* Layout Compacto (Igual ou menor que 1 grid) */}
+                                  <strong style={{ 
+                                    fontSize: isSmall ? '0.7rem' : '0.75rem', 
+                                    whiteSpace: isSmall ? 'nowrap' : 'normal', 
+                                    textOverflow: isSmall ? 'ellipsis' : 'initial', 
+                                    overflow: 'hidden', color: colorBase,
+                                    display: isSmall ? 'inline' : '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    marginBottom: isSmall ? '0' : '2px'
+                                  }}>
+                                    {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
+                                    {ag.servicos_selecionados && Array.isArray(ag.servicos_selecionados) && ag.servicos_selecionados.filter((x: any) => x).length > 0
+                                      ? ag.servicos_selecionados.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
+                                      : (dicServicos[ag.codigo_servico] || 'Serviço')}
+                                  </strong>
+
+                                  <span style={{ 
+                                    fontSize: isSmall ? '0.65rem' : '0.7rem', 
+                                    whiteSpace: isSmall ? 'nowrap' : 'normal', 
+                                    textOverflow: isSmall ? 'ellipsis' : 'initial', 
+                                    overflow: 'hidden', opacity: 0.9,
+                                    display: isSmall ? 'inline' : '-webkit-box',
+                                    WebkitLineClamp: 1,
+                                    WebkitBoxOrient: 'vertical'
+                                  }}>
+                                     {!isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - `} 
+                                     {displayClient}
+                                  </span>
+
+                                  {!isSmall && clampHeight > 45 && (
+                                    <span style={{ fontSize: '0.65rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                      {dicProfs[ag.codigo_profissional] || 'Equipe'}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                              
                               {ag.status === 'cancelado' && <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', backgroundColor: '#ef4444', transform: 'translateY(-50%)' }}></div>}
                             </div>
                           );
