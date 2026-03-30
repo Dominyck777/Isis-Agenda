@@ -13,8 +13,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   const [form, setForm] = useState<any>({
     codigo_cliente: '',
-    codigo_servico: '',
-    codigo_profissional: '',
     data: '',
     hora: '',
     status: 'agendado',
@@ -24,7 +22,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
   const [nomeAvulso, setNomeAvulso] = useState('');
   const [showQuickCli, setShowQuickCli] = useState(false);
   const [quickCli, setQuickCli] = useState({ nome: '', telefone: '' });
-  const [selectedServiceCodes, setSelectedServiceCodes] = useState<string[]>(['']);
+  const [selections, setSelections] = useState<{ serviceCode: string, professionalCode: string }[]>([{ serviceCode: '', professionalCode: '' }]);
   const [agendamentosDoDia, setAgendamentosDoDia] = useState<any[]>([]);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
@@ -44,11 +42,28 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         rawObs = parts.slice(1).join(' | ');
       }
 
-      let initialServices = [''];
-      if (agendamentoItem.servicos_selecionados && Array.isArray(agendamentoItem.servicos_selecionados) && agendamentoItem.servicos_selecionados.length > 0) {
-          initialServices = agendamentoItem.servicos_selecionados.map(String);
+      let rawServices = agendamentoItem.servicos_selecionados;
+      if (typeof rawServices === 'string') {
+        try { rawServices = JSON.parse(rawServices); } catch(e) { rawServices = null; }
+      }
+      
+      let initialSelections = [{ serviceCode: '', professionalCode: '' }];
+      
+      if (agendamentoItem.profissionais_vinculo && Array.isArray(agendamentoItem.profissionais_vinculo) && agendamentoItem.profissionais_vinculo.length > 0) {
+        initialSelections = agendamentoItem.profissionais_vinculo.map((v: any) => ({
+          serviceCode: String(v.serviceCode),
+          professionalCode: String(v.professionalCode)
+        }));
+      } else if (rawServices && Array.isArray(rawServices) && rawServices.length > 0) {
+          initialSelections = rawServices.map((s: any) => ({
+            serviceCode: String(s),
+            professionalCode: String(agendamentoItem.codigo_profissional)
+          }));
       } else if (agendamentoItem.codigo_servico) {
-          initialServices = [String(agendamentoItem.codigo_servico)];
+          initialSelections = [{
+            serviceCode: String(agendamentoItem.codigo_servico),
+            professionalCode: String(agendamentoItem.codigo_profissional)
+          }];
       }
 
       setForm({
@@ -61,11 +76,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       setNomeAvulso(extNome);
       setShowQuickCli(false);
       setConfirmCancel(false);
-      setSelectedServiceCodes(initialServices);
+      setSelections(initialSelections);
     } else if (!agendamentoItem && isOpen && !loading) {
       setForm({
         codigo_cliente: '',
-        codigo_profissional: user && !user.is_admin ? user.codigo : '',
         data: baseDate ? new Date(baseDate).toLocaleDateString('en-CA').split('T')[0] : new Date().toLocaleDateString('en-CA').split('T')[0],
         hora: baseHour !== null && baseHour !== undefined ? baseHour.toString().padStart(2, '0') + ':00' : '09:00',
         status: 'agendado',
@@ -74,13 +88,14 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       setNomeAvulso('');
       setShowQuickCli(false);
       setConfirmCancel(false);
-      setSelectedServiceCodes(['']);
+      setSelections([{ serviceCode: '', professionalCode: user && !user.is_admin ? String(user.codigo) : '' }]);
     }
   }, [agendamentoItem, isOpen, loading, baseDate, baseHour]);
 
   useEffect(() => {
     const fetchAgendamentosDia = async () => {
-      if (!form.codigo_profissional || !form.data) {
+      const involvedProfs = Array.from(new Set(selections.filter(s => s.professionalCode).map(s => String(s.professionalCode))));
+      if (involvedProfs.length === 0 || !form.data) {
         setAgendamentosDoDia([]);
         return;
       }
@@ -88,17 +103,20 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       const startOfDay = new Date(`${paramData}T00:00:00`).toISOString();
       const endOfDay = new Date(`${paramData}T23:59:59`).toISOString();
 
+      // Busca agendamentos de QUALQUER um dos profissionais envolvidos para checar conflitos
+      const orFilter = involvedProfs.map(p => `codigo_profissional.eq.${p},profissionais_vinculo.cs.[{"professionalCode":"${p}"}]`).join(',');
+
       const { data } = await supabase.from('agendamentos')
-        .select('id, data_hora_inicio, data_hora_fim, status')
+        .select('id, data_hora_inicio, data_hora_fim, status, profissionais_vinculo, codigo_profissional')
         .eq('codigo_empresa', user.codigo_empresa)
-        .eq('codigo_profissional', form.codigo_profissional)
+        .or(orFilter)
         .gte('data_hora_inicio', startOfDay)
         .lte('data_hora_inicio', endOfDay);
 
       setAgendamentosDoDia(data || []);
     };
     fetchAgendamentosDia();
-  }, [form.codigo_profissional, form.data, user?.codigo_empresa]);
+  }, [JSON.stringify(selections.map(s => s.professionalCode)), form.data, user?.codigo_empresa]);
 
   const getWorkingRange = () => {
     let earliest = 9;
@@ -135,11 +153,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
   };
 
   const isSlotDisponivel = (slotTime: string) => {
-    const validServices = selectedServiceCodes.filter(c => c !== '');
-    if (validServices.length === 0) return true;
+    const validSelections = selections.filter(s => s.serviceCode !== '' && s.professionalCode !== '');
+    if (validSelections.length === 0) return true;
 
-    const totalDuracao = validServices.reduce((acc, code) => {
-      const s = servicos.find(sv => sv.codigo.toString() === code);
+    const totalDuracao = validSelections.reduce((acc, sel) => {
+      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
       return acc + (s ? s.duracao_minutos : 0);
     }, 0);
 
@@ -151,10 +169,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       if (ag.status === 'cancelado') continue;
       const agStart = new Date(ag.data_hora_inicio);
       const agEnd = new Date(ag.data_hora_fim);
-      if (slotStart < agEnd && slotEnd > agStart) {
-        console.log(`[Slot Conflict] Slot ${slotTime} blocked by appointment:`, ag);
-        return false;
-      }
+      if (slotStart < agEnd && slotEnd > agStart) return false;
     }
     return true;
   };
@@ -168,7 +183,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     if (c) setClientes(c);
     if (s) setServicos(s);
     if (p) setProfissionais(p);
-
     setLoading(false);
   };
 
@@ -195,8 +209,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validServices = selectedServiceCodes.filter(c => c !== '');
-    if (!form.codigo_cliente || validServices.length === 0 || !form.codigo_profissional || !form.data || !form.hora) {
+    const validSelections = selections.filter(s => s.serviceCode !== '' && s.professionalCode !== '');
+    if (!form.codigo_cliente || validSelections.length === 0 || !form.data || !form.hora) {
       toast('Preencha as informações principais (Cliente, Serviço e Profissional).', 'error');
       return;
     }
@@ -206,97 +220,64 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
     if (finalClienteId === 'avulso') {
       if (!nomeAvulso) return toast('Digite o nome do cliente sem cadastro!', 'error');
-      finalClienteId = 0; // Código 0 representa cliente sem cadastro (Avulso)
+      finalClienteId = 0; 
       finalObs = `👤 ${nomeAvulso} | ${finalObs}`;
     }
 
-    // Calcula End Time com Fuso local
     const startObj = new Date(`${form.data}T${form.hora}:00`);
-    const duracao = validServices.reduce((acc, code) => {
-      const s = servicos.find(sv => sv.codigo.toString() === code);
+    const totalDuration = validSelections.reduce((acc: number, sel) => {
+      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
       return acc + (s ? s.duracao_minutos : 0);
-    }, 0) || 30;
-    const endObj = new Date(startObj.getTime() + duracao * 60000);
+    }, 0);
+    const endObj = new Date(startObj.getTime() + totalDuration * 60000);
 
-    // Validação de Janela do Grid (Global)
-    const { earliest, latest } = getWorkingRange();
-    const startHour = startObj.getHours() + startObj.getMinutes() / 60;
-    const endHour = endObj.getHours() + endObj.getMinutes() / 60;
-    if (startHour < earliest || endHour > latest) {
-      toast(`⛔ Fora da janela permitida no sistema (${earliest.toString().padStart(2, '0')}:00 às ${latest.toString().padStart(2, '0')}:00)`, 'error');
-      return;
-    }
+    try {
+      const involvedProfs = Array.from(new Set(validSelections.map(s => s.professionalCode)));
+      for (const pCode of involvedProfs) {
+        const { data: conflitos } = await supabase.from('agendamentos')
+          .select('id, profissionais_vinculo')
+          .eq('codigo_empresa', user.codigo_empresa)
+          .neq('status', 'cancelado')
+          .or(`codigo_profissional.eq.${pCode},profissionais_vinculo.cs.[{"professionalCode":"${pCode}"}]`)
+          .lt('data_hora_inicio', endObj.toISOString())
+          .gt('data_hora_fim', startObj.toISOString());
 
-    // --- NOVA VALIDAÇÃO DE PERMISSÕES ---
-    if (user && !user.is_admin) {
-      const d = new Date(`${form.data}T12:00:00`).getDay();
-      const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
-      const p = user.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false };
-
-      // 1. Checar Fora de Horário de Funcionamento (Específico do dia)
-      const isFora = !dayCfg || !dayCfg.aberto || form.hora < dayCfg.inicio || form.hora >= dayCfg.fim;
-      if (isFora && !p.permitir_fora_horario) {
-        toast('⛔ Você não tem permissão para agendar fora do horário de funcionamento.', 'error');
-        return;
+        const isConflict = conflitos && conflitos.some((c: any) => !agendamentoItem || c.id !== agendamentoItem.id);
+        if (isConflict) {
+          const profName = profissionais.find(p => String(p.codigo) === String(pCode))?.nome || 'Um profissional';
+          toast(`⛔ Conflito! ${profName} está ocupado nesse intervalo.`, 'error');
+          return;
+        }
       }
 
-      // 2. Checar Horário de Almoço
-      const isAlmoco = dayCfg?.almoco_ativo && form.hora >= dayCfg.almoco_inicio && form.hora < dayCfg.almoco_fim;
+      const payload = {
+        codigo_empresa: user.codigo_empresa,
+        codigo_cliente: finalClienteId,
+        codigo_profissional: validSelections[0].professionalCode,
+        codigo_servico: validSelections[0].serviceCode,
+        servicos_selecionados: JSON.stringify(validSelections.map(s => s.serviceCode)),
+        profissionais_vinculo: validSelections,
+        data_hora_inicio: startObj.toISOString(),
+        data_hora_fim: endObj.toISOString(),
+        status: form.status,
+        observacao: finalObs
+      };
 
-      if (isAlmoco && !p.permitir_no_almoco) {
-        toast('⛔ Bloqueado: Você não tem permissão para agendar no horário de almoço.', 'error');
-        return;
+      if (!agendamentoItem) {
+        const { data: allAgend } = await supabase.from('agendamentos').select('codigo', { count: 'exact', head: false }).eq('codigo_empresa', user.codigo_empresa);
+        const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
+        const { error } = await supabase.from('agendamentos').insert({ codigo: nextCod, ...payload });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('agendamentos').update(payload).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
+        if (error) throw error;
       }
-    }
-    // --- FIM DA VALIDAÇÃO DE PERMISSÕES ---
 
-    // PRIVACIDADE: Não admins não podem agendar para outros
-    if (user && !user.is_admin && Number(form.codigo_profissional) !== Number(user.codigo)) {
-      toast('⛔ Você só pode criar agendamentos para você mesmo.', 'error');
-      return;
-    }
-
-    // Conflito Check: Impede sobreposições com esse Profissional, exceto se for "cancelado"
-    const { data: conflitos } = await supabase.from('agendamentos')
-      .select('id')
-      .eq('codigo_empresa', user.codigo_empresa)
-      .eq('codigo_profissional', form.codigo_profissional)
-      .neq('status', 'cancelado')
-      .lt('data_hora_inicio', endObj.toISOString())
-      .gt('data_hora_fim', startObj.toISOString());
-
-    const isConflict = conflitos && conflitos.some(c => !agendamentoItem || c.id !== agendamentoItem.id);
-    if (isConflict) {
-      toast('⛔ Conflito de Horário! Este profissional já está ocupado nesse momento.', 'error');
-      return;
-    }
-
-    const payload = {
-      codigo_empresa: user.codigo_empresa,
-      codigo_servico: validServices[0] || null,
-      servicos_selecionados: validServices,
-      codigo_cliente: finalClienteId,
-      codigo_profissional: form.codigo_profissional,
-      data_hora_inicio: startObj.toISOString(),
-      data_hora_fim: endObj.toISOString(),
-      status: form.status,
-      observacao: finalObs
-    };
-
-    if (!agendamentoItem) {
-      const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', user.codigo_empresa);
-      const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
-
-      const { error } = await supabase.from('agendamentos').insert({
-        codigo: nextCod,
-        ...payload
-      });
-      if (error) toast('Erro ao agendar: ' + error.message, 'error');
-      else { toast('Agendamento confirmado!', 'success'); onSaveSuccess(); onClose(); }
-    } else {
-      const { error } = await supabase.from('agendamentos').update(payload).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
-      if (error) toast('Erro ao atualizar: ' + error.message, 'error');
-      else { toast('Agendamento atualizado!', 'success'); onSaveSuccess(); onClose(); }
+      toast(agendamentoItem ? 'Agendamento atualizado!' : 'Agendamento confirmado!', 'success');
+      onSaveSuccess();
+      onClose();
+    } catch (err: any) {
+      toast('Erro ao salvar: ' + err.message, 'error');
     }
   };
 
@@ -320,7 +301,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
             <div>
               <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
               {agendamentoItem && (() => {
-                const svc = servicos.find(s => s.codigo.toString() === form.codigo_servico.toString());
+                const firstSvcCode = selections[0]?.serviceCode;
+                const svc = servicos.find(s => String(s.codigo) === String(firstSvcCode));
                 const val = svc?.valor ? Number(svc.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
                 const stColor = form.status === 'cancelado' ? '#ef4444' : form.status === 'finalizado' ? '#10b981' : form.status === 'em andamento' ? '#f59e0b' : '#0ea5e9';
                 return (
@@ -335,23 +317,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                       <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>
                         {val}
                       </span>
-                      {agendamentoItem.isis_criou && (
-                        <span style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          background: 'linear-gradient(135deg, #0ea5e9 0%, #2dd4bf 100%)',
-                          color: '#fff',
-                          boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)',
-                          display: 'flex',
-                          alignSelf: 'center',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          ✨ Agendado pela Ísis
-                        </span>
-                      )}
                     </div>
                   </div>
                 );
@@ -365,7 +330,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
           ) : (
             <form onSubmit={handleSave} className="form-grid full" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '100%', boxSizing: 'border-box' }}>
               <div className="resp-grid" style={{ maxWidth: '100%' }}>
-
                 <div className="form-group-flat full" style={{ gridColumn: '1 / -1', maxWidth: '100%' }}>
                   <label>Cliente (Base)</label>
                   <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
@@ -376,7 +340,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     </select>
                     <button type="button" onClick={() => { setShowQuickCli(!showQuickCli); setForm({ ...form, codigo_cliente: '' }); }} style={{ background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 16px', fontSize: '1.2rem', cursor: 'pointer', flexShrink: 0 }} title="Cadastrar Novo Cliente Rápidamente">+</button>
                   </div>
-
                   {form.codigo_cliente === 'avulso' && (
                     <div style={{ marginTop: '12px', maxWidth: '100%' }}>
                       <input type="text" placeholder="Nome do Cliente" value={nomeAvulso} onChange={e => setNomeAvulso(e.target.value)} required style={{ width: '100%', maxWidth: '100%', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px dashed var(--border-color)', outline: 'none', boxSizing: 'border-box' }} />
@@ -395,190 +358,90 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 </div>
 
                 <div className="form-group-flat full" style={{ maxWidth: '100%' }}>
-                  <label>Ofertas / Serviços</label>
-                  {selectedServiceCodes.map((currentCode, index) => (
-                    <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-                      <select value={currentCode} onChange={e => {
+                  <label>Procedimentos (Serviço + Profissional)</label>
+                  {selections.map((sel, index) => (
+                    <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'start', width: '100%', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <select value={sel.serviceCode} onChange={e => {
                         const val = e.target.value;
-                        const newCodes = [...selectedServiceCodes];
-                        newCodes[index] = val;
-                        setSelectedServiceCodes(newCodes);
-                        if (index === 0) setForm((prev: any) => ({ ...prev, codigo_servico: val, codigo_profissional: user?.is_admin ? '' : (user?.codigo || prev.codigo_profissional) }));
-                      }} required={index === 0} style={{ flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box', textOverflow: 'ellipsis' }}>
-                        <option value="">-- Selecionar Serviço --</option>
-                        {servicos
-                          .filter(s => user?.is_admin || (s.profissionais_habilitados || []).includes(user?.codigo))
-                          .map(s => <option key={s.codigo} value={s.codigo}>{s.nome} ({s.duracao_minutos} min)</option>)
+                        const newSelections = [...selections];
+                        newSelections[index].serviceCode = val;
+                        if (index > 0 && !newSelections[index].professionalCode && selections[0].professionalCode) {
+                          const s = servicos.find(sv => String(sv.codigo) === String(val));
+                          if (s && (s.profissionais_habilitados || []).includes(Number(selections[0].professionalCode))) {
+                            newSelections[index].professionalCode = selections[0].professionalCode;
+                          }
                         }
+                        setSelections(newSelections);
+                      }} required={index === 0} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.9rem', outline: 'none' }}>
+                        <option value="">-- Serviço --</option>
+                        {servicos.map(s => <option key={s.codigo} value={s.codigo}>{s.nome}</option>)}
                       </select>
-                      {index === selectedServiceCodes.length - 1 ? (
-                        <button type="button" onClick={() => setSelectedServiceCodes([...selectedServiceCodes, ''])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '40px', height: '40px', fontSize: '1.3rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Adicionar Serviço">+</button>
+
+                      <select value={sel.professionalCode} onChange={e => {
+                        const newSelections = [...selections];
+                        newSelections[index].professionalCode = e.target.value;
+                        setSelections(newSelections);
+                      }} disabled={!sel.serviceCode} required={index === 0} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.9rem', outline: 'none', opacity: sel.serviceCode ? 1 : 0.5 }}>
+                        <option value="">{sel.serviceCode ? '-- Profissional --' : 'Escolha o Serviço'}</option>
+                        {profissionais.map(p => {
+                          const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
+                          const isHabilitado = s ? (s.profissionais_habilitados || []).includes(p.codigo) : true;
+                          if (!isHabilitado && sel.serviceCode) return null;
+                          if (user && !user.is_admin && p.codigo !== user.codigo) return null;
+                          return <option key={p.codigo} value={p.codigo}>{p.nome}</option>;
+                        })}
+                      </select>
+
+                      {index === selections.length - 1 ? (
+                        <button type="button" onClick={() => setSelections([...selections, { serviceCode: '', professionalCode: '' }])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '6px', width: '38px', height: '38px', fontSize: '1.2rem', cursor: 'pointer' }}>+</button>
                       ) : (
                         <button type="button" onClick={() => {
-                          const newCodes = [...selectedServiceCodes];
-                          newCodes.splice(index, 1);
-                          setSelectedServiceCodes(newCodes);
-                          if (index === 0 && newCodes.length > 0) setForm((prev: any) => ({ ...prev, codigo_servico: newCodes[0] }));
-                        }} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', width: '40px', height: '40px', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Remover Serviço">x</button>
+                          const newSelections = [...selections];
+                          newSelections.splice(index, 1);
+                          setSelections(newSelections);
+                        }} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', width: '38px', height: '38px', fontSize: '1rem', cursor: 'pointer' }}>x</button>
                       )}
                     </div>
                   ))}
-                  
-                  {selectedServiceCodes.filter(c => c !== '').length > 0 && (
-                     <div style={{ marginTop: '4px', padding: '10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--primary-color)' }}>
-                           Total: <strong>{selectedServiceCodes.filter(c => c !== '').reduce((acc, code) => {
-                             const s = servicos.find(sv => sv.codigo.toString() === code);
-                             return acc + (s ? s.duracao_minutos : 0);
-                           }, 0)} min</strong>
-                        </span>
-                        <span style={{ color: '#10b981' }}>
-                           <strong>R$ {selectedServiceCodes.filter(c => c !== '').reduce((acc, code) => {
-                             const s = servicos.find(sv => sv.codigo.toString() === code);
-                             if (!s || !s.valor) return acc;
-                             const v = parseFloat(s.valor);
-                             return acc + (isNaN(v) ? 0 : v);
-                           }, 0).toFixed(2).replace('.', ',')}</strong>
-                        </span>
-                     </div>
-                  )}
-                </div>
-
-                <div className="form-group-flat full">
-                  <label>Executado Por (Profissional)</label>
-                  <select
-                    value={form.codigo_profissional}
-                    disabled={user && !user.is_admin}
-                    onChange={e => setForm({ ...form, codigo_profissional: e.target.value })}
-                    required
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '8px',
-                      background: 'var(--input-bg)',
-                      color: '#fff',
-                      border: '1px solid var(--border-color)',
-                      fontSize: '1rem',
-                      outline: 'none',
-                      opacity: (user && !user.is_admin) ? 1 : (selectedServiceCodes.filter(c => c !== '').length === 0 ? 0.6 : 1),
-                      transition: '0.2s',
-                      width: '100%',
-                      minWidth: 0,
-                      maxWidth: '100%',
-                      boxSizing: 'border-box',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    <option value="">{(selectedServiceCodes.filter(c => c !== '').length === 0 && user?.is_admin) ? 'Escolha o Serviço Primeiro' : '-- Selecionar Profissional --'}</option>
-                    {(profissionais.length > 0) && profissionais.map(p => {
-                      const validCodes = selectedServiceCodes.filter(c => c !== '');
-                      const isAllowed = validCodes.every(code => {
-                        const s = servicos.find(sv => sv.codigo.toString() === code);
-                        return s ? (s.profissionais_habilitados || []).includes(p.codigo) : true;
-                      });
-                      // Se não for admin, só mostra ele mesmo. Se for admin e tiver serviço, mostra conforme cobertura.
-                      if (!user?.is_admin && p.codigo !== user?.codigo) return null;
-                      return <option key={p.codigo} value={p.codigo}>{p.nome} {(!isAllowed && user?.is_admin) ? '(Fora de Cobertura)' : ''}</option>
-                    })}
-                  </select>
-                  {user && !user.is_admin && <p style={{ fontSize: '0.7rem', color: 'var(--primary-color)', marginTop: '4px' }}>Você só pode realizar agendamentos em seu nome.</p>}
                 </div>
 
                 <div className="form-group-flat full">
                   <label>Data Escolhida</label>
-                  <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }} />
+                  <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
                 </div>
 
                 <div className="form-group-flat full">
                   <label>Hora de Chegada (Início)</label>
-                  {(() => {
-                    const d = form.data ? new Date(`${form.data}T12:00:00`).getDay() : null;
-                    const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
-                    const isAlmoco = dayCfg?.almoco_ativo && form.hora && form.hora >= dayCfg.almoco_inicio && form.hora < dayCfg.almoco_fim;
-
-                    return (
-                      <>
-                        <select
-                          value={form.hora}
-                          onChange={e => setForm({ ...form, hora: e.target.value })}
-                          disabled={!form.codigo_profissional || !form.data || selectedServiceCodes.filter(c => c !== '').length === 0}
-                          required
-                          style={{
-                            padding: '12px 14px',
-                            borderRadius: '8px',
-                            background: 'var(--input-bg)',
-                            color: '#fff',
-                            border: isAlmoco ? '2px solid #f59e0b' : '1px solid var(--border-color)',
-                            boxShadow: isAlmoco ? '0 0 10px rgba(245, 158, 11, 0.2)' : 'none',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            opacity: (!form.codigo_profissional || selectedServiceCodes.filter(c => c !== '').length === 0 || !form.data) ? 0.4 : 1,
-                            transition: '0.2s',
-                            width: '100%',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                            boxSizing: 'border-box',
-                            textOverflow: 'ellipsis'
-                          }}
-                        >
-                          <option value="">
-                            {(!form.codigo_profissional || selectedServiceCodes.filter(c => c !== '').length === 0) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}
-                          </option>
-                          {form.codigo_profissional && selectedServiceCodes.filter(c => c !== '').length > 0 && form.data && getHorariosGerados().map(slot => {
-                            const d = new Date(`${form.data}T12:00:00`).getDay();
-                            const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
-                            const p = (user && !user.is_admin) ? (user.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false }) : { permitir_fora_horario: true, permitir_no_almoco: true };
-
-                            const isFechadoSlot = !dayCfg || !dayCfg.aberto || slot < dayCfg.inicio || slot >= dayCfg.fim;
-                            const isAlmocoSlot = !isFechadoSlot && dayCfg?.almoco_ativo && slot >= dayCfg.almoco_inicio && slot < dayCfg.almoco_fim;
-
-                            const isRestrictedByPerm = (isFechadoSlot && !p.permitir_fora_horario) || (isAlmocoSlot && !p.permitir_no_almoco);
-                            const isAval = isSlotDisponivel(slot);
-
-                            return (
-                              <option key={slot} value={slot} disabled={!isAval || isRestrictedByPerm}>
-                                {slot}
-                                {!isAval ? ' ❌ (Ocupado)' : isFechadoSlot ? ' ⊘' : isAlmocoSlot ? ' ☕ (Almoço)' : ''}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        {isAlmoco && <p style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '6px', fontWeight: 600 }}>⚠️ Atenção: Este horário coincide com o intervalo de almoço.</p>}
-                      </>
-                    );
-                  })()}
+                  <select value={form.hora} onChange={e => setForm({ ...form, hora: e.target.value })} disabled={selections.every(s => !s.professionalCode) || !form.data || selections.every(s => !s.serviceCode)} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}>
+                    <option value="">{(selections.every(s => !s.professionalCode) || selections.every(s => !s.serviceCode)) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}</option>
+                    {selections.some(s => s.professionalCode) && selections.some(s => s.serviceCode) && form.data && getHorariosGerados().map(slot => {
+                      const isAval = isSlotDisponivel(slot);
+                      return <option key={slot} value={slot} disabled={!isAval}>{slot} {!isAval ? '❌' : ''}</option>;
+                    })}
+                  </select>
                 </div>
-
               </div>
 
-              <div className="form-group-flat full" style={{ marginTop: '8px' }}>
+              <div className="form-group-flat full">
                 <label>Observação Interna</label>
                 <textarea value={form.observacao || ''} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="adiciona uma observação" rows={2} style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', resize: 'vertical', outline: 'none' }} />
               </div>
 
-              {agendamentoItem && form.status !== 'cancelado' && (
-                <div className="form-group-flat full" style={{ marginTop: '8px' }}>
-                  <button type="button" onClick={() => setConfirmCancel(true)} className="btn-save" style={{ margin: 0, background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.6)', color: '#ef4444', padding: '12px', fontSize: '1rem' }}>Cancelar agendamento</button>
-                </div>
-              )}
-
               <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '48px', fontSize: '1rem', whiteSpace: 'nowrap' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
-                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff', whiteSpace: 'nowrap' }}>Fechar</button>
+                <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
+                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Fechar</button>
               </div>
             </form>
           )}
         </div>
 
-        {/* Modal de Confirmação de Cancelamento */}
         {confirmCancel && (
           <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)' }} onClick={() => setConfirmCancel(false)}>
             <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px 24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0', fontSize: '1.4rem' }}>Desmarcar Horário?</h3>
-              <p style={{ color: 'var(--text-muted)', margin: '0 0 24px 0', fontSize: '1rem' }}>Ao realizar esta ação, as informações sumirão da tela e o agendamento será permanentemente cancelado. Deseja prosseguir?</p>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setConfirmCancel(false)} className="btn-save" style={{ margin: 0, flex: 1, background: 'transparent', color: '#fff', border: '1px solid var(--border-color)', height: '44px' }}>Voltar</button>
-                <button type="button" onClick={handleCancelAppt} className="btn-save" style={{ margin: 0, flex: 1, background: '#ef4444', color: '#fff', border: 'none', height: '44px' }}>Sim, Cancelar</button>
+              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Desmarcar Horário?</h3>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                <button type="button" onClick={() => setConfirmCancel(false)} className="btn-save" style={{ margin: 0, flex: 1, background: 'transparent', color: '#fff', border: '1px solid var(--border-color)' }}>Voltar</button>
+                <button type="button" onClick={handleCancelAppt} className="btn-save" style={{ margin: 0, flex: 1, background: '#ef4444', color: '#fff', border: 'none' }}>Sim, Cancelar</button>
               </div>
             </div>
           </div>

@@ -11,17 +11,6 @@ const mobileStyles = `
   @media (max-width: 768px) {
     .hide-on-mobile { display: none !important; }
     .show-on-mobile { display: flex !important; }
-    .dash-sidebar.mobile-open {
-       position: fixed;
-       top: 0; left: 0; bottom: 0;
-       width: 280px;
-       z-index: 9999;
-       background: var(--surface-color);
-       transform: translateX(0);
-       transition: transform 0.3s ease;
-       box-shadow: 4px 0 15px rgba(0,0,0,0.5);
-       display: flex !important;
-    }
     .dash-sidebar {
        position: fixed;
        top: 0; left: 0; bottom: 0;
@@ -29,13 +18,30 @@ const mobileStyles = `
        z-index: 9999;
        background: var(--surface-color);
        transform: translateX(-100%);
-       transition: transform 0.3s ease;
-       display: flex !important;
+       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+       visibility: hidden;
+       pointer-events: none;
+       display: flex !important; /* Mantém no DOM para transição */
+       flex-direction: column;
+       box-shadow: none;
+    }
+    .dash-sidebar.mobile-open {
+       transform: translateX(0);
+       visibility: visible;
+       pointer-events: auto;
+       box-shadow: 10px 0 30px rgba(0,0,0,0.5);
     }
   }
   @media (min-width: 769px) {
     .show-on-mobile { display: none !important; }
-    .dash-sidebar { transform: none !important; }
+    .dash-sidebar { 
+       transform: none !important; 
+       display: flex !important; 
+       position: relative !important; 
+       pointer-events: auto !important; 
+       visibility: visible !important;
+       transition: none !important;
+    }
   }
 `;
 
@@ -330,12 +336,19 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
      return agendamentos.filter(ag => {
          if (ag.status === 'cancelado') return false;
          
-         // PRIVACIDADE: Não admins só veem seus PRÓPRIOS agendamentos
-         if (user && !user.is_admin && String(ag.codigo_profissional) !== String(user.codigo)) {
+         const isProfInvolved = (pId: string) => {
+            if (String(ag.codigo_profissional) === pId) return true;
+            if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
+               return ag.profissionais_vinculo.some((v: any) => String(v.professionalCode) === pId);
+            }
+            return false;
+         };
+
+         if (user && !user.is_admin && !isProfInvolved(String(user.codigo))) {
            return false;
          }
 
-         if (filterProf && String(ag.codigo_profissional) !== filterProf) return false;
+         if (filterProf && !isProfInvolved(filterProf)) return false;
          if (filterServ && String(ag.codigo_servico) !== filterServ) return false;
          return true;
      });
@@ -442,7 +455,14 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         });
         const svcIds = [...svcIdsSet];
         const cliIds = [...new Set(ags.map(x => x.codigo_cliente))];
-        const profIds = [...new Set(ags.map(x => x.codigo_profissional))];
+        const profIdsSet = new Set<string>();
+        ags.forEach(ag => {
+           if (ag.codigo_profissional) profIdsSet.add(String(ag.codigo_profissional));
+           if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
+              ag.profissionais_vinculo.forEach((v: any) => profIdsSet.add(String(v.professionalCode)));
+           }
+        });
+        const profIds = [...profIdsSet];
         
         if (svcIds.length > 0) {
            supabase.from('servicos').select('codigo, nome').in('codigo', svcIds).then(({data}) => {
@@ -887,9 +907,15 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                       WebkitBoxOrient: 'vertical',
                                       overflow: 'hidden'
                                     }}>
-                                      {ag.servicos_selecionados && Array.isArray(ag.servicos_selecionados) && ag.servicos_selecionados.filter((x: any) => x).length > 0
-                                        ? ag.servicos_selecionados.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
-                                        : (dicServicos[ag.codigo_servico] || 'Serviço')}
+                                      {(() => {
+                                        let svcArray = ag.servicos_selecionados;
+                                        if (typeof svcArray === 'string') {
+                                          try { svcArray = JSON.parse(svcArray); } catch(e) { svcArray = null; }
+                                        }
+                                        return (svcArray && Array.isArray(svcArray) && svcArray.length > 0)
+                                          ? svcArray.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
+                                          : (dicServicos[ag.codigo_servico] || 'Serviço');
+                                      })()}
                                     </strong>
                                   </div>
 
@@ -930,9 +956,15 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                     marginBottom: isSmall ? '0' : '2px'
                                   }}>
                                     {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
-                                    {ag.servicos_selecionados && Array.isArray(ag.servicos_selecionados) && ag.servicos_selecionados.filter((x: any) => x).length > 0
-                                      ? ag.servicos_selecionados.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
-                                      : (dicServicos[ag.codigo_servico] || 'Serviço')}
+                                    {(() => {
+                                      let svcArray = ag.servicos_selecionados;
+                                      if (typeof svcArray === 'string') {
+                                        try { svcArray = JSON.parse(svcArray); } catch(e) { svcArray = null; }
+                                      }
+                                      return (svcArray && Array.isArray(svcArray) && svcArray.length > 0)
+                                        ? svcArray.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
+                                        : (dicServicos[ag.codigo_servico] || 'Serviço');
+                                    })()}
                                   </strong>
 
                                   <span style={{ 
@@ -1065,7 +1097,14 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                  {(() => {
                     const dailyAgs = agendamentos.filter(ag => {
                         const agDate = new Date(ag.data_hora_inicio).toDateString();
-                        return agDate === currentDate.toDateString() && (user.is_admin || String(ag.codigo_profissional) === String(user.codigo)) && ag.status !== 'cancelado';
+                        const isProfInvolved = (pId: string) => {
+                           if (String(ag.codigo_profissional) === pId) return true;
+                           if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
+                              return ag.profissionais_vinculo.some((v: any) => String(v.professionalCode) === pId);
+                           }
+                           return false;
+                        };
+                        return agDate === currentDate.toDateString() && (user.is_admin || isProfInvolved(String(user.codigo))) && ag.status !== 'cancelado';
                     }).sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
 
                     if (dailyAgs.length === 0) {

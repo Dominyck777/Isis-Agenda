@@ -1,4 +1,4 @@
-﻿.dash-layout {
+.dash-layout {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -448,7 +448,6 @@
     user-select: auto;
   }
 
-  .dash-sidebar { display: none; /* Hide Sidebar on mobile */ }
   .hide-on-mobile { display: none !important; }
   
   /* Text and Icon Adjustments */
