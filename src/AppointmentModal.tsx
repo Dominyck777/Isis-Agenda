@@ -436,7 +436,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                            <strong>R$ {selectedServiceCodes.filter(c => c !== '').reduce((acc, code) => {
                              const s = servicos.find(sv => sv.codigo.toString() === code);
                              if (!s || !s.valor) return acc;
-                             const v = parseFloat(s.valor.replace('R$', '').replace(',', '.').trim());
+                             const v = parseFloat(s.valor);
                              return acc + (isNaN(v) ? 0 : v);
                            }, 0).toFixed(2).replace('.', ',')}</strong>
                         </span>

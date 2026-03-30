@@ -335,8 +335,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
            return false;
          }
 
-         if (filterProf && ag.codigo_profissional.toString() !== filterProf) return false;
-         if (filterServ && ag.codigo_servico.toString() !== filterServ) return false;
+         if (filterProf && String(ag.codigo_profissional) !== filterProf) return false;
+         if (filterServ && String(ag.codigo_servico) !== filterServ) return false;
          return true;
      });
   }, [agendamentos, filterProf, filterServ, user]);
