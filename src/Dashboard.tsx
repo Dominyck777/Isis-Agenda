@@ -835,7 +835,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                    title={isFechado ? 'Fechado' : isAlmoco ? 'Almoço' : `Agendar ${hourStr}`}
                                  >
                                    {isFechado && <span className="closed-label"><IVoid /></span>}
-                                   {isAlmoco && <span className="lunch-label">☕ Almoço</span>}
+                                   {isAlmoco && <span className="lunch-label">ALMOÇO</span>}
                                  </div>
                                );
                             })}
@@ -892,7 +892,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                  }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                               
-                              {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}
+                              {isAlmocoAg && <span className="card-lunch-indicator">ALMOÇO</span>}
                               
                               {clampHeight > 60 && !isSmall ? (
                                 <>
@@ -995,7 +995,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
                 </div>
-              {/*)}*/}
             </main>
           </div>
         </div>
