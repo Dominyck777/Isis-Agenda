@@ -8,7 +8,7 @@ import AppointmentModal from './AppointmentModal';
 import './Dashboard.css';
 
 const mobileStyles = `
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .hide-on-mobile { display: none !important; }
     .show-on-mobile { display: flex !important; }
     .dash-sidebar {
@@ -18,29 +18,28 @@ const mobileStyles = `
        z-index: 9999;
        background: var(--surface-color);
        transform: translateX(-100%);
-       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+       transition: transform 0.3s ease, visibility 0s 0.3s;
        visibility: hidden;
        pointer-events: none;
-       display: flex !important; /* Mantém no DOM para transição */
-       flex-direction: column;
-       box-shadow: none;
+       display: flex !important;
     }
     .dash-sidebar.mobile-open {
-       transform: translateX(0);
        visibility: visible;
+       transform: translateX(0);
+       transition: transform 0.3s ease, visibility 0s 0s;
+       box-shadow: 4px 0 15px rgba(0,0,0,0.5);
        pointer-events: auto;
-       box-shadow: 10px 0 30px rgba(0,0,0,0.5);
     }
   }
-  @media (min-width: 769px) {
+  @media (min-width: 1025px) {
     .show-on-mobile { display: none !important; }
     .dash-sidebar { 
        transform: none !important; 
        display: flex !important; 
        position: relative !important; 
-       pointer-events: auto !important; 
        visibility: visible !important;
-       transition: none !important;
+       pointer-events: auto !important; 
+       width: 256px !important;
     }
   }
 `;
@@ -835,7 +834,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                    title={isFechado ? 'Fechado' : isAlmoco ? 'Almoço' : `Agendar ${hourStr}`}
                                  >
                                    {isFechado && <span className="closed-label"><IVoid /></span>}
-                                   {isAlmoco && <span className="lunch-label">ALMOÇO</span>}
+                                   {isAlmoco && <span className="lunch-label">☕ Almoço</span>}
                                  </div>
                                );
                             })}
@@ -892,7 +891,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                  }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                               
-                              {isAlmocoAg && <span className="card-lunch-indicator">ALMOÇO</span>}
+                              {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}
                               
                               {clampHeight > 60 && !isSmall ? (
                                 <>
@@ -995,6 +994,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
                 </div>
+              {/*)}*/}
             </main>
           </div>
         </div>

@@ -103,6 +103,7 @@
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .btn-create {
@@ -169,8 +170,6 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  width: 100%;
-  max-width: 100dvw;
   overflow: hidden;
   /* Base size for a column when zoom is 1.0 (approximates (100% - 45px) / 7) */
   --base-col-width: calc((100% - 45px) / var(--days-count, 7));
@@ -315,15 +314,6 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.card-lunch-indicator {
-  font-size: 0.7rem; 
-  color: #f59e0b; 
-  font-weight: 700; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  width: 100%;
-}
 .cal-cell.cell-closed {
   background-color: rgba(255, 255, 255, 0.03) !important;
   display: flex;
@@ -438,13 +428,13 @@
 .fab-create svg { width: 30px; height: 30px; }
 
 /* Desktop Hide */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .fab-create { display: none; }
   .hide-on-desktop { display: none !important; }
 }
 
 /* MOBILE RESPONSIVE QUERIES */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   body {
     -webkit-user-select: none;
     -ms-user-select: none;
@@ -457,6 +447,7 @@
     user-select: auto;
   }
 
+  .dash-sidebar { display: none; /* Hide Sidebar on mobile */ }
   .hide-on-mobile { display: none !important; }
   
   /* Text and Icon Adjustments */
@@ -477,13 +468,6 @@
   
   .day-col-header { padding: 8px 0; }
   .day-number { width: 36px; height: 36px; font-size: 1.25rem; }
-
-  /* Texto do Almoço no Meio (Mobile) */
-  .cal-cell.cell-lunch {
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-  }
 }
 
 @keyframes borderPulse {
