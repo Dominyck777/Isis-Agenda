@@ -24,6 +24,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
   const [quickCli, setQuickCli] = useState({ nome: '', telefone: '' });
   const [selections, setSelections] = useState<{ serviceCode: string, professionalCode: string }[]>([{ serviceCode: '', professionalCode: '' }]);
   const [agendamentosDoDia, setAgendamentosDoDia] = useState<any[]>([]);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
@@ -287,6 +288,17 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     else { toast('Agendamento cancelado!', 'success'); onSaveSuccess(); onClose(); }
   };
 
+  const handleDeleteAppt = async () => {
+    const { error } = await supabase.from('agendamentos').delete().eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
+    if (error) {
+      toast('Erro ao excluir agendamento.', 'error');
+    } else {
+      toast('Agendamento removido definitivamente!', 'success');
+      onSaveSuccess();
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -427,8 +439,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 <textarea value={form.observacao || ''} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="adiciona uma observação" rows={2} style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', resize: 'vertical', outline: 'none' }} />
               </div>
 
-              <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
+               <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
+                {agendamentoItem && (
+                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', background: '#ef4444', height: '48px', color: '#fff', border: 'none' }}>Excluir Agendamento</button>
+                )}
                 <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Fechar</button>
               </div>
             </form>
@@ -439,9 +454,22 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
           <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)' }} onClick={() => setConfirmCancel(false)}>
             <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px 24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
               <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Desmarcar Horário?</h3>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                <button type="button" onClick={() => setConfirmCancel(false)} className="btn-save" style={{ margin: 0, flex: 1, background: 'transparent', color: '#fff', border: '1px solid var(--border-color)' }}>Voltar</button>
-                <button type="button" onClick={handleCancelAppt} className="btn-save" style={{ margin: 0, flex: 1, background: '#ef4444', color: '#fff', border: 'none' }}>Sim, Cancelar</button>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setConfirmCancel(false)} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: 'transparent', color: '#fff', border: '1px solid var(--border-color)', minWidth: '0' }}>Voltar</button>
+                <button type="button" onClick={handleCancelAppt} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: '#ef4444', color: '#fff', border: 'none', minWidth: '0' }}>Sim, Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isDeleteConfirmOpen && (
+          <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)' }} onClick={() => setIsDeleteConfirmOpen(false)}>
+            <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px 24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Excluir Definitivamente?</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Essa ação não pode ser desfeita. O agendamento continuará indisponível para recuperação.</p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setIsDeleteConfirmOpen(false)} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: 'transparent', color: '#fff', border: '1px solid var(--border-color)', minWidth: '0' }}>Voltar</button>
+                <button type="button" onClick={handleDeleteAppt} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: '#ef4444', color: '#fff', border: 'none', minWidth: '0' }}>Sim, Excluir</button>
               </div>
             </div>
           </div>
