@@ -420,6 +420,17 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 </div>
               )}
 
+              {/* Registro de Criação */}
+              {agendamentoItem?.created_at && (
+                <div style={{ marginTop: 'auto', padding: '12px 16px', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Agendamento registrado em: <strong style={{ color: '#cbd5e1' }}>{new Date(agendamentoItem.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                  </p>
+                </div>
+              )}
+
+              {/* Ações do Modo de Visualização */}
+
               {/* Ações do Modo de Visualização */}
               <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 <button type="button" onClick={() => setIsReadOnly(false)} className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '54px', fontSize: '1.1rem', background: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', border: 'none', borderRadius: '8px' }}>
@@ -522,6 +533,14 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     })}
                   </select>
                 </div>
+
+                {agendamentoItem?.created_at && (
+                  <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      🕒 Registrado no sistema em: <span style={{ color: '#fff' }}>{new Date(agendamentoItem.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="form-group-flat full">

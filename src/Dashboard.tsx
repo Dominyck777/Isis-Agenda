@@ -864,8 +864,22 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                const d = day.fullDate.getDay();
                                const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
                                const hourStr = hour.toString().padStart(2, '0') + ':00';
+                               
+                               // Checar se existe agendamento neste dia/hora para ocultar Almoço
+                               const slotStart = new Date(day.fullDate.getTime());
+                               slotStart.setHours(hour, 0, 0, 0);
+                               const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
+                               
+                               const hasApptAtSlot = filteredAgendamentos.some(ag => {
+                                 if (ag.status === 'cancelado') return false;
+                                 const agStart = new Date(ag.data_hora_inicio);
+                                 const agEnd = new Date(ag.data_hora_fim);
+                                 return agStart < slotEnd && agEnd > slotStart;
+                               });
+
                                const isFechado = !dayCfg || !dayCfg.aberto || hourStr < dayCfg.inicio || hourStr >= dayCfg.fim;
-                               const isAlmoco = !isFechado && dayCfg?.almoco_ativo && hourStr >= dayCfg.almoco_inicio && hourStr < dayCfg.almoco_fim;
+                               // Só é almoço se estiver configurado E não houver agendamento manual sobrepondo
+                               const isAlmoco = !isFechado && !hasApptAtSlot && dayCfg?.almoco_ativo && hourStr >= dayCfg.almoco_inicio && hourStr < dayCfg.almoco_fim;
                                
                                return (
                                  <div 
