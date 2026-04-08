@@ -1066,6 +1066,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             baseHour={apptBaseHour}
             agendamentoItem={editingAppt}
             onSaveSuccess={reloadDashboardGrid}
+            initialReadOnly={editingAppt ? configAgenda?.clique_acao === 'visualizar' : false}
          />
       )}
 

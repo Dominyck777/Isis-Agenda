@@ -525,7 +525,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                           <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>até as</span>
                           <input type="time" value={h.fim || '18:00'} onChange={e => updateHorario(i, 'fim', e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }} />
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px', borderLeft: '1px solid var(--border-color)', paddingLeft: '12px' }}>
+                          <div className="almoco-wrapper">
                              <input type="checkbox" id={`alm-${i}`} checked={h.almoco_ativo} onChange={e => updateHorario(i, 'almoco_ativo', e.target.checked)} style={{ cursor: 'pointer' }} />
                              <label htmlFor={`alm-${i}`} style={{ fontSize: '0.8rem', color: h.almoco_ativo ? 'var(--primary-color)' : 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Possui Almoço?</label>
                              {h.almoco_ativo && (
@@ -543,6 +543,38 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                     </div>
                   ))}
                 </div>
+                <div style={{ marginTop: '32px', padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                   <h4 style={{ margin: '0 0 16px 0', color: 'var(--primary-color)', fontSize: '1rem' }}>Preferências de Usabilidade</h4>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Ao clicar num agendamento na grade:</label>
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input 
+                              type="radio" 
+                              name="clique_acao" 
+                              value="editar" 
+                              checked={configAgenda?.clique_acao === 'editar'} 
+                              onChange={e => setConfigAgenda({ ...configAgenda, clique_acao: e.target.value })} 
+                            />
+                            <span style={{ fontSize: '0.95rem' }}>Edição Direta</span>
+                         </label>
+                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input 
+                              type="radio" 
+                              name="clique_acao" 
+                              value="visualizar" 
+                              checked={configAgenda?.clique_acao === 'visualizar'} 
+                              onChange={e => setConfigAgenda({ ...configAgenda, clique_acao: e.target.value })} 
+                            />
+                            <span style={{ fontSize: '0.95rem' }}>Apenas Visualizar</span>
+                         </label>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        * O modo de visualização é recomendado para evitar alterações acidentais ao consultar dados.
+                      </p>
+                   </div>
+                </div>
+
                 <button className="btn-save" onClick={handleSaveAgenda} style={{ marginTop: '32px', backgroundColor: isAgendaSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
                   {isAgendaSaved ? '✓ Grade de Horários Salva!' : 'Salvar Grades de Horário da Agenda'}
                 </button>

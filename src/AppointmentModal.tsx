@@ -4,8 +4,9 @@ import { toast } from './Toast';
 
 const IClose = () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
-export default function AppointmentModal({ isOpen, onClose, user, configAgenda, baseDate, baseHour, agendamentoItem, onSaveSuccess }: any) {
+export default function AppointmentModal({ isOpen, onClose, user, configAgenda, baseDate, baseHour, agendamentoItem, onSaveSuccess, initialReadOnly = false }: any) {
   const [loading, setLoading] = useState(true);
+  const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
 
   const [clientes, setClientes] = useState<any[]>([]);
   const [servicos, setServicos] = useState<any[]>([]);
@@ -78,6 +79,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       setShowQuickCli(false);
       setConfirmCancel(false);
       setSelections(initialSelections);
+      setIsReadOnly(initialReadOnly);
     } else if (!agendamentoItem && isOpen && !loading) {
       setForm({
         codigo_cliente: '',
@@ -90,6 +92,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       setShowQuickCli(false);
       setConfirmCancel(false);
       setSelections([{ serviceCode: '', professionalCode: user && !user.is_admin ? String(user.codigo) : '' }]);
+      setIsReadOnly(false); // Sempre editável em criação
     }
   }, [agendamentoItem, isOpen, loading, baseDate, baseHour]);
 
@@ -306,6 +309,13 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     <>
       <style>{`
       .resp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @keyframes modalFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .appointment-view-mode {
+        animation: modalFadeIn 0.3s ease-out forwards;
+      }
       @media (max-width: 768px) { .resp-grid { grid-template-columns: 1fr; } }
     `}</style>
       <div className="modal-overlay" onClick={onClose} style={{ zIndex: 3000 }}>
@@ -342,15 +352,92 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
           {loading ? (
             <p style={{ color: 'var(--text-muted)' }}>Mapeando dados da clínica...</p>
+          ) : isReadOnly ? (
+            <div className="appointment-view-mode" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Header: Cliente e Status */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Cliente</p>
+                  <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#fff', fontWeight: 700 }}>
+                    {form.codigo_cliente === 'avulso' ? (nomeAvulso || 'Cliente Sem Cadastro') : (clientes.find(c => String(c.id) === String(form.codigo_cliente))?.nome || 'Carregando...')}
+                  </h2>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                  <div style={{ 
+                    padding: '6px 12px', 
+                    borderRadius: '20px', 
+                    background: form.status === 'finalizado' ? '#10b98120' : form.status === 'em andamento' ? '#f59e0b20' : form.status === 'cancelado' ? '#ef444420' : '#0ea5e920',
+                    color: form.status === 'finalizado' ? '#10b981' : form.status === 'em andamento' ? '#f59e0b' : form.status === 'cancelado' ? '#ef4444' : '#0ea5e9',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: `1px solid ${form.status === 'finalizado' ? '#10b98140' : form.status === 'em andamento' ? '#f59e0b40' : form.status === 'cancelado' ? '#ef444440' : '#0ea5e940'}`
+                  }}>
+                    {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Data e Hora */}
+              <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div style={{ background: 'var(--primary-color)', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#fff' }}>
+                    {new Date(form.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Horário de início: <strong>{form.hora}h</strong></p>
+                </div>
+              </div>
+
+              {/* Lista de Serviços */}
+              <div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Serviços Selecionados</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selections.map((sel: any, idx: number) => {
+                    const servName = servicos.find(s => String(s.codigo) === String(sel.serviceCode))?.nome || 'Serviço não encontrado';
+                    const profName = profissionais.find(u => String(u.codigo) === String(sel.professionalCode))?.nome || 'Profissional não definido';
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: 600, color: '#fff' }}>{servName}</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Executado por: {profName}</span>
+                        </div>
+                        <div style={{ color: 'var(--primary-color)', fontSize: '0.8rem', fontWeight: 600 }}>OK</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Observações */}
+              {form.observacao && (
+                <div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Observações</p>
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px dotted var(--border-color)', color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                    {form.observacao}
+                  </div>
+                </div>
+              )}
+
+              {/* Ações do Modo de Visualização */}
+              <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                <button type="button" onClick={() => setIsReadOnly(false)} className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '54px', fontSize: '1.1rem', background: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', border: 'none', borderRadius: '8px' }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  Editar Agendamento
+                </button>
+                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff', borderRadius: '8px', cursor: 'pointer' }}>Fechar</button>
+              </div>
+            </div>
           ) : (
-            <form onSubmit={handleSave} className="form-grid full" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <form onSubmit={handleSave} className="form-grid full" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '100%', boxSizing: 'border-box', pointerEvents: 'auto', opacity: 1 }}>
               <div className="resp-grid" style={{ maxWidth: '100%' }}>
                 <div className="form-group-flat full" style={{ gridColumn: '1 / -1', maxWidth: '100%' }}>
                   <label>Cliente (Base)</label>
                   <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-                    <select value={form.codigo_cliente} onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }} required style={{ flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', boxSizing: 'border-box', textOverflow: 'ellipsis' }}>
+                    <select value={form.codigo_cliente} onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }} required disabled={isReadOnly} style={{ flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', boxSizing: 'border-box', textOverflow: 'ellipsis' }}>
                       <option value="">-- Selecionar Cliente --</option>
-                      <option value="avulso">👤 Cliente Sem Cadastro</option>
+                      <option value="avulso">Cliente Sem Cadastro</option>
                       {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                     <button type="button" onClick={() => { setShowQuickCli(!showQuickCli); setForm({ ...form, codigo_cliente: '' }); }} style={{ background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 16px', fontSize: '1.2rem', cursor: 'pointer', flexShrink: 0 }} title="Cadastrar Novo Cliente Rápidamente">+</button>
@@ -442,12 +529,22 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 <textarea value={form.observacao || ''} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="adiciona uma observação" rows={2} style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', resize: 'vertical', outline: 'none' }} />
               </div>
 
-               <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                <div className="form-group-flat full">
+                  <label>Status do Agendamento</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}>
+                    <option value="agendado">Agendado</option>
+                    <option value="em andamento">Em Andamento</option>
+                    <option value="finalizado">Finalizado</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
+
+               <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', pointerEvents: 'auto' }}>
                 <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
                 {agendamentoItem && (
-                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', background: '#ef4444', height: '48px', color: '#fff', border: 'none' }}>Excluir Agendamento</button>
+                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', background: '#ef4444', height: '48px', color: '#fff', border: 'none' }}>Excluir</button>
                 )}
-                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Fechar</button>
+                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Cancelar</button>
               </div>
             </form>
           )}
