@@ -491,6 +491,31 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     reloadDashboardGrid();
   }, [user, currentDate, viewMode]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Subscrição em Tempo Real para Agendamentos
+    const channel = supabase.channel('dashboard_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agendamentos',
+          filter: `codigo_empresa=eq.${user.codigo_empresa}`
+        },
+        (payload) => {
+          console.log('Realtime update received:', payload);
+          reloadDashboardGrid();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentDate, viewMode]);
+
   // Hook Autônomo de Estado Mágico temporal
   useEffect(() => {
     if (!user) return;
