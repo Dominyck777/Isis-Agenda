@@ -5,6 +5,7 @@ import CryptoJS from 'crypto-js';
 import SettingsPanel from './Settings';
 import ServicesPanel from './Services';
 import AppointmentModal from './AppointmentModal';
+import Finance from './Finance';
 import './Dashboard.css';
 
 const mobileStyles = `
@@ -62,6 +63,7 @@ const IPlus = () => <svg width="20" height="20" fill="none" stroke="currentColor
 const ISettings = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const ILogout = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>;
 const IFolder = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>;
+const IFinance = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 
 // Helpers de Data
 const getStartOfWeek = (date: Date) => {
@@ -150,6 +152,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [dicServicos, setDicServicos] = useState<any>({});
   const [dicClientes, setDicClientes] = useState<any>({});
   const [dicProfs, setDicProfs] = useState<any>({});
+  const [activeView, setActiveView] = useState<'calendar' | 'finance'>('calendar');
 
   // Filtros da Grade
   const [filterProf, setFilterProf] = useState('');
@@ -245,7 +248,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       grid.removeEventListener('touchmove', handleTouchMove);
       grid.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+  }, [activeView]);
 
   useEffect(() => {
     const loadUser = () => {
@@ -730,17 +733,30 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               <button type="button" className="btn-sec" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', margin: 0 }} onClick={() => { setIsMobileSidebarOpen(false); setIsAgendamentosListOpen(true); }}>
                  Agendamentos do Dia
               </button>
+              <button 
+                type="button" 
+                className={`btn-sec ${activeView === 'finance' ? 'active-tab' : ''}`} 
+                style={{ 
+                  width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', margin: 0,
+                  backgroundColor: activeView === 'finance' ? 'var(--primary-color)' : 'transparent',
+                  color: activeView === 'finance' ? '#fff' : 'var(--text-muted)'
+                }} 
+                onClick={() => { setIsMobileSidebarOpen(false); setActiveView(activeView === 'finance' ? 'calendar' : 'finance'); }}
+              >
+                 <IFinance /> {activeView === 'finance' ? 'Voltar para Agenda' : 'Financeiro'}
+              </button>
             </div>
           </aside>
 
-          <main className="dash-main" style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            '--days-count': currentWeekDays.length, 
-            '--zoom-factor': zoomFactor,
-            '--current-col-width': `${currentColWidth}px`,
-            '--total-grid-width': `${totalGridWidth}px`
-          } as any}>
+          {activeView === 'calendar' ? (
+            <main className="dash-main" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              '--days-count': currentWeekDays.length, 
+              '--zoom-factor': zoomFactor,
+              '--current-col-width': `${currentColWidth}px`,
+              '--total-grid-width': `${totalGridWidth}px`
+            } as any}>
             {/* Ocultado a pedido do usuario: viewMode === 'month' */}
             {/*viewMode === 'month' ? (
               <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -994,8 +1010,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
                 </div>
-              {/*)}*/}
-            </main>
+             </main>
+           ) : (
+             <Finance user={user} />
+           )}
           </div>
         </div>
 

@@ -261,7 +261,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         data_hora_inicio: startObj.toISOString(),
         data_hora_fim: endObj.toISOString(),
         status: form.status,
-        observacao: finalObs
+        observacao: finalObs,
+        isis_criou: false
       };
 
       if (!agendamentoItem) {
@@ -313,9 +314,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
             <div>
               <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
               {agendamentoItem && (() => {
-                const firstSvcCode = selections[0]?.serviceCode;
-                const svc = servicos.find(s => String(s.codigo) === String(firstSvcCode));
-                const val = svc?.valor ? Number(svc.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
+                const totalVal = selections.reduce((acc, sel) => {
+                  const svc = servicos.find(s => String(s.codigo) === String(sel.serviceCode));
+                  return acc + (svc?.valor ? Number(svc.valor) : 0);
+                }, 0);
+                const val = totalVal > 0 ? totalVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
                 const stColor = form.status === 'cancelado' ? '#ef4444' : form.status === 'finalizado' ? '#10b981' : form.status === 'em andamento' ? '#f59e0b' : '#0ea5e9';
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', marginTop: '12px' }}>
