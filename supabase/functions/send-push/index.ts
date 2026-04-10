@@ -29,31 +29,54 @@ serve(async (req) => {
     let body = "";
 
     if (table === "agendamentos") {
+      // 1. BUscar o Nome do Cliente
+      let clientName = "Cliente";
+      if (record.codigo_cliente === 0 || record.codigo_cliente === "avulso") {
+        if (record.observacao?.startsWith('👤 ')) {
+          clientName = record.observacao.split(' | ')[0].replace('👤 ', '');
+        } else {
+          clientName = "Cliente Avulso";
+        }
+      } else if (record.codigo_cliente) {
+        const { data: clin } = await supabase.from('clientes').select('nome').eq('id', record.codigo_cliente).maybeSingle();
+        if (clin) clientName = clin.nome;
+      }
+
+      // 2. Buscar o Nome dos Serviços
+      let serviceNames = "";
+      let rawServices = record.servicos_selecionados;
+      if (typeof rawServices === 'string') {
+        try { rawServices = JSON.parse(rawServices); } catch(e) { rawServices = []; }
+      }
+      
+      if (Array.isArray(rawServices) && rawServices.length > 0) {
+        const { data: servs } = await supabase.from('servicos').select('nome').in('codigo', rawServices.map((s: any) => Number(s)));
+        if (servs) serviceNames = servs.map((s: any) => s.nome).join(', ');
+      }
+
       const dataHora = record.data_hora_inicio 
         ? new Date(record.data_hora_inicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
         : "Horário não definido";
 
       if (type === "INSERT") {
-        title = "📅 Novo Agendamento";
-        body = `Um novo horário foi marcado para ${dataHora}.`;
+        title = `📅 Novo: ${clientName}`;
+        body = `Marcou ${serviceNames || 'Serviço'} para ${dataHora}.`;
       } 
       else if (type === "UPDATE") {
         const statusAlterado = record.status !== old_record?.status;
         const horarioAlterado = record.data_hora_inicio !== old_record?.data_hora_inicio;
         
-        // Filtro: Ignora transições automáticas de status (início e fim de atendimento)
         const isAutomaticStatusChange = 
           (old_record?.status === "agendado" && record.status === "em andamento") ||
           (old_record?.status === "em andamento" && record.status === "finalizado");
 
         if (statusAlterado && record.status === "cancelado") {
-          title = "❌ Agendamento Cancelado";
-          body = `O horário de ${dataHora} foi cancelado.`;
+          title = `❌ Cancelado: ${clientName}`;
+          body = `Agendamento de ${dataHora} foi removido.`;
         } else if (!isAutomaticStatusChange && (statusAlterado || horarioAlterado)) {
-          title = "🔄 Agendamento Alterado";
-          body = `O agendamento para ${dataHora} foi atualizado.`;
+          title = `🔄 Alterado: ${clientName}`;
+          body = `O horário para ${serviceNames || 'serviço'} foi atualizado para ${dataHora}.`;
         } else {
-          // Ignora updates secundários ou automáticos
           return new Response("Ignorado: Sem alterações manuais relevantes");
         }
       }
@@ -84,7 +107,8 @@ serve(async (req) => {
             endpoint: sub.endpoint,
             keys: { auth: sub.auth, p256dh: sub.p256dh },
           };
-          await webpush.sendNotification(pushSubscription, JSON.stringify({ title, body, url: '/' }));
+          // URL removida do payload conforme solicitado
+          await webpush.sendNotification(pushSubscription, JSON.stringify({ title, body }));
         } catch (e) {
           console.error("Erro no envio:", e.message);
         }
