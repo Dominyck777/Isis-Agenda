@@ -82,20 +82,26 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
       if (ag.status === 'finalizado') {
         completedCount++;
         
-        let svcArray = [];
-        try {
-          svcArray = typeof ag.servicos_selecionados === 'string' 
-            ? JSON.parse(ag.servicos_selecionados) 
-            : (ag.servicos_selecionados || []);
-        } catch(e) {
-          svcArray = [ag.codigo_servico];
+        // Se já tivermos o valor_total gravado no agendamento, usamos ele (Persistência histórica)
+        if (ag.valor_total !== undefined && ag.valor_total !== null) {
+          totalRevenue += Number(ag.valor_total);
+        } else {
+          // Fallback para agendamentos antigos ou sem valor_total gravado
+          let svcArray = [];
+          try {
+            svcArray = typeof ag.servicos_selecionados === 'string' 
+              ? JSON.parse(ag.servicos_selecionados) 
+              : (ag.servicos_selecionados || []);
+          } catch(e) {
+            svcArray = [ag.codigo_servico];
+          }
+  
+          if (!Array.isArray(svcArray)) svcArray = [ag.codigo_servico];
+  
+          svcArray.forEach((sId: any) => {
+            totalRevenue += Number(dicServicos[sId] || 0);
+          });
         }
-
-        if (!Array.isArray(svcArray)) svcArray = [ag.codigo_servico];
-
-        svcArray.forEach((sId: any) => {
-          totalRevenue += Number(dicServicos[sId] || 0);
-        });
       }
 
       if (ag.isis_criou) isisCount++;

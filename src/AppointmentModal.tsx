@@ -163,26 +163,56 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     const slotStart = new Date(`${form.data}T${slotTime}:00`);
     let currentOffset = 0;
 
+    // Helper: Converte "HH:mm" para minutos totais desde 00:00
+    const tToMin = (t: string) => {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + (m || 0);
+    };
+
+    // Obter configuração do dia da semana (0-6)
+    const dayOfWeek = slotStart.getDay();
+    const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === dayOfWeek);
+
     for (const sel of validSelections) {
       const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
       const duracao = s ? s.duracao_minutos : 0;
       
       const selStart = new Date(slotStart.getTime() + currentOffset * 60000);
       const selEnd = new Date(selStart.getTime() + duracao * 60000);
+
+      // --- VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (Apenas se não for Admin) ---
+      if (!user?.is_admin && dayCfg) {
+          const sMin = selStart.getHours() * 60 + selStart.getMinutes();
+          const eMin = selEnd.getHours() * 60 + selEnd.getMinutes();
+          
+          const cfgIni = tToMin(dayCfg.inicio);
+          const cfgFim = tToMin(dayCfg.fim);
+
+          // 1. Fora do horário de abertura/fecho
+          if (!dayCfg.aberto || sMin < cfgIni || eMin > cfgFim) return false;
+
+          // 2. Sobreposição com almoço
+          if (dayCfg.almoco_ativo) {
+              const almIni = tToMin(dayCfg.almoco_inicio);
+              const almFim = tToMin(dayCfg.almoco_fim);
+              // Há sobreposição se o serviço começa antes do fim do almoço E termina depois do início do almoço
+              if (sMin < almFim && eMin > almIni) return false;
+          }
+      }
       
-      // Verificar conflitos APENAS para o profissional deste serviço específico e nesta janela
+      // --- VALIDAÇÃO DE CONFLITOS COM OUTROS AGENDAMENTOS ---
       for (const ag of agendamentosDoDia) {
         if (agendamentoItem && String(ag.id) === String(agendamentoItem.id)) continue;
         if (ag.status === 'cancelado') continue;
 
-        // Checar se o profissional deste agendamento existente é o mesmo da seleção atual
         const profsNoAg = [String(ag.codigo_profissional)];
         if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
           ag.profissionais_vinculo.forEach((v: any) => profsNoAg.push(String(v.professionalCode)));
         }
 
         const isSameProf = profsNoAg.includes(String(sel.professionalCode));
-        if (!isSameProf) continue; // Se não for o mesmo profissional, não há conflito aqui
+        if (!isSameProf) continue;
 
         const agStart = new Date(ag.data_hora_inicio);
         const agEnd = new Date(ag.data_hora_fim);
@@ -247,6 +277,18 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     }
 
     const startObj = new Date(`${form.data}T${form.hora}:00`);
+    
+    // Validação final de horário (Almoço, Fecho, Conflitos)
+    if (!isSlotDisponivel(form.hora)) {
+      toast('Este horário não está disponível (Almoço, Fechado ou Conflito).', 'error');
+      return;
+    }
+
+    const totalPrice = validSelections.reduce((acc: number, sel) => {
+      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
+      return acc + (s ? Number(s.valor || 0) : 0);
+    }, 0);
+
     const totalDuration = validSelections.reduce((acc: number, sel) => {
       const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
       return acc + (s ? s.duracao_minutos : 0);
@@ -283,6 +325,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         data_hora_fim: endObj.toISOString(),
         status: form.status,
         observacao: finalObs,
+        valor_total: totalPrice,
         isis_criou: false
       };
 
@@ -547,10 +590,43 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     <option value="">{(selections.every(s => !s.professionalCode) || selections.every(s => !s.serviceCode)) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}</option>
                     {selections.some(s => s.professionalCode) && selections.some(s => s.serviceCode) && form.data && getHorariosGerados().map(slot => {
                       const isAval = isSlotDisponivel(slot);
-                      return <option key={slot} value={slot} disabled={!isAval}>{slot} {!isAval ? '❌' : ''}</option>;
+                      
+                      // Lógica idêntica ao isSlotDisponivel para detectar especificamente o almoço para estilo visual
+                      const tToMin = (t: string) => { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+                      const dayOfWeek = new Date(`${form.data}T00:00:00`).getDay();
+                      const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === dayOfWeek);
+                      const sMin = tToMin(slot);
+                      const isAlmoco = dayCfg?.almoco_ativo && sMin >= tToMin(dayCfg.almoco_inicio) && sMin < tToMin(dayCfg.almoco_fim);
+                      
+                      return (
+                        <option 
+                          key={slot} 
+                          value={slot} 
+                          disabled={!isAval}
+                          style={
+                            isAlmoco 
+                              ? { backgroundColor: '#f59e0b40', color: '#64748b' } 
+                              : (!isAval ? { backgroundColor: '#ef444440', color: '#64748b' } : {})
+                          }
+                        >
+                          {slot} {isAlmoco ? ' (Almoço)' : ''}
+                        </option>
+                      );
                     })}
                   </select>
                 </div>
+
+                {selections.some(s => s.serviceCode) && (
+                  <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>Total do Procedimento:</span>
+                    <span style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>
+                      {selections.reduce((acc, sel) => {
+                        const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
+                        return acc + (s ? Number(s.valor || 0) : 0);
+                      }, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                  </div>
+                )}
 
                 {agendamentoItem?.created_at && (
                   <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>

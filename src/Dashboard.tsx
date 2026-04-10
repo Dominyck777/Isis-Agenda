@@ -347,12 +347,20 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             return false;
          };
 
+         const isServInvolved = (sId: string) => {
+            if (String(ag.codigo_servico) === sId) return true;
+            if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
+               return ag.profissionais_vinculo.some((v: any) => String(v.serviceCode) === sId);
+            }
+            return false;
+         };
+
          if (user && !user.is_admin && !isProfInvolved(String(user.codigo))) {
            return false;
          }
 
          if (filterProf && !isProfInvolved(filterProf)) return false;
-         if (filterServ && String(ag.codigo_servico) !== filterServ) return false;
+         if (filterServ && !isServInvolved(filterServ)) return false;
          return true;
      });
   }, [agendamentos, filterProf, filterServ, user]);
