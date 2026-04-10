@@ -30,7 +30,7 @@ serve(async (req) => {
 
     if (table === "agendamentos") {
       const dataHora = record.data_hora_inicio 
-        ? new Date(record.data_hora_inicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        ? new Date(record.data_hora_inicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
         : "Horário não definido";
 
       if (type === "INSERT") {
@@ -38,19 +38,23 @@ serve(async (req) => {
         body = `Um novo horário foi marcado para ${dataHora}.`;
       } 
       else if (type === "UPDATE") {
-        // FILTRO: Só notifica se algo importante mudar (status ou horário)
         const statusAlterado = record.status !== old_record?.status;
         const horarioAlterado = record.data_hora_inicio !== old_record?.data_hora_inicio;
+        
+        // Filtro: Ignora transições automáticas de status (início e fim de atendimento)
+        const isAutomaticStatusChange = 
+          (old_record?.status === "agendado" && record.status === "em andamento") ||
+          (old_record?.status === "em andamento" && record.status === "finalizado");
 
         if (statusAlterado && record.status === "cancelado") {
           title = "❌ Agendamento Cancelado";
           body = `O horário de ${dataHora} foi cancelado.`;
-        } else if (statusAlterado || horarioAlterado) {
+        } else if (!isAutomaticStatusChange && (statusAlterado || horarioAlterado)) {
           title = "🔄 Agendamento Alterado";
           body = `O agendamento para ${dataHora} foi atualizado.`;
         } else {
-          // Ignora updates secundários (ex: logs internos)
-          return new Response("Ignorado: Sem alterações relevantes");
+          // Ignora updates secundários ou automáticos
+          return new Response("Ignorado: Sem alterações manuais relevantes");
         }
       }
     } 
