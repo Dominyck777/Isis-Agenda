@@ -149,6 +149,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   
   // Agendamentos Motor Central
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
+  const [allServicos, setAllServicos] = useState<any[]>([]);
   const [dicServicos, setDicServicos] = useState<any>({});
   const [dicClientes, setDicClientes] = useState<any>({});
   const [dicProfs, setDicProfs] = useState<any>({});
@@ -429,6 +430,13 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
          .eq('codigo_empresa', user.codigo_empresa)
          .gte('data_hora_inicio', startOfWk.toISOString())
          .lte('data_hora_fim', new Date(endOfWk.getTime() + 86400000).toISOString());
+
+     const { data: svs } = await supabase.from('servicos')
+         .select('codigo, nome, duracao_minutos')
+         .eq('codigo_empresa', user.codigo_empresa)
+         .eq('ativo', true);
+
+     if (svs) setAllServicos(svs);
      
      if (ags) {
         // Auto-avaliação do Status por Tempo Real (Hora de Brasília)
@@ -520,8 +528,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
-      const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-      const nowMs = now.getTime();
+      const nowMs = Date.now();
 
       setAgendamentos(prevAgs => {
          let changed = false;
@@ -530,7 +537,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
              const start = new Date(ag.data_hora_inicio).getTime();
              const end = new Date(ag.data_hora_fim).getTime();
              let newStatus = ag.status;
-             if (nowMs >= end && ag.status !== 'finalizado') newStatus = 'finalizado';
+             if (nowMs >= end) newStatus = 'finalizado';
              else if (nowMs >= start && nowMs < end && ag.status !== 'em andamento') newStatus = 'em andamento';
 
              if (newStatus !== ag.status) {
@@ -710,7 +717,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
           
           <div className="center" style={{ position: 'relative', display: 'flex', alignItems: 'center', zIndex: 10 }}>
-            {/* Nav Controls: Hoje + Arrows (❮ ❯) + Month Year ▼ */}
             <button className="btn-today" onClick={handleToday} style={{ margin: 0, padding: '8px 20px', fontSize: '1rem', borderRadius: '6px', fontWeight: 600 }}>Hoje</button>
             <div className="nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
               <button className="icon-btn" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }} onClick={handlePrevRange}>❮</button>
@@ -782,59 +788,6 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               '--current-col-width': `${currentColWidth}px`,
               '--total-grid-width': `${totalGridWidth}px`
             } as any}>
-            {/* Ocultado a pedido do usuario: viewMode === 'month' */}
-            {/*viewMode === 'month' ? (
-              <div className="month-grid-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div className="cal-header-row" style={{ paddingLeft: 0, paddingRight: 0 }}>
-                   {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((d, i) => (
-                     <div key={i} className="day-col-header" style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderRight: '1px solid var(--border-color)' }}>
-                       <span className="day-name">{d}</span>
-                     </div>
-                   ))}
-                </div>
-                <div className="month-grid-body" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: `repeat(${currentWeekDays.length / 7}, 1fr)` }}>
-                   {currentWeekDays.map((dayObj: any, i: number) => {
-                     const dayStr = dayObj.fullDate.toDateString();
-                     const dayAgs = filteredAgendamentos.filter(ag => new Date(ag.data_hora_inicio).toDateString() === dayStr)
-                       .sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
-                     
-                     return (
-                       <div key={i} className="month-cell" style={{ borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', padding: '4px', opacity: dayObj.isCurrentMonth ? 1 : 0.4, minHeight: '100px', display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: dayObj.isToday ? 'rgba(14, 165, 233, 0.05)' : 'transparent', overflow: 'hidden', cursor: 'pointer' }} onClick={() => openSlotModal(dayObj.fullDate, 9)}>
-                         <span style={{ fontSize: '0.85rem', fontWeight: dayObj.isToday ? 700 : 500, color: dayObj.isToday ? 'var(--primary-color)' : 'var(--text-muted)', textAlign: 'right', display: 'block', padding: '4px' }}>
-                           {dayObj.dateNum}
-                         </span>
-                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
-                           {dayAgs.slice(0, 4).map(ag => {
-                             let colorBase = '#0ea5e9';
-                             if (ag.status === 'em andamento') colorBase = '#f59e0b';
-                             if (ag.status === 'finalizado') colorBase = '#10b981';
-                             if (ag.status === 'cancelado') colorBase = '#ef4444';
-                             const obsText = ag.observacao || '';
-                             const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
-                             const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
-                             const isPulse = ag.status === 'em andamento';
-
-                             return (
-                               <div key={ag.id} className={`event-card-month ${isPulse ? 'pulsing' : ''}`} style={{ backgroundColor: `${colorBase}15`, borderLeft: `3px solid ${colorBase}`, padding: '4px', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', borderBottom: `1px solid ${colorBase}40` }} onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
-                                 <strong style={{ color: colorBase }}>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong> {displayClient}
-                               </div>
-                             );
-                           })}
-                           {dayAgs.length > 4 && (
-                              <div 
-                                style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'auto', fontWeight: 600, padding: '4px', cursor: 'pointer', background: 'var(--input-bg)', borderRadius: '4px' }}
-                                onClick={(e) => { e.stopPropagation(); setCurrentDate(dayObj.fullDate); setIsAgendamentosListOpen(true); }}
-                              >
-                                + {dayAgs.length - 4} itens
-                              </div>
-                           )}
-                         </div>
-                       </div>
-                     );
-                   })}
-                </div>
-            ) : (*/}
-                {/* Header de Dias (Fixo no Topo) */}
                 <div className="cal-header-row" ref={headerScrollRef}>
                   <div className="header-inner" style={{ width: `${totalGridWidth}px` }}>
                     <div style={{ width: '45px', flex: 'none', position: 'sticky', left: 0, zIndex: 100, backgroundColor: 'var(--surface-color)', borderRight: '1px solid var(--border-color)' }}></div>
@@ -849,11 +802,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
 
-                <div 
-                  className="cal-grid-scroll" 
-                  ref={gridScrollRef} 
-                  onScroll={handleGridScroll}
-                >
+                <div className="cal-grid-scroll" ref={gridScrollRef} onScroll={handleGridScroll}>
                   <div className="cal-grid" style={{ width: `${totalGridWidth}px` }}>
                     <div className="grid-bg" style={{ width: `${totalGridWidth}px` }}>
                       {hoursArray.map((hour, idx) => (
@@ -864,30 +813,18 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                const d = day.fullDate.getDay();
                                const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === d);
                                const hourStr = hour.toString().padStart(2, '0') + ':00';
-                               
-                               // Checar se existe agendamento neste dia/hora para ocultar Almoço
                                const slotStart = new Date(day.fullDate.getTime());
                                slotStart.setHours(hour, 0, 0, 0);
                                const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-                               
                                const hasApptAtSlot = filteredAgendamentos.some(ag => {
-                                 if (ag.status === 'cancelado') return false;
-                                 const agStart = new Date(ag.data_hora_inicio);
-                                 const agEnd = new Date(ag.data_hora_fim);
-                                 return agStart < slotEnd && agEnd > slotStart;
+                                 const s = new Date(ag.data_hora_inicio);
+                                 const e = new Date(ag.data_hora_fim);
+                                 return s < slotEnd && e > slotStart;
                                });
-
                                const isFechado = !dayCfg || !dayCfg.aberto || hourStr < dayCfg.inicio || hourStr >= dayCfg.fim;
-                               // Só é almoço se estiver configurado E não houver agendamento manual sobrepondo
                                const isAlmoco = !isFechado && !hasApptAtSlot && dayCfg?.almoco_ativo && hourStr >= dayCfg.almoco_inicio && hourStr < dayCfg.almoco_fim;
-                               
                                return (
-                                 <div 
-                                   key={i} 
-                                   className={`cal-cell ${isFechado ? 'cell-closed' : isAlmoco ? 'cell-lunch' : ''}`} 
-                                   onClick={() => openSlotModal(day.fullDate, hour)}
-                                   title={isFechado ? 'Fechado' : isAlmoco ? 'Almoço' : `Agendar ${hourStr}`}
-                                 >
+                                 <div key={i} className={`cal-cell ${isFechado ? 'cell-closed' : isAlmoco ? 'cell-lunch' : ''}`} onClick={() => openSlotModal(day.fullDate, hour)}>
                                    {isFechado && <span className="closed-label"><IVoid /></span>}
                                    {isAlmoco && <span className="lunch-label">☕ Almoço</span>}
                                  </div>
@@ -899,19 +836,15 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
 
                     <div className="events-layer">
-                      {filteredAgendamentos.map(ag => {
+                      {filteredAgendamentos.flatMap(ag => {
                           const ini = new Date(ag.data_hora_inicio);
                           const fim = new Date(ag.data_hora_fim);
                           const dayStr = ini.toDateString();
                           const dIdx = currentWeekDays.findIndex(d => d.fullDate.toDateString() === dayStr);
-                          if (dIdx === -1) return null;
+                          if (dIdx === -1) return [];
                           
                           const startHour = ini.getHours() + ini.getMinutes() / 60;
-                          const endHour = fim.getHours() + fim.getMinutes() / 60;
-                          const topPixels = (startHour - earliest) > 0 ? (startHour - earliest) * 60 : 0;
-                          const rawHeight = (endHour - startHour) * 60;
-                          const clampHeight = rawHeight < 24 ? 24 : rawHeight;
-                          
+                          const baseTop = (startHour - earliest) > 0 ? (startHour - earliest) * 80 : 0;
                           const { colIndex, numCols } = agStyles[ag.id] || { colIndex: 0, numCols: 1 };
                           const cardLeft = (dIdx * currentColWidth) + (colIndex * (currentColWidth / numCols)) + 2;
                           const cardWidth = (currentColWidth / numCols) - 4;
@@ -919,178 +852,118 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           let colorBase = '#0ea5e9';
                           if (ag.status === 'em andamento') colorBase = '#f59e0b';
                           if (ag.status === 'finalizado') colorBase = '#10b981';
-                          if (ag.status === 'cancelado') colorBase = '#ef4444';
 
                           const isPulse = ag.status === 'em andamento';
-                          const isSmall = clampHeight <= 35;
                           const obsText = ag.observacao || '';
-                          const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
-                          const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente';
-                          
-                          const dAg = ini.getDay();
-                          const dayCfgAg = configAgenda?.horarios?.find((h: any) => h.dia === dAg);
-                          const agStartStr = ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-                          const isAlmocoAg = dayCfgAg?.almoco_ativo && agStartStr >= dayCfgAg.almoco_inicio && agStartStr < dayCfgAg.almoco_fim;
+                          const displayClient = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : dicClientes[ag.codigo_cliente] || 'Cliente';
 
+                          const vinculos = ag.profissionais_vinculo;
+                          if (Array.isArray(vinculos) && vinculos.length > 1) {
+                            let accumulatedOffset = 0;
+                            return vinculos.map((v: any, vIdx: number) => {
+                              const sInfo = allServicos.find(s => String(s.codigo) === String(v.serviceCode));
+                              const duration = sInfo ? sInfo.duracao_minutos : 30;
+                              const blockTop = baseTop + (accumulatedOffset * 80 / 60);
+                              const blockHeight = duration * 80 / 60;
+                              const isOwner = user && String(v.professionalCode) === String(user.codigo);
+                              accumulatedOffset += duration;
+
+                              if (!user?.is_admin && !isOwner) return null;
+
+                              return (
+                                <div key={`${ag.id}-${vIdx}`} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
+                                     style={{ 
+                                       position: 'absolute', zIndex: 10, top: blockTop + 'px', 
+                                       height: (blockHeight - 1) + 'px', left: cardLeft + 'px', width: cardWidth + 'px', 
+                                       borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, 
+                                       display: 'flex', flexDirection: 'column', 
+                                       padding: blockHeight <= 45 ? '2px 4px' : '4px 6px', 
+                                       borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', 
+                                       alignItems: 'stretch', lineHeight: 1.05,
+                                       boxSizing: 'border-box'
+                                     }}
+                                     onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
+                                  <strong style={{ fontSize: '0.75rem', color: colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                                    {sInfo?.nome || (v.serviceCode ? `S:${v.serviceCode}` : 'Serviço')}
+                                  </strong>
+                                  <div style={{ fontSize: '0.65rem', opacity: 0.9, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                    {(() => {
+                                      const segStart = new Date(ini.getTime() + (accumulatedOffset - duration) * 60000);
+                                      return segStart.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                                    })()} | {duration} min
+                                  </div>
+                                  <span style={{ fontSize: '0.65rem', opacity: 0.8, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                                    {displayClient}
+                                  </span>
+                                  {user?.is_admin && blockHeight > 55 && (
+                                    <span style={{ fontSize: '0.65rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                      P: {dicProfs[v.professionalCode] || `P:${v.professionalCode}`}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            }).filter(Boolean);
+                          }
+
+                          const rawHeight = (fim.getTime() - ini.getTime()) / 60000;
+                          const calcHeight = rawHeight * 80 / 60;
                           return (
                             <div key={ag.id} className={`event-card ${isPulse ? 'pulsing' : ''}`} 
                                  style={{ 
-                                   position: 'absolute', zIndex: 10, top: topPixels + 'px', 
-                                   height: clampHeight + 'px', left: cardLeft + 'px', width: cardWidth + 'px', 
+                                   position: 'absolute', zIndex: 10, top: baseTop + 'px', 
+                                   height: Math.max(calcHeight, 35) + 'px', left: cardLeft + 'px', width: cardWidth + 'px', 
                                    borderLeft: `3px solid ${colorBase}`, background: `${colorBase}15`, 
-                                   display: 'flex', flexDirection: isSmall ? 'row' : 'column', 
-                                   padding: isSmall ? '0 6px' : '4px 6px', borderRadius: '4px', 
-                                   cursor: 'pointer', overflow: 'hidden', 
-                                   alignItems: isSmall ? 'center' : 'stretch', 
-                                   lineHeight: 1.2
+                                   display: 'flex', flexDirection: 'column', 
+                                   padding: calcHeight <= 45 ? '2px 4px' : '4px 6px', 
+                                   borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', 
+                                   alignItems: 'stretch', lineHeight: 1.05,
+                                   boxSizing: 'border-box'
                                  }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
-                              
-                              {isAlmocoAg && <span style={{ fontSize: '0.6rem', color: '#f59e0b', fontWeight: 800, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>☕ ALMOÇO</span>}
-                              
-                              {clampHeight > 60 && !isSmall ? (
-                                <>
-                                  {/* Primeiro Grid: Apenas Serviços */}
-                                  <div style={{ height: '52px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <strong style={{ 
-                                      fontSize: '0.85rem', 
-                                      whiteSpace: 'normal', 
-                                      color: colorBase,
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden'
-                                    }}>
-                                      {(() => {
-                                        let svcArray = ag.servicos_selecionados;
-                                        if (typeof svcArray === 'string') {
-                                          try { svcArray = JSON.parse(svcArray); } catch(e) { svcArray = null; }
-                                        }
-                                        return (svcArray && Array.isArray(svcArray) && svcArray.length > 0)
-                                          ? svcArray.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
-                                          : (dicServicos[ag.codigo_servico] || 'Serviço');
-                                      })()}
-                                    </strong>
-                                  </div>
-
-                                  {/* Outros Grids: Divididos igualmente */}
-                                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly', padding: '4px 0' }}>
-                                    <span style={{ 
-                                      fontSize: '0.75rem', 
-                                      whiteSpace: 'normal', 
-                                      opacity: 0.9,
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden',
-                                      fontWeight: 500
-                                    }}>
-                                       {ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - {displayClient}
-                                    </span>
-
-                                    <span style={{ 
-                                      fontSize: '0.7rem', opacity: 0.7, 
-                                      whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'
-                                    }}>
-                                      👤 {dicProfs[ag.codigo_profissional] || 'Equipe'}
-                                    </span>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  {/* Layout Compacto (Igual ou menor que 1 grid) */}
-                                  <strong style={{ 
-                                    fontSize: isSmall ? '0.7rem' : '0.75rem', 
-                                    whiteSpace: isSmall ? 'nowrap' : 'normal', 
-                                    textOverflow: isSmall ? 'ellipsis' : 'initial', 
-                                    overflow: 'hidden', color: colorBase,
-                                    display: isSmall ? 'inline' : '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    marginBottom: isSmall ? '0' : '2px'
-                                  }}>
-                                    {isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} `}
-                                    {(() => {
-                                      let svcArray = ag.servicos_selecionados;
-                                      if (typeof svcArray === 'string') {
-                                        try { svcArray = JSON.parse(svcArray); } catch(e) { svcArray = null; }
-                                      }
-                                      return (svcArray && Array.isArray(svcArray) && svcArray.length > 0)
-                                        ? svcArray.filter((x: any) => x).map((c: any) => dicServicos[c]).filter(Boolean).join(' + ')
-                                        : (dicServicos[ag.codigo_servico] || 'Serviço');
-                                    })()}
-                                  </strong>
-
-                                  <span style={{ 
-                                    fontSize: isSmall ? '0.65rem' : '0.7rem', 
-                                    whiteSpace: isSmall ? 'nowrap' : 'normal', 
-                                    textOverflow: isSmall ? 'ellipsis' : 'initial', 
-                                    overflow: 'hidden', opacity: 0.9,
-                                    display: isSmall ? 'inline' : '-webkit-box',
-                                    WebkitLineClamp: 1,
-                                    WebkitBoxOrient: 'vertical'
-                                  }}>
-                                     {!isSmall && `${ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - `} 
-                                     {displayClient}
-                                  </span>
-
-                                  {!isSmall && clampHeight > 45 && (
-                                    <span style={{ fontSize: '0.65rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                      {dicProfs[ag.codigo_profissional] || 'Equipe'}
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                              
-                              {ag.status === 'cancelado' && <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', backgroundColor: '#ef4444', transform: 'translateY(-50%)' }}></div>}
+                               <strong style={{ fontSize: '0.85rem', color: colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                                 {dicServicos[ag.codigo_servico] || (ag.codigo_servico ? `S:${ag.codigo_servico}` : 'Serviço')}
+                               </strong>
+                               <span style={{ fontSize: '0.75rem', opacity: 0.9, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                                 {ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} ({Math.round(rawHeight)} min)
+                               </span>
+                               <span style={{ fontSize: '0.7rem', opacity: 0.8, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                                 {displayClient}
+                               </span>
+                               {user?.is_admin && calcHeight > 55 && (
+                                 <span style={{ fontSize: '0.7rem', opacity: 0.6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                   {dicProfs[ag.codigo_profissional] || `P:${ag.codigo_profissional}`}
+                                 </span>
+                               )}
                             </div>
                           );
                       })}
                     </div>
                   </div>
                 </div>
-             </main>
+              </main>
            ) : (
              <Finance user={user} />
            )}
           </div>
         </div>
 
-
-      {isMobileSidebarOpen && (
-        <div className="modal-overlay show-on-mobile" style={{ zIndex: 9998 }} onClick={() => setIsMobileSidebarOpen(false)} />
-      )}
-
-      {showServicesPanel && (
-        <ServicesPanel onClose={() => setShowServicesPanel(false)} user={user} />
-      )}
-
-      {/* Settings Central Modal */}
-      {showSettingsPanel && (
-        <SettingsPanel onClose={() => setShowSettingsPanel(false)} user={user} />
-      )}
+      {isMobileSidebarOpen && <div className="modal-overlay show-on-mobile" style={{ zIndex: 9998 }} onClick={() => setIsMobileSidebarOpen(false)} />}
+      {showServicesPanel && <ServicesPanel onClose={() => setShowServicesPanel(false)} user={user} />}
+      {showSettingsPanel && <SettingsPanel onClose={() => setShowSettingsPanel(false)} user={user} />}
 
       {user && (
          <AppointmentModal 
-            isOpen={isApptModalOpen}
-            onClose={() => setIsApptModalOpen(false)}
-            user={user}
-            configAgenda={configAgenda}
-            baseDate={apptBaseDate}
-            baseHour={apptBaseHour}
-            agendamentoItem={editingAppt}
-            onSaveSuccess={reloadDashboardGrid}
+            isOpen={isApptModalOpen} onClose={() => setIsApptModalOpen(false)} user={user} configAgenda={configAgenda}
+            baseDate={apptBaseDate} baseHour={apptBaseHour} agendamentoItem={editingAppt} onSaveSuccess={reloadDashboardGrid}
             initialReadOnly={editingAppt ? configAgenda?.clique_acao === 'visualizar' : false}
          />
       )}
 
-      {/* Modal de Logout */}
       {isLogoutModalOpen && (
         <div className="modal-overlay" onClick={() => setIsLogoutModalOpen(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '12px' }}>Sair da conta?</h3>
-            <p style={{ margin: 0 }}>Você está logado como: <strong>{user?.nome}</strong></p>
-            <p style={{ marginTop: '4px' }}>Deseja relogar?</p>
+            <h3>Sair da conta?</h3>
+            <p>Você está logado como: <strong>{user?.nome}</strong></p>
             <div className="modal-actions" style={{ marginTop: '24px' }}>
               <button className="btn-sec" onClick={() => setIsLogoutModalOpen(false)}>Cancelar</button>
               <button className="btn-pri" style={{ backgroundColor: '#ef4444', color: '#fff' }} onClick={onLogout}>Fazer Logout</button>
@@ -1099,172 +972,68 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {/* Modal de Filtros Oculto */}
       {isFilterModalOpen && (
         <div className="modal-overlay" onClick={() => setIsFilterModalOpen(false)}>
-           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%', padding: '32px 24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                 <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>Filtros da Grade</h3>
-                 <button style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setIsFilterModalOpen(false)}>✕</button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                 <div>
-                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Filtrar Profissional</label>
-                   <select value={user && !user.is_admin ? user.codigo.toString() : tempFilterProf} onChange={e => setTempFilterProf(e.target.value)} disabled={user && !user.is_admin} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', opacity: (user && !user.is_admin) ? 0.6 : 1 }}>
-                     <option value="">Todos os Profissionais</option>
-                     {Object.entries(dicProfs).map(([id, nome]) => (
-                       <option key={id} value={id}>{nome as string}</option>
-                     ))}
-                   </select>
+           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%' }}>
+              <h3>Filtros da Grade</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
+                 <select value={user && !user.is_admin ? user.codigo.toString() : tempFilterProf} onChange={e => setTempFilterProf(e.target.value)} disabled={user && !user.is_admin} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
+                   <option value="">Todos os Profissionais</option>
+                   {Object.entries(dicProfs).map(([id, nome]) => <option key={id} value={id}>{nome as string}</option>)}
+                 </select>
+                 <select value={tempFilterServ} onChange={e => setTempFilterServ(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
+                   <option value="">Todos os Serviços</option>
+                   {Object.entries(dicServicos).map(([id, nome]) => <option key={id} value={id}>{nome as string}</option>)}
+                 </select>
+                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                   <button className="btn-sec" style={{ flex: 1 }} onClick={() => { setFilterProf(''); setFilterServ(''); setIsFilterModalOpen(false); }}>Limpar</button>
+                   <button className="btn-pri" style={{ flex: 1 }} onClick={() => { setFilterProf(tempFilterProf); setFilterServ(tempFilterServ); setIsFilterModalOpen(false); }}>Filtrar</button>
                  </div>
-
-                 <div>
-                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Filtrar Serviço</label>
-                   <select value={tempFilterServ} onChange={e => setTempFilterServ(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}>
-                     <option value="">Todos os Serviços</option>
-                     {Object.entries(dicServicos).map(([id, nome]) => (
-                       <option key={id} value={id}>{nome as string}</option>
-                     ))}
-                   </select>
-                 </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                 <button type="button" className="btn-sec" style={{ flex: 1, margin: 0, height: '44px' }} onClick={() => { setFilterProf(''); setFilterServ(''); setIsFilterModalOpen(false); }}>Limpar Tudo</button>
-                 <button type="button" className="btn-pri" style={{ flex: 1, margin: 0, background: 'var(--primary-color)', height: '44px' }} onClick={() => { setFilterProf(tempFilterProf); setFilterServ(tempFilterServ); setIsFilterModalOpen(false); }}>Salvar Filtro</button>
               </div>
            </div>
         </div>
       )}
 
-      {/* Modal de Lista do Dia (Cancelados Vislumbráveis) */}
       {isAgendamentosListOpen && (
         <div className="modal-overlay" onClick={() => setIsAgendamentosListOpen(false)} style={{ zIndex: 4000 }}>
-           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', padding: '24px', overflowY: 'auto', maxHeight: '90dvh' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-                 <div>
-                   <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>Lista de Agendamentos</h3>
-                   <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
-                 </div>
-                 <button style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setIsAgendamentosListOpen(false)}>✕</button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                 {(() => {
-                    const dailyAgs = agendamentos.filter(ag => {
-                        const agDate = new Date(ag.data_hora_inicio).toDateString();
-                        const isProfInvolved = (pId: string) => {
-                           if (String(ag.codigo_profissional) === pId) return true;
-                           if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
-                              return ag.profissionais_vinculo.some((v: any) => String(v.professionalCode) === pId);
-                           }
-                           return false;
-                        };
-                        return agDate === currentDate.toDateString() && (user.is_admin || isProfInvolved(String(user.codigo))) && ag.status !== 'cancelado';
-                    }).sort((a,b) => new Date(a.data_hora_inicio).getTime() - new Date(b.data_hora_inicio).getTime());
-
-                    if (dailyAgs.length === 0) {
-                       return <div style={{ padding: '24px', textAlign: 'center', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--text-muted)' }}>Nenhum agendamento para este dia.</div>;
-                    }
-
-                    return dailyAgs.map(ag => {
-                       const ini = new Date(ag.data_hora_inicio);
-                       const fim = new Date(ag.data_hora_fim);
-                       const isCancelled = ag.status === 'cancelado';
-                       const obsText = ag.observacao || '';
-                       const nomeAvulsoVis = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : null;
-                       const displayClient = nomeAvulsoVis || dicClientes[ag.codigo_cliente] || 'Cliente Avulso';
-
-                       return (
-                         <div key={ag.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--input-bg)', borderRadius: '8px', borderLeft: `3px solid ${isCancelled ? '#ef4444' : ag.status === 'finalizado' ? '#10b981' : ag.status === 'em andamento' ? '#f59e0b' : '#0ea5e9'}`, opacity: isCancelled ? 0.6 : 1 }}>
-                            <div>
-                               <strong style={{ fontSize: '1rem', color: isCancelled ? '#ef4444' : '#fff', textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                                  {ini.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} às {fim.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
-                               </strong>
-                               <div style={{ fontSize: '0.9rem', marginTop: '4px', color: '#cbd5e1' }}>{dicServicos[ag.codigo_servico] || 'Serviço'} - {displayClient}</div>
-                               <div style={{ fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-muted)' }}>Profissional: {dicProfs[ag.codigo_profissional] || 'Equipe'} {isCancelled ? '(Cancelado)' : ''}</div>
-                            </div>
-                            <button className="btn-sec" style={{ margin: 0, padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => { setIsAgendamentosListOpen(false); openEditAgendamento(ag); }}>Detalhes</button>
-                         </div>
-                       );
-                    });
-                 })()}
+           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', maxHeight: '90dvh', overflowY: 'auto' }}>
+              <h3>Lista de Agendamentos</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
+                 {agendamentos.filter(ag => new Date(ag.data_hora_inicio).toDateString() === currentDate.toDateString() && ag.status !== 'cancelado').map(ag => (
+                   <div key={ag.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--input-bg)', borderRadius: '8px' }}>
+                      <div>
+                         <strong>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong>
+                         <div>{dicServicos[ag.codigo_servico]} - {dicClientes[ag.codigo_cliente] || 'Cliente'}</div>
+                      </div>
+                      <button className="btn-sec" onClick={() => { setIsAgendamentosListOpen(false); openEditAgendamento(ag); }}>Detalhes</button>
+                   </div>
+                 ))}
               </div>
            </div>
         </div>
       )}
 
-      {/* Modal do Cofre Administrativo */}
       {isConfigAuthOpen && (
         <div className="modal-overlay" onClick={() => setIsConfigAuthOpen(false)} style={{ zIndex: 5000 }}>
           {isGooeyActive && (
-            <div className="gooey-particles-container" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 4999 }}>
+            <div className="gooey-particles-container" style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
               {gooeyParticles.map(p => (
-                <span 
-                  key={p.id} 
-                  className="particle active" 
-                  style={{ 
-                    '--start-x': `${p.startX}px`, 
-                    '--start-y': `${p.startY}px`, 
-                    '--end-x': `${p.endX}px`, 
-                    '--end-y': `${p.endY}px`, 
-                    '--time': `${p.time}ms`,
-                    'background-color': p.color
-                  } as any}
-                />
+                <span key={p.id} className="particle active" style={{ '--start-x': `${p.startX}px`, '--start-y': `${p.startY}px`, '--end-x': `${p.endX}px`, '--end-y': `${p.endY}px`, '--time': `${p.time}ms`, backgroundColor: p.color } as any} />
               ))}
             </div>
           )}
-
-          <div 
-            className={`modal-card ${isModalBorderActive ? 'border-blue-active' : ''}`} 
-            onClick={e => e.stopPropagation()} 
-            style={{ position: 'relative', transition: 'all 0.4s ease', zIndex: 5001 }}
-          >
-            <h3 style={{ display:'flex', alignItems:'center', gap:'8px' }}><ISettings /> Acesso Restrito</h3>
-            <p style={{ marginBottom: '20px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              Digite a senha de administrador da empresa para destrancar.
-            </p>
-
-            <form onSubmit={handleConfigAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="form-group-flat">
-                <input 
-                  type="password" 
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={configPassword} 
-                  onChange={e => setConfigPassword(e.target.value.replace(/\D/g, ''))} 
-                  placeholder="Sua senha..."
-                  autoFocus
-                  style={{ 
-                    textAlign: 'center', 
-                    fontSize: '1.2rem', 
-                    letterSpacing: '4px'
-                  }}
-                />
-              </div>
-              {configError && <p style={{ color: isGooeyActive ? '#10b981' : '#ef4444', fontSize: '0.85rem', marginTop: '8px' }}>{isGooeyActive ? 'Acesso Permitido!' : configError}</p>}
-              <button type="submit" className="btn-save" style={{ width: '100%', marginTop: '24px' }}>
-                {isGooeyActive ? 'ABRINDO...' : 'DESBLOQUEAR'}
-              </button>
+          <div className={`modal-card ${isModalBorderActive ? 'border-blue-active' : ''}`} onClick={e => e.stopPropagation()}>
+            <h3>Acesso Restrito</h3>
+            <form onSubmit={handleConfigAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
+              <input type="password" inputMode="numeric" pattern="[0-9]*" value={configPassword} onChange={e => setConfigPassword(e.target.value.replace(/\D/g, ''))} placeholder="Senha Admin" autoFocus style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '4px', width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }} />
+              {configError && <p style={{ color: '#ef4444', fontSize: '0.85rem' }}>{configError}</p>}
+              <button type="submit" className="btn-save" style={{ width: '100%' }}>{isGooeyActive ? 'ABRINDO...' : 'DESBLOQUEAR'}</button>
             </form>
           </div>
         </div>
       )}
 
-
-
-
-      {/* SVG Filter para o efeito Gooey */}
-      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-        <defs>
-          <filter id="gooey-filter">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="gooey" />
-          </filter>
-        </defs>
-      </svg>
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}><defs><filter id="gooey-filter"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" /><feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="gooey" /></filter></defs></svg>
     </>
   );
 }

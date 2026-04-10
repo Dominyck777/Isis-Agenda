@@ -66,19 +66,39 @@ serve(async (req) => {
         const statusAlterado = record.status !== old_record?.status;
         const horarioAlterado = record.data_hora_inicio !== old_record?.data_hora_inicio;
         
-        const isAutomaticStatusChange = 
-          (old_record?.status === "agendado" && record.status === "em andamento") ||
-          (old_record?.status === "em andamento" && record.status === "finalizado");
+        // Filtro Rigoroso: Ignora qualquer mudança para status de "fluxo" (Início ou Fim)
+        const isStatusWorkflow = record.status === "em andamento" || record.status === "finalizado";
 
         if (statusAlterado && record.status === "cancelado") {
-          title = `❌ Cancelado: ${clientName}`;
-          body = `Agendamento de ${dataHora} foi removido.`;
-        } else if (!isAutomaticStatusChange && (statusAlterado || horarioAlterado)) {
+          title = `❌ Agendamento Cancelado`;
+          body = `${clientName} das ${dataHora} foi cancelado.`;
+        } else if (horarioAlterado && !isStatusWorkflow) {
           title = `🔄 Alterado: ${clientName}`;
           body = `O horário para ${serviceNames || 'serviço'} foi atualizado para ${dataHora}.`;
         } else {
-          return new Response("Ignorado: Sem alterações manuais relevantes");
+          return new Response("Ignorado: Alteração de fluxo de status ou irrelevante");
         }
+      } 
+      else if (type === "DELETE") {
+        // No caso de DELETE, os dados estão em 'old_record'
+        let clientName = "Cliente";
+        if (old_record.codigo_cliente === 0 || old_record.codigo_cliente === "avulso") {
+          if (old_record.observacao?.startsWith('👤 ')) {
+            clientName = old_record.observacao.split(' | ')[0].replace('👤 ', '');
+          } else {
+            clientName = "Cliente Avulso";
+          }
+        } else if (old_record.codigo_cliente) {
+           const { data: clin } = await supabase.from('clientes').select('nome').eq('id', old_record.codigo_cliente).maybeSingle();
+           if (clin) clientName = clin.nome;
+        }
+
+        const dataHora = old_record.data_hora_inicio 
+          ? new Date(old_record.data_hora_inicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
+          : "Horário não definido";
+
+        title = `❌ Agendamento Cancelado`;
+        body = `${clientName} das ${dataHora} foi cancelado na agenda.`;
       }
     } 
     else if (payload.test) {

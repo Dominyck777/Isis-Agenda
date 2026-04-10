@@ -160,21 +160,39 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     const validSelections = selections.filter(s => s.serviceCode !== '' && s.professionalCode !== '');
     if (validSelections.length === 0) return true;
 
-    const totalDuracao = validSelections.reduce((acc, sel) => {
-      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
-      return acc + (s ? s.duracao_minutos : 0);
-    }, 0);
-
     const slotStart = new Date(`${form.data}T${slotTime}:00`);
-    const slotEnd = new Date(slotStart.getTime() + totalDuracao * 60000);
+    let currentOffset = 0;
 
-    for (const ag of agendamentosDoDia) {
-      if (agendamentoItem && String(ag.id) === String(agendamentoItem.id)) continue;
-      if (ag.status === 'cancelado') continue;
-      const agStart = new Date(ag.data_hora_inicio);
-      const agEnd = new Date(ag.data_hora_fim);
-      if (slotStart < agEnd && slotEnd > agStart) return false;
+    for (const sel of validSelections) {
+      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
+      const duracao = s ? s.duracao_minutos : 0;
+      
+      const selStart = new Date(slotStart.getTime() + currentOffset * 60000);
+      const selEnd = new Date(selStart.getTime() + duracao * 60000);
+      
+      // Verificar conflitos APENAS para o profissional deste serviço específico e nesta janela
+      for (const ag of agendamentosDoDia) {
+        if (agendamentoItem && String(ag.id) === String(agendamentoItem.id)) continue;
+        if (ag.status === 'cancelado') continue;
+
+        // Checar se o profissional deste agendamento existente é o mesmo da seleção atual
+        const profsNoAg = [String(ag.codigo_profissional)];
+        if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
+          ag.profissionais_vinculo.forEach((v: any) => profsNoAg.push(String(v.professionalCode)));
+        }
+
+        const isSameProf = profsNoAg.includes(String(sel.professionalCode));
+        if (!isSameProf) continue; // Se não for o mesmo profissional, não há conflito aqui
+
+        const agStart = new Date(ag.data_hora_inicio);
+        const agEnd = new Date(ag.data_hora_fim);
+        
+        if (selStart < agEnd && selEnd > agStart) return false;
+      }
+
+      currentOffset += duracao;
     }
+
     return true;
   };
 
@@ -292,12 +310,12 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     else { toast('Agendamento cancelado!', 'success'); onSaveSuccess(); onClose(); }
   };
 
-  const handleDeleteAppt = async () => {
-    const { error } = await supabase.from('agendamentos').delete().eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
+  const handleCancelApptAction = async () => {
+    const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
     if (error) {
-      toast('Erro ao excluir agendamento.', 'error');
+      toast('Erro ao cancelar agendamento.', 'error');
     } else {
-      toast('Agendamento removido definitivamente!', 'success');
+      toast('Agendamento cancelado com sucesso!', 'success');
       onSaveSuccess();
       onClose();
     }
@@ -561,7 +579,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', pointerEvents: 'auto' }}>
                 <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
                 {agendamentoItem && (
-                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', background: '#ef4444', height: '48px', color: '#fff', border: 'none' }}>Excluir</button>
+                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', background: '#ef4444', height: '48px', color: '#fff', border: 'none' }}>Cancelar Agendamento</button>
                 )}
                 <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Cancelar</button>
               </div>
@@ -584,11 +602,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         {isDeleteConfirmOpen && (
           <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)' }} onClick={() => setIsDeleteConfirmOpen(false)}>
             <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px 24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Excluir Definitivamente?</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Essa ação não pode ser desfeita. O agendamento continuará indisponível para recuperação.</p>
+              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Cancelar Agendamento?</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>O agendamento continuará registrado no sistema, porém o horário será liberado na agenda.</p>
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setIsDeleteConfirmOpen(false)} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: 'transparent', color: '#fff', border: '1px solid var(--border-color)', minWidth: '0' }}>Voltar</button>
-                <button type="button" onClick={handleDeleteAppt} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: '#ef4444', color: '#fff', border: 'none', minWidth: '0' }}>Sim, Excluir</button>
+                <button type="button" onClick={handleCancelApptAction} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: '#ef4444', color: '#fff', border: 'none', minWidth: '0' }}>Sim, Cancelar</button>
               </div>
             </div>
           </div>

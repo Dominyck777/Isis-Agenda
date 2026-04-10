@@ -263,7 +263,7 @@
 
 .grid-row {
   display: flex;
-  height: 60px;
+  height: 80px;
   width: var(--total-grid-width);
   min-width: var(--total-grid-width);
   flex-shrink: 0;
