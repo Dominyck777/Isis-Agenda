@@ -490,18 +490,11 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         const suggested = getSuggestedStart(index, currentRows);
         
         let autoSlot = '';
-        if (index > 0) {
-            const prevTimeStr = currentRows[index - 1]?.timeSlot;
-            if (prevTimeStr) {
-                slots = slots.filter(s => s >= prevTimeStr);
-            }
-        }
-
         if (suggested) {
-          const suggestedSlot = slots.find(s => s >= suggested);
-          autoSlot = suggestedSlot || '';
+            slots = slots.filter(s => s >= suggested);
+            autoSlot = slots.length > 0 ? slots[0] : '';
         } else if (index === 0 && slots.length > 0) {
-          autoSlot = '';
+            autoSlot = '';
         }
         setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false, availableSlots: slots, timeSlot: autoSlot } : r));
       } catch {
@@ -557,9 +550,9 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
           <span>📅 <strong>{dateLabel}</strong></span>
           <button type="button" className="chat-action-btn" onClick={onChangeDate} style={{ margin: 0, padding: '4px 12px', fontSize: '0.85rem', background: 'var(--primary-color)', color: '#fff', border: 'none' }}>📅 Mudar Data</button>
         </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px', marginTop: 0 }}>
-          💡 Selecione os serviços na ordem em que serão realizados.
-        </p>
+        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '8px 12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#eab308', fontSize: '0.9rem', fontWeight: '500' }}>
+          💡 <span>Selecione os serviços na <strong>ordem exata</strong> em que serão realizados.</span>
+        </div>
 
         {rows.map((row, index) => {
           const profs = getEnabledProfs(row.serviceCode);
@@ -691,11 +684,38 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     }, 1200);
   };
 
-  const showServiceWidgetForDate = (date: string) => {
+  const showServiceWidgetForDate = async (date: string) => {
     const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
     setIsTyping(true);
+
+    const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
+    const [y, mo, d] = date.split('-').map(Number);
+    const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
+    const dayCfg = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+
     setTimeout(() => {
       setIsTyping(false);
+
+      if (!dayCfg || !dayCfg.aberto) {
+        setMessages(prev => [...prev, {
+          id: Date.now(), sender: 'isis',
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          text: `Infelizmente não abrimos nesse dia da semana! 😔 Vamos tentar marcar em outra data?`,
+          actions: (
+            <DatePickerWidget
+              onDateSelected={(newDate) => {
+                clearLastIsisActions();
+                addUserMessage(`Dia ${new Date(newDate + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+                showServiceWidgetForDate(newDate);
+              }}
+              onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
+            />
+          )
+        }]);
+        setTimeout(() => scrollToBottom('smooth'), 100);
+        return;
+      }
+
       setMessages(prev => [...prev, {
         id: Date.now(), sender: 'isis',
         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
