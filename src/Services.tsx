@@ -233,7 +233,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
     };
 
     if (editingSvc.codigo === 'novo') {
-      const { data, error } = await supabase.from('servicos').insert(payload).select();
+      const { error } = await supabase.from('servicos').insert(payload).select();
       if (error) {
         toast('Erro ao criar: ' + error.message, 'error');
       } else { 
@@ -242,7 +242,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
         loadData(); 
       }
     } else {
-      const { data, error } = await supabase.from('servicos').update(payload).eq('codigo', editingSvc.codigo).select();
+      const { error } = await supabase.from('servicos').update(payload).eq('codigo', editingSvc.codigo).select();
       if (error) {
         toast('Erro ao atualizar: ' + error.message, 'error');
       } else { 
