@@ -510,7 +510,8 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     };
 
     const handleServiceChange = (index: number, val: string) => {
-      const updated = rows.map((r, i) => i === index ? { ...r, serviceCode: val, professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false } : r);
+      const truncated = rows.slice(0, index + 1);
+      const updated = truncated.map((r, i) => i === index ? { ...r, serviceCode: val, professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false } : r);
       const profs = getEnabledProfs(val);
       if (profs.length === 1) updated[index].professionalCode = String(profs[0].codigo);
       setRows(updated);
@@ -518,13 +519,17 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     };
 
     const handleProfChange = (index: number, val: string) => {
-      const updated = rows.map((r, i) => i === index ? { ...r, professionalCode: val, timeSlot: '', availableSlots: [], loadingSlots: false } : r);
+      const truncated = rows.slice(0, index + 1);
+      const updated = truncated.map((r, i) => i === index ? { ...r, professionalCode: val, timeSlot: '', availableSlots: [], loadingSlots: false } : r);
       setRows(updated);
-      if (val && rows[index].serviceCode) triggerLoad(index, rows[index].serviceCode, val, updated);
+      if (val && updated[index].serviceCode) triggerLoad(index, updated[index].serviceCode, val, updated);
     };
 
-    const handleTimeChange = (index: number, val: string) =>
-      setRows(prev => prev.map((r, i) => i === index ? { ...r, timeSlot: val } : r));
+    const handleTimeChange = (index: number, val: string) => {
+      const truncated = rows.slice(0, index + 1);
+      const updated = truncated.map((r, i) => i === index ? { ...r, timeSlot: val } : r);
+      setRows(updated);
+    };
 
     const addRow = () => setRows(prev => [...prev, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }]);
     const removeRow = (index: number) => setRows(prev => prev.filter((_, i) => i !== index));
@@ -550,7 +555,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
           <span>📅 <strong>{dateLabel}</strong></span>
           <button type="button" className="chat-action-btn" onClick={onChangeDate} style={{ margin: 0, padding: '4px 12px', fontSize: '0.85rem', background: 'var(--primary-color)', color: '#fff', border: 'none' }}>📅 Mudar Data</button>
         </div>
-        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '8px 12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#eab308', fontSize: '0.9rem', fontWeight: '500' }}>
+        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '8px 12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
           💡 <span>Selecione os serviços na <strong>ordem exata</strong> em que serão realizados.</span>
         </div>
 
