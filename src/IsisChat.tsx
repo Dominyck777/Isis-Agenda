@@ -239,7 +239,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                      }, 1500);
                   }, 1500);
                }
-            } catch (err) {}
+            } catch (err) { }
          }, 10000); // Check every 10s pra dar o feeling de realtime
       }
       return () => { if (pollingInterval) clearInterval(pollingInterval); };
@@ -288,7 +288,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                               id: Date.now(),
                               sender: 'isis',
                               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                              text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão indisponíveis no momento por uma pendência. Para agendar, fale diretamente pelo telefone:${phoneInfo}`
+                              text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão indisponíveis no momento por uma pendência.`
                            }]);
                         }, 2000);
                      }, 2000);
