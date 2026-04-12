@@ -822,47 +822,68 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          let error;
          let finalCodigo = '';
          const currentEditingAg = editingAg || editingAgRef.current;
-         const primarySvc = selections[0].service;
-         const primaryProf = selections[0].professional;
-         const profissionaisVinculo = selections.map(s => ({ serviceCode: String(s.service.codigo), professionalCode: String(s.professional.codigo) }));
-         const servicosSelecionados = JSON.stringify(selections.map(s => s.service.codigo));
 
          if (currentEditingAg) {
             finalCodigo = currentEditingAg.codigo;
-            const { error: err } = await supabase.from('agendamentos').update({
-               codigo_servico: primarySvc.codigo,
-               codigo_profissional: primaryProf.codigo,
-               servicos_selecionados: servicosSelecionados,
-               profissionais_vinculo: profissionaisVinculo,
-               valor_total: totalValor,
-               data_hora_inicio: startObj.toISOString(),
-               data_hora_fim: endObj.toISOString(),
-               observacao: '✨ Agendamento alterado via Assistente Ísis',
-            }).eq('id', currentEditingAg.id);
-            error = err;
+            const payloads = selections.map((sel) => {
+               const st = new Date(`${date}T${sel.timeSlot}:00`);
+               const en = new Date(st.getTime() + (sel.service.duracao_minutos || 30) * 60000);
+               return {
+                  codigo_servico: sel.service.codigo,
+                  codigo_profissional: sel.professional.codigo,
+                  servicos_selecionados: JSON.stringify([sel.service.codigo]),
+                  profissionais_vinculo: [{ serviceCode: String(sel.service.codigo), professionalCode: String(sel.professional.codigo) }],
+                  valor_total: parseFloat(sel.service.valor || 0),
+                  data_hora_inicio: st.toISOString(),
+                  data_hora_fim: en.toISOString(),
+                  observacao: '✨ Agendamento alterado via Assistente Ísis',
+               };
+            });
+
+            const { error: err1 } = await supabase.from('agendamentos').update(payloads[0]).eq('id', currentEditingAg.id);
+            if (payloads.length > 1) {
+              const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
+              let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+              const newPayloads = payloads.slice(1).map(p => ({
+                 ...p,
+                 codigo: nextCod++,
+                 codigo_empresa: empresa.codigo,
+                 codigo_cliente: currentCliente.id,
+                 status: 'agendado',
+                 isis_criou: true
+              }));
+              const { error: err2 } = await supabase.from('agendamentos').insert(newPayloads);
+              error = err1 || err2;
+            } else {
+              error = err1;
+            }
          } else {
             const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
-            const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+            let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
             finalCodigo = nextCod.toString();
 
-            const payload = {
-               codigo: nextCod,
-               codigo_empresa: empresa.codigo,
-               codigo_servico: primarySvc.codigo,
-               codigo_cliente: currentCliente.id,
-               codigo_profissional: primaryProf.codigo,
-               servicos_selecionados: servicosSelecionados,
-               profissionais_vinculo: profissionaisVinculo,
-               valor_total: totalValor,
-               data_hora_inicio: startObj.toISOString(),
-               data_hora_fim: endObj.toISOString(),
-               status: 'agendado',
-               observacao: '✨ Agendamento realizado via Assistente Ísis',
-               isis_criou: true
-            };
+            const payloads = selections.map((sel) => {
+               const st = new Date(`${date}T${sel.timeSlot}:00`);
+               const en = new Date(st.getTime() + (sel.service.duracao_minutos || 30) * 60000);
+               return {
+                  codigo: nextCod++,
+                  codigo_empresa: empresa.codigo,
+                  codigo_servico: sel.service.codigo,
+                  codigo_cliente: currentCliente.id,
+                  codigo_profissional: sel.professional.codigo,
+                  servicos_selecionados: JSON.stringify([sel.service.codigo]),
+                  profissionais_vinculo: [{ serviceCode: String(sel.service.codigo), professionalCode: String(sel.professional.codigo) }],
+                  valor_total: parseFloat(sel.service.valor || 0),
+                  data_hora_inicio: st.toISOString(),
+                  data_hora_fim: en.toISOString(),
+                  status: 'agendado',
+                  observacao: '✨ Agendamento realizado via Assistente Ísis',
+                  isis_criou: true
+               };
+            });
 
-            console.log('--- ÍSIS CHAT: TENTANDO GRAVAR AGENDAMENTO ---', payload);
-            const { error: err } = await supabase.from('agendamentos').insert(payload);
+            console.log('--- ÍSIS CHAT: TENTANDO GRAVAR AGENDAMENTOS ---', payloads);
+            const { error: err } = await supabase.from('agendamentos').insert(payloads);
             error = err;
           }
 
