@@ -466,20 +466,15 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
     const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
 
-    // Calcula o horário ideal de início para a linha `index` (fim de todos os anteriores)
+    // Calcula o horário ideal de início para a linha `index` baseando-se sempre no final do ÚLTIMO serviço.
     const getSuggestedStart = (index: number, currentRows: RowState[]): string | null => {
       if (index === 0) return null;
-      const first = currentRows[0];
-      if (!first.timeSlot) return null;
-      const [h, m] = first.timeSlot.split(':').map(Number);
-      let totalMin = h * 60 + m;
-      for (let i = 0; i < index; i++) {
-        const r = currentRows[i];
-        if (!r.serviceCode || !r.timeSlot) return null;
-        const svc = services.find((s: any) => String(s.codigo) === String(r.serviceCode));
-        totalMin += svc ? (svc.duracao_minutos || 0) : 0;
-      }
-      return minToTime(totalMin);
+      const prev = currentRows[index - 1];
+      if (!prev.timeSlot || !prev.serviceCode) return null;
+      const [h, m] = prev.timeSlot.split(':').map(Number);
+      const svc = services.find((s: any) => String(s.codigo) === String(prev.serviceCode));
+      const dur = svc ? (svc.duracao_minutos || 0) : 0;
+      return minToTime(h * 60 + m + dur);
     };
 
     const triggerLoad = async (index: number, serviceCode: string, professionalCode: string, currentRows: RowState[]) => {
