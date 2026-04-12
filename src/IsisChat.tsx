@@ -486,15 +486,22 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       if (!serviceCode || !professionalCode) return;
       setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: true, timeSlot: '', availableSlots: [] } : r));
       try {
-        const slots = await generateAvailableSlots(date, serviceCode, professionalCode);
+        let slots = await generateAvailableSlots(date, serviceCode, professionalCode);
         const suggested = getSuggestedStart(index, currentRows);
+        
         let autoSlot = '';
+        if (index > 0) {
+            const prevTimeStr = currentRows[index - 1]?.timeSlot;
+            if (prevTimeStr) {
+                slots = slots.filter(s => s >= prevTimeStr);
+            }
+        }
+
         if (suggested) {
-          // Encontra o primeiro slot >= horário sugerido
           const suggestedSlot = slots.find(s => s >= suggested);
-          autoSlot = suggestedSlot || ''; // se não houver, deixa vazio p/ usuário escolher
+          autoSlot = suggestedSlot || '';
         } else if (index === 0 && slots.length > 0) {
-          autoSlot = ''; // não pré-seleciona para o usuário escolher conscientemente
+          autoSlot = '';
         }
         setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false, availableSlots: slots, timeSlot: autoSlot } : r));
       } catch {
@@ -546,10 +553,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
     return (
       <div className="service-selection-widget">
-        <div className="widget-date-header">
-          📅 <strong>{dateLabel}</strong>
-          <button type="button" className="change-date-link" onClick={onChangeDate}>Mudar data</button>
+        <div className="widget-date-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <span>📅 <strong>{dateLabel}</strong></span>
+          <button type="button" className="chat-action-btn" onClick={onChangeDate} style={{ margin: 0, padding: '4px 12px', fontSize: '0.85rem', background: 'var(--primary-color)', color: '#fff', border: 'none' }}>📅 Mudar Data</button>
         </div>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px', marginTop: 0 }}>
+          💡 Selecione os serviços na ordem em que serão realizados.
+        </p>
 
         {rows.map((row, index) => {
           const profs = getEnabledProfs(row.serviceCode);
@@ -557,8 +567,11 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
           const suggested = getSuggestedStart(index, rows);
 
           return (
-            <div key={index} className="service-row">
-              <div className="service-row-selects">
+            <div key={index} className="service-row" style={{ position: 'relative', marginTop: index > 0 ? '16px' : '0' }}>
+              <div style={{ position: 'absolute', top: '-10px', left: '12px', background: 'var(--surface-color)', padding: '0 6px', fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 'bold', zIndex: 1, borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                {index + 1}º Serviço
+              </div>
+              <div className="service-row-selects" style={{ paddingTop: '12px' }}>
 
                 {/* Serviço */}
                 <div className="service-select-group">
