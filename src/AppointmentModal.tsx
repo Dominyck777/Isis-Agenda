@@ -528,8 +528,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                   <div key={index} className="procedures-grid procedure-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid #374151' }}>
                     <select value={sel.serviceCode} onChange={async (e) => {
                       const val = e.target.value;
-                      const newSelections = [...selections];
+                      // Truncate subsequent selections and reset current slot
+                      const newSelections = selections.slice(0, index + 1);
                       newSelections[index].serviceCode = val;
+                      newSelections[index].timeSlot = '';
                       setSelections(newSelections);
                       if (val && newSelections[index].professionalCode) await triggerLoadSlots(index, val, newSelections[index].professionalCode, form.data, newSelections);
                     }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
@@ -539,8 +541,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
                     <select value={sel.professionalCode} onChange={async (e) => {
                       const val = e.target.value;
-                      const newSelections = [...selections];
+                      // Truncate subsequent selections and reset current slot
+                      const newSelections = selections.slice(0, index + 1);
                       newSelections[index].professionalCode = val;
+                      newSelections[index].timeSlot = '';
                       setSelections(newSelections);
                       if (val && newSelections[index].serviceCode) await triggerLoadSlots(index, newSelections[index].serviceCode, val, form.data, newSelections);
                     }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
@@ -549,8 +553,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     </select>
 
                     <select value={sel.timeSlot} onChange={e => {
-                      const newSelections = [...selections];
-                      newSelections[index].timeSlot = e.target.value;
+                      const val = e.target.value;
+                      // Truncate subsequent selections when time changes
+                      const newSelections = selections.slice(0, index + 1);
+                      newSelections[index].timeSlot = val;
                       setSelections(newSelections);
                     }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
                       <option value="">Hora</option>
