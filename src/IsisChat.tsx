@@ -642,7 +642,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
           onClick={handleConfirmClick}
           disabled={!isValid}
         >
-          ✅ Confirmar agendamento
+          👍 Pronto!
         </button>
 
         <button type="button" className="chat-action-btn menu-btn" onClick={onBack}>

@@ -138,8 +138,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(14, 165, 233, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.5);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.4), inset 0 0 8px rgba(14, 165, 233, 0.1);
   padding: 4px 16px 4px 4px;
   border-radius: 24px;
 }
@@ -517,6 +518,7 @@
   .form-row { flex-direction: column; }
   .isis-footer-brand { display: flex; } /* Mostra no mobile */
   .isis-footer-brand img { height: 55px; opacity: 1; } /* Logo maior no mobile */
+  .footer-status-msg { display: none; }
 }
 
 /* Tamanhos maiores para PC */
@@ -541,6 +543,9 @@
 
 .date-input-field {
   flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   background: #27272a !important; /* Cinza fosco */
   border: 1px solid rgba(255,255,255,0.1) !important;
   color: #fff !important;
