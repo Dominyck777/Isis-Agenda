@@ -900,3 +900,55 @@
     flex-direction: column;
   }
 }
+
+/* ===== Widget date header ===== */
+.widget-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.change-date-link {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  underline-offset: 2px;
+  padding: 0;
+  transition: color 0.2s;
+}
+.change-date-link:hover { color: #e2e8f0; }
+
+/* ===== Slots loading ===== */
+.slots-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-style: italic;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+/* ===== Slot warning ===== */
+.slot-warning {
+  font-size: 0.72rem;
+  color: #fbbf24;
+  padding-left: 4px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+

@@ -340,110 +340,293 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     }, 1000);
   };
 
-  // --- WIDGET DE SELEÇÃO DE SERVIÇOS (Multi-serviço, inspirado no AppointmentModal) ---
-  const ServiceSelectionWidget = ({ onConfirm, onBack }: { onConfirm: (selections: {service: any, professional: any}[]) => void, onBack: () => void }) => {
-    const [selections, setSelections] = React.useState<{ serviceCode: string, professionalCode: string }[]>([{ serviceCode: '', professionalCode: '' }]);
+  // ===== HELPER: gera slots disponíveis para um profissional num dado dia =====
+  const generateAvailableSlots = async (date: string, serviceCode: string, professionalCode: string): Promise<string[]> => {
+    const service = services.find((s: any) => String(s.codigo) === String(serviceCode));
+    if (!service) return [];
 
-    const getEnabledProfessionals = (serviceCode: string) => {
-      if (!serviceCode) return [];
-      const svc = services.find((s: any) => String(s.codigo) === String(serviceCode));
-      if (!svc) return [];
-      return professionals.filter((p: any) =>
-        (svc.profissionais_habilitados || []).map(String).includes(String(p.codigo))
-      );
+    const timeToMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
+
+    const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
+    const [y, mo, d] = date.split('-').map(Number);
+    const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
+    const dayCfg = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+    if (!dayCfg || !dayCfg.aberto) return [];
+
+    const { data: appts } = await supabase.from('agendamentos')
+      .select('*')
+      .eq('codigo_empresa', empresa.codigo)
+      .eq('codigo_profissional', professionalCode)
+      .neq('status', 'cancelado')
+      .gte('data_hora_inicio', `${date}T00:00:00-03:00`)
+      .lte('data_hora_inicio', `${date}T23:59:59-03:00`);
+
+    const now = new Date();
+    const duracaoSvc = service.duracao_minutos || 30;
+    const hasLunch = dayCfg.almoco_ativo;
+    const lunchStart = hasLunch ? timeToMin(dayCfg.almoco_inicio) : 0;
+    const lunchEnd   = hasLunch ? timeToMin(dayCfg.almoco_fim)   : 0;
+    let cur = timeToMin(dayCfg.inicio || '07:00');
+    const end = timeToMin(dayCfg.fim || '22:00');
+    const slots: string[] = [];
+
+    while (cur + duracaoSvc <= end) {
+      const tStr = minToTime(cur);
+      const slotStart = new Date(`${date}T${tStr}:00-03:00`);
+      const slotEnd   = new Date(slotStart.getTime() + duracaoSvc * 60000);
+
+      if (hasLunch && cur < lunchEnd && cur + duracaoSvc > lunchStart) { cur = lunchEnd; continue; }
+      if (slotStart <= now) { cur += 15; continue; }
+      const conflict = (appts || []).some(ag => {
+        const as = new Date(ag.data_hora_inicio), ae = new Date(ag.data_hora_fim);
+        return slotStart < ae && slotEnd > as;
+      });
+      if (!conflict) slots.push(tStr);
+      cur += 15;
+    }
+    return slots;
+  };
+
+  // ===== WIDGET: DatePickerWidget (escolha de data antes dos serviços) =====
+  const DatePickerWidget = ({ onDateSelected, onBack }: { onDateSelected: (d: string) => void, onBack: () => void }) => {
+    const [showCal, setShowCal] = useState(false);
+    const [dateInput, setDateInput] = useState('');
+    const [dateError, setDateError] = useState('');
+
+    const validate = (iso: string) => {
+      const [y, m, d] = iso.split('-').map(Number);
+      const sel = new Date(y, m - 1, d);
+      if (sel.getFullYear() !== y || sel.getMonth() !== m - 1 || sel.getDate() !== d) {
+        setDateError('Essa data não parece correta! 🧐'); return false;
+      }
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (sel < today) { setDateError('Essa data já passou! 😅'); return false; }
+      setDateError(''); return true;
     };
 
-    const handleServiceChange = (index: number, val: string) => {
-      const newSel = selections.map((s, i) => i === index ? { serviceCode: val, professionalCode: '' } : s);
-      // Auto-select professional if only one available
-      const profs = getEnabledProfessionals(val);
-      if (profs.length === 1) newSel[index].professionalCode = String(profs[0].codigo);
-      setSelections(newSel);
-    };
+    const submit = (iso: string) => { if (validate(iso)) onDateSelected(iso); };
 
-    const handleProfChange = (index: number, val: string) => {
-      setSelections(selections.map((s, i) => i === index ? { ...s, professionalCode: val } : s));
-    };
-
-    const addRow = () => setSelections([...selections, { serviceCode: '', professionalCode: '' }]);
-
-    const removeRow = (index: number) => setSelections(selections.filter((_, i) => i !== index));
-
-    const isValid = selections.length > 0 && selections[0].serviceCode !== '' && selections[0].professionalCode !== '';
-
-    const handleConfirmClick = () => {
-      const valid = selections.filter(s => s.serviceCode && s.professionalCode);
-      if (valid.length === 0) return;
-      const resolved = valid.map(s => ({
-        service: services.find((sv: any) => String(sv.codigo) === String(s.serviceCode)),
-        professional: professionals.find((p: any) => String(p.codigo) === String(s.professionalCode))
-      })).filter(r => r.service && r.professional);
-      onConfirm(resolved);
+    const quickDate = (days: number) => {
+      const d = new Date(); d.setDate(d.getDate() + days);
+      submit(d.toLocaleDateString('en-CA'));
     };
 
     return (
+      <div className="action-buttons-grid">
+        <button className="chat-action-btn" type="button" onClick={() => quickDate(0)}>Hoje</button>
+        <button className="chat-action-btn" type="button" onClick={() => quickDate(1)}>Amanhã</button>
+        <div className="date-input-container" style={{ position: 'relative' }}>
+          <input
+            type="text" className="chat-action-btn date-input-field" placeholder="Ex: 25/03/2026"
+            value={dateInput}
+            onChange={(e) => {
+              let v = e.target.value.replace(/\D/g, '');
+              if (v.length > 8) v = v.slice(0, 8);
+              if (v.length > 4) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
+              else if (v.length > 2) v = `${v.slice(0,2)}/${v.slice(2)}`;
+              setDateInput(v);
+              if (v.length === 10) { const [d,m,y] = v.split('/'); validate(`${y}-${m}-${d}`); } else setDateError('');
+            }}
+          />
+          <button type="button" className="calendar-trigger-btn" onClick={() => setShowCal(!showCal)}><ICalendar /></button>
+          {dateInput.length === 10 && !dateError && (
+            <button type="button" className="confirm-date-btn" onClick={() => { const [d,m,y] = dateInput.split('/'); submit(`${y}-${m}-${d}`); }}>Confirmar</button>
+          )}
+          {showCal && (
+            <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 1001, width: '100%' }}>
+              <Calendar
+                value={dateInput.length === 10 ? `${dateInput.split('/')[2]}-${dateInput.split('/')[1]}-${dateInput.split('/')[0]}` : new Date().toLocaleDateString('en-CA')}
+                onChange={(d: string) => { const [y,m,day]=d.split('-'); setDateInput(`${day}/${m}/${y}`); submit(d); }}
+                onClose={() => setShowCal(false)}
+              />
+            </div>
+          )}
+        </div>
+        {dateError && <div className="date-error-msg">{dateError}</div>}
+        <button className="chat-action-btn menu-btn" type="button" onClick={onBack}>⬅️ Voltar ao Menu</button>
+      </div>
+    );
+  };
+
+  // ===== WIDGET: ServiceSelectionWidget com horário por linha =====
+  type RowState = { serviceCode: string; professionalCode: string; timeSlot: string; availableSlots: string[]; loadingSlots: boolean; };
+
+  const ServiceSelectionWidget = ({
+    date, onConfirm, onBack, onChangeDate
+  }: {
+    date: string;
+    onConfirm: (rows: { service: any; professional: any; timeSlot: string }[]) => void;
+    onBack: () => void;
+    onChangeDate: () => void;
+  }) => {
+    const [rows, setRows] = React.useState<RowState[]>([
+      { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }
+    ]);
+
+    const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
+
+    // Calcula o horário ideal de início para a linha `index` (fim de todos os anteriores)
+    const getSuggestedStart = (index: number, currentRows: RowState[]): string | null => {
+      if (index === 0) return null;
+      const first = currentRows[0];
+      if (!first.timeSlot) return null;
+      const [h, m] = first.timeSlot.split(':').map(Number);
+      let totalMin = h * 60 + m;
+      for (let i = 0; i < index; i++) {
+        const r = currentRows[i];
+        if (!r.serviceCode || !r.timeSlot) return null;
+        const svc = services.find((s: any) => String(s.codigo) === String(r.serviceCode));
+        totalMin += svc ? (svc.duracao_minutos || 0) : 0;
+      }
+      return minToTime(totalMin);
+    };
+
+    const triggerLoad = async (index: number, serviceCode: string, professionalCode: string, currentRows: RowState[]) => {
+      if (!serviceCode || !professionalCode) return;
+      setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: true, timeSlot: '', availableSlots: [] } : r));
+      try {
+        const slots = await generateAvailableSlots(date, serviceCode, professionalCode);
+        const suggested = getSuggestedStart(index, currentRows);
+        let autoSlot = '';
+        if (suggested) {
+          // Encontra o primeiro slot >= horário sugerido
+          const suggestedSlot = slots.find(s => s >= suggested);
+          autoSlot = suggestedSlot || ''; // se não houver, deixa vazio p/ usuário escolher
+        } else if (index === 0 && slots.length > 0) {
+          autoSlot = ''; // não pré-seleciona para o usuário escolher conscientemente
+        }
+        setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false, availableSlots: slots, timeSlot: autoSlot } : r));
+      } catch {
+        setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false } : r));
+      }
+    };
+
+    const getEnabledProfs = (serviceCode: string) => {
+      if (!serviceCode) return [];
+      const svc = services.find((s: any) => String(s.codigo) === String(serviceCode));
+      if (!svc) return [];
+      return professionals.filter((p: any) => (svc.profissionais_habilitados || []).map(String).includes(String(p.codigo)));
+    };
+
+    const handleServiceChange = (index: number, val: string) => {
+      const updated = rows.map((r, i) => i === index ? { ...r, serviceCode: val, professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false } : r);
+      const profs = getEnabledProfs(val);
+      if (profs.length === 1) updated[index].professionalCode = String(profs[0].codigo);
+      setRows(updated);
+      if (profs.length === 1) triggerLoad(index, val, String(profs[0].codigo), updated);
+    };
+
+    const handleProfChange = (index: number, val: string) => {
+      const updated = rows.map((r, i) => i === index ? { ...r, professionalCode: val, timeSlot: '', availableSlots: [], loadingSlots: false } : r);
+      setRows(updated);
+      if (val && rows[index].serviceCode) triggerLoad(index, rows[index].serviceCode, val, updated);
+    };
+
+    const handleTimeChange = (index: number, val: string) =>
+      setRows(prev => prev.map((r, i) => i === index ? { ...r, timeSlot: val } : r));
+
+    const addRow = () => setRows(prev => [...prev, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }]);
+    const removeRow = (index: number) => setRows(prev => prev.filter((_, i) => i !== index));
+
+    const isValid = rows[0]?.serviceCode !== '' && rows[0]?.professionalCode !== '' && rows[0]?.timeSlot !== '';
+
+    const handleConfirmClick = () => {
+      const valid = rows.filter(r => r.serviceCode && r.professionalCode && r.timeSlot);
+      if (!valid.length) return;
+      const resolved = valid.map(r => ({
+        service: services.find((s: any) => String(s.codigo) === String(r.serviceCode)),
+        professional: professionals.find((p: any) => String(p.codigo) === String(r.professionalCode)),
+        timeSlot: r.timeSlot
+      })).filter(r => r.service && r.professional) as { service: any; professional: any; timeSlot: string }[];
+      onConfirm(resolved);
+    };
+
+    const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+
+    return (
       <div className="service-selection-widget">
-        {selections.map((sel, index) => {
-          const profs = getEnabledProfessionals(sel.serviceCode);
-          const svc = services.find((s: any) => String(s.codigo) === String(sel.serviceCode));
+        <div className="widget-date-header">
+          📅 <strong>{dateLabel}</strong>
+          <button type="button" className="change-date-link" onClick={onChangeDate}>Mudar data</button>
+        </div>
+
+        {rows.map((row, index) => {
+          const profs = getEnabledProfs(row.serviceCode);
+          const svc = services.find((s: any) => String(s.codigo) === String(row.serviceCode));
+          const suggested = getSuggestedStart(index, rows);
+
           return (
             <div key={index} className="service-row">
               <div className="service-row-selects">
+
+                {/* Serviço */}
+                <div className="service-select-group">
+                  <select className="chat-action-select" value={row.serviceCode} onChange={e => handleServiceChange(index, e.target.value)}>
+                    <option value="">✨ Serviço</option>
+                    {services.map((s: any) => (
+                      <option key={s.codigo} value={s.codigo}>{s.nome} — R$ {parseFloat(s.valor).toFixed(2).replace('.', ',')}</option>
+                    ))}
+                  </select>
+                  {svc && <div className="service-meta">⏱ {svc.duracao_minutos} min</div>}
+                </div>
+
+                {/* Profissional */}
                 <div className="service-select-group">
                   <select
                     className="chat-action-select"
-                    value={sel.serviceCode}
-                    onChange={e => handleServiceChange(index, e.target.value)}
+                    value={row.professionalCode}
+                    onChange={e => handleProfChange(index, e.target.value)}
+                    disabled={!row.serviceCode || profs.length === 0}
+                    style={{ opacity: row.serviceCode ? 1 : 0.5 }}
                   >
-                    <option value="">✨ Selecione o serviço</option>
-                    {services.map((s: any) => (
-                      <option key={s.codigo} value={s.codigo}>
-                        {s.nome} — R$ {parseFloat(s.valor).toFixed(2).replace('.', ',')}
-                      </option>
-                    ))}
+                    <option value="">
+                      {!row.serviceCode ? 'Escolha o serviço' : profs.length === 0 ? 'Sem profissionais' : '👤 Profissional'}
+                    </option>
+                    {profs.map((p: any) => <option key={p.codigo} value={p.codigo}>{shortName(p.nome)}</option>)}
                   </select>
-                  {svc && (
-                    <div className="service-meta">⏱ {svc.duracao_minutos} min</div>
+                </div>
+
+                {/* Horário */}
+                <div className="service-select-group">
+                  {row.loadingSlots ? (
+                    <div className="slots-loading">⏳ Buscando...</div>
+                  ) : (
+                    <>
+                      <select
+                        className="chat-action-select"
+                        value={row.timeSlot}
+                        onChange={e => handleTimeChange(index, e.target.value)}
+                        disabled={!row.professionalCode || row.availableSlots.length === 0}
+                        style={{ opacity: row.professionalCode ? 1 : 0.5 }}
+                      >
+                        <option value="">
+                          {!row.professionalCode ? 'Escolha o profissional'
+                            : row.availableSlots.length === 0 ? 'Sem horários disponíveis'
+                            : '🕐 Horário'}
+                        </option>
+                        {row.availableSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      {index > 0 && suggested && row.availableSlots.length > 0 && !row.availableSlots.find(s => s >= suggested) && (
+                        <div className="slot-warning">⚠️ Sem horário após o serviço anterior. Escolha manualmente.</div>
+                      )}
+                      {index > 0 && suggested && row.timeSlot && row.timeSlot >= suggested && (
+                        <div className="service-meta">✔ Sugerido após {suggested}</div>
+                      )}
+                    </>
                   )}
                 </div>
 
-                <div className="service-select-group">
-                  <select
-                    className="chat-action-select"
-                    value={sel.professionalCode}
-                    onChange={e => handleProfChange(index, e.target.value)}
-                    disabled={!sel.serviceCode || profs.length === 0}
-                    style={{ opacity: sel.serviceCode ? 1 : 0.5 }}
-                  >
-                    <option value="">
-                      {!sel.serviceCode ? 'Escolha o serviço primeiro' : profs.length === 0 ? 'Sem profissionais disponíveis' : '👤 Selecione o profissional'}
-                    </option>
-                    {profs.map((p: any) => (
-                      <option key={p.codigo} value={p.codigo}>{p.nome}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               {index > 0 && (
-                <button
-                  type="button"
-                  className="service-remove-btn"
-                  onClick={() => removeRow(index)}
-                  title="Remover este serviço"
-                >
-                  ✕
-                </button>
+                <button type="button" className="service-remove-btn" onClick={() => removeRow(index)} title="Remover">✕</button>
               )}
             </div>
           );
         })}
 
-        <button
-          type="button"
-          className="chat-action-btn add-service-btn"
-          onClick={addRow}
-        >
+        <button type="button" className="chat-action-btn add-service-btn" onClick={addRow}>
           ➕ Adicionar outro serviço
         </button>
 
@@ -453,46 +636,39 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
           onClick={handleConfirmClick}
           disabled={!isValid}
         >
-          ✅ Confirmar serviços e escolher data
+          ✅ Confirmar agendamento
         </button>
 
-        <button
-          type="button"
-          className="chat-action-btn menu-btn"
-          onClick={onBack}
-        >
+        <button type="button" className="chat-action-btn menu-btn" onClick={onBack}>
           ⬅️ Voltar ao Menu
         </button>
       </div>
     );
   };
 
+  // ===== Fluxo: pergunta data primeiro, depois mostra o widget =====
   const handleServiceSelectionFlow = (customGreeting?: string) => {
     const greetings = [
-      "Qual dos nossos serviços você gostaria de agendar?",
-      "Me conta, qual serviço você está procurando?",
-      "Que tal escolher o serviço que deseja realizar?",
-      "Qual procedimento vamos marcar?",
-      "Escolha o serviço e o profissional abaixo:"
+      'Qual **dia** você prefere para o atendimento?',
+      'Vamos marcar! Me diz qual **data** fica melhor:',
+      'Primeira coisa: qual **dia** você gostaria?',
+      'Me conta qual **dia** funciona para você!',
     ];
-    const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
-    const finalGreet = customGreeting || randomGreet;
+    const finalGreet = customGreeting || greetings[Math.floor(Math.random() * greetings.length)];
 
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
       setMessages(prev => [...prev, {
-        id: Date.now(),
-        sender: 'isis',
-        time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+        id: Date.now(), sender: 'isis',
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         text: finalGreet,
         actions: (
-          <ServiceSelectionWidget
-            onConfirm={(resolved) => {
+          <DatePickerWidget
+            onDateSelected={(date) => {
               clearLastIsisActions();
-              const summary = resolved.map(r => `${r.service.nome} c/ ${shortName(r.professional.nome)}`).join(', ');
-              addUserMessage(`Escolhi: ${summary}`);
-              handleDateTimeSelectionFlow(resolved);
+              addUserMessage(`Dia ${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+              showServiceWidgetForDate(date);
             }}
             onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
           />
@@ -502,302 +678,94 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     }, 1200);
   };
 
-  const loadAvailableTimes = async (date: string, service: any, professional: any, allSelections?: {service: any, professional: any}[]) => {
-     setIsTyping(true);
-     
-     try {
-        // --- TRATAMENTO DE TIMEZONE (Horário de Brasília: UTC-3) ---
-        // Helper para criar data em UTC-3
-        const getBrasiliaDate = (base?: string | Date) => {
-           const d = base ? new Date(base) : new Date();
-           // Converte para o tempo de Brasília compensando o fuso local do dispositivo
-           const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-           return new Date(utc + (3600000 * -3));
-        };
-
-        const now = new Date();
-        const nowBR = getBrasiliaDate();
-        
-        // 1. Busca configurações da empresa
-        const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
-        
-        // 2. Busca agendamentos do dia (usando range de 24h em Brasília)
-        const startOfDay = `${date}T00:00:00-03:00`;
-        const endOfDay = `${date}T23:59:59-03:00`;
-        
-        const { data: appts } = await supabase.from('agendamentos')
-           .select('*')
-           .eq('codigo_empresa', empresa.codigo)
-           .eq('codigo_profissional', professional.codigo)
-           .neq('status', 'cancelado')
-           .gte('data_hora_inicio', startOfDay)
-           .lte('data_hora_inicio', endOfDay);
-        
-        // 3. Determina dia da semana (Brasília)
-        const [y, m, d] = date.split('-').map(Number);
-        const slotDayDate = new Date(y, m - 1, d, 12, 0, 0); 
-        const dayOfWeek = slotDayDate.getDay(); 
-
-        const dayConfig = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
-
-        if (!dayConfig || !dayConfig.aberto) {
-           setMessages(prev => [...prev, {
-              id: Date.now(),
-              sender: 'isis',
-              time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-              text: `Poxa, o estabelecimento não atende **${dayConfig?.nome || 'domingo'}**. 😕 Deseja escolher outro dia?`,
-              actions: (
-                 <div className="action-buttons-grid">
-                    <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(allSelections || [{ service, professional }]); }}>📅 Escolher outro dia</button>
-                 </div>
-              )
-           }]);
-           return;
-        }
-
-        const slots: string[] = [];
-        let curTimeStr = dayConfig.inicio || '07:00';
-        const endTimeStr = dayConfig.fim || '22:00';
-        const duracaoSvc = service.duracao_minutos || 30;
-
-        const timeToMinutes = (t: string) => {
-           const [h, min] = t.split(':').map(Number);
-           return h * 60 + min;
-        };
-
-        const minutesToTime = (min: number) => {
-           const h = Math.floor(min / 60);
-           const minRem = min % 60;
-           return `${h.toString().padStart(2, '0')}:${minRem.toString().padStart(2, '0')}`;
-        };
-
-        let currentMinutes = timeToMinutes(curTimeStr);
-        const endMinutes = timeToMinutes(endTimeStr);
-
-         const hasLunch = dayConfig.almoco_ativo;
-         const lunchStartRem = hasLunch ? timeToMinutes(dayConfig.almoco_inicio) : 0;
-         const lunchEndRem = hasLunch ? timeToMinutes(dayConfig.almoco_fim) : 0;
-
-        while (currentMinutes + duracaoSvc <= endMinutes) {
-           const tStr = minutesToTime(currentMinutes);
-           const slotStart = new Date(`${date}T${tStr}:00-03:00`);
-           const slotEnd = new Date(slotStart.getTime() + duracaoSvc * 60000);
-
-            // Regra 0: Horário de Almoço?
-            if (hasLunch) {
-               const slotStartMinutes = currentMinutes;
-               const slotEndMinutes = currentMinutes + duracaoSvc;
-               if (slotStartMinutes < lunchEndRem && slotEndMinutes > lunchStartRem) {
-                  currentMinutes = lunchEndRem;
-                  continue;
-               }
-            }
-
-           // Regra 1: Horário já passou (comparado no tempo real)?
-           if (slotStart <= now) {
-              currentMinutes += 15;
-              continue;
-           }
-
-           // Regra 2: Conflito com agendamentos?
-           const hasConflict = appts?.some(ag => {
-              const agStart = new Date(ag.data_hora_inicio);
-              const agEnd = new Date(ag.data_hora_fim);
-              return (slotStart < agEnd && slotEnd > agStart);
-           });
-
-           if (!hasConflict) {
-              slots.push(tStr);
-           }
-           
-           currentMinutes += 15;
-        }
-
-        const selectionsForConfirm = allSelections || [{ service, professional }];
-        setMessages(prev => [...prev, {
-           id: Date.now(),
-           sender: 'isis',
-           time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: `Encontrei estes horários disponíveis para **${service.nome}** com **${shortName(professional.nome)}** no dia **${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}** (${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}):`,
-           actions: (
-              <div className="action-buttons-grid">
-                 {slots.length > 0 ? (
-                    <div className="select-slot-wrapper">
-                       <select 
-                          className="chat-action-select" 
-                          defaultValue="" 
-                          onChange={(e) => {
-                             const val = e.target.value;
-                             if (val) {
-                                clearLastIsisActions();
-                                addUserMessage(`Quero para às ${val}`);
-                                handleConfirmAppointmentFlow(selectionsForConfirm, date, val);
-                             }
-                          }}
-                       >
-                          <option value="" disabled>Clique aqui e selecione um horário</option>
-                          {slots.map(t => <option key={t} value={t}>{t}</option>)}
-                       </select>
-                    </div>
-                 ) : (
-                    <div style={{ fontSize: '0.9rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '8px', gridColumn: '1 / -1' }}>
-                       Poxa, não encontrei nenhum horário livre para este dia. 😔<br/>
-                       <small style={{ opacity: 0.8 }}>Horário atual em Brasília: {nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</small>
-                    </div>
-                 )}
-                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(selectionsForConfirm, "Escolha outro dia:"); }}>📅 Mudar Dia</button>
-              </div>
-           )
-        }]);
-        setTimeout(() => scrollToBottom('smooth'), 100);
-
-     } catch (err) {
-        console.error('Erro ao carregar horários:', err);
-        toast('Ops! Tive um problema ao carregar os horários. Tente novamente.', 'error');
-     } finally {
-        setIsTyping(false);
-     }
+  const showServiceWidgetForDate = (date: string) => {
+    const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages(prev => [...prev, {
+        id: Date.now(), sender: 'isis',
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        text: `Ótimo! Escolha os serviços para a **${dateLabel}**:`,
+        actions: (
+          <ServiceSelectionWidget
+            date={date}
+            onConfirm={(resolved) => {
+              clearLastIsisActions();
+              const summary = resolved.map(r => `${r.service.nome} c/ ${shortName(r.professional.nome)} às ${r.timeSlot}`).join(', ');
+              addUserMessage(`Escolhi: ${summary}`);
+              handleConfirmAppointmentFlow(resolved, date);
+            }}
+            onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
+            onChangeDate={() => { clearLastIsisActions(); addUserMessage('📅 Mudar data'); handleServiceSelectionFlow(); }}
+          />
+        )
+      }]);
+      setTimeout(() => scrollToBottom('smooth'), 100);
+    }, 1000);
   };
 
 
-
-  const handleDateTimeSelectionFlow = (selections: {service: any, professional: any}[], customGreeting?: string) => {
-     const greetPrefix = customGreeting ? `${customGreeting} ` : '';
-     const servicesSummary = selections.map(s => `**${s.service.nome}** c/ **${shortName(s.professional.nome)}**`).join(', ');
-     const finalGreet = `${greetPrefix}Show! Você escolheu ${servicesSummary}. Qual **dia** fica melhor pra você?`;
-
+  const handleConfirmAppointmentFlow = (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
      setIsTyping(true);
      setTimeout(() => {
         setIsTyping(false);
+        const currentEditingAg = editingAg || editingAgRef.current;
+        const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
+        const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        // Calcula o fim do agendamento (último serviço termina em:)
+        let maxEndMs = 0;
+        for (const sel of selections) {
+          const st = new Date(`${date}T${sel.timeSlot}:00`).getTime();
+          const en = st + (sel.service.duracao_minutos || 30) * 60000;
+          if (en > maxEndMs) maxEndMs = en;
+        }
+        const endTimeStr = new Date(maxEndMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
         setMessages(prev => [...prev, {
-           id: Date.now(),
-           sender: 'isis',
+           id: Date.now(), sender: 'isis',
            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: finalGreet,
-           actions: <DateActions selections={selections} />
+           text: (
+              <>
+                 {currentEditingAg && <div style={{ marginBottom: '8px', fontSize: '0.85rem', opacity: 0.9 }}>📍 Editando: <strong>#{currentEditingAg.codigo}</strong></div>}
+                 Confirmando seu agendamento:<br/><br/>
+                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong><br/><br/>
+                 {selections.map((sel, i) => (
+                   <React.Fragment key={i}>
+                     ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{shortName(sel.professional.nome)}</strong> — 🕐 <strong>{sel.timeSlot}</strong><br/>
+                   </React.Fragment>
+                 ))}
+                 <br/>⏱ Término previsto: <strong>{endTimeStr}</strong><br/>
+                 💰 Total: <strong>{totalFormatado}</strong><br/><br/>
+                 Posso confirmar?
+              </>
+           ),
+           actions: (
+              <div className="action-buttons-grid">
+                 <button className="chat-action-btn pri" type="button" onClick={() => {
+                    clearLastIsisActions();
+                    addUserMessage('Sim, pode confirmar! ✅');
+                    handleCompleteAppointment(selections, date);
+                 }}>✅ Confirmar agendamento</button>
+                 <button className="chat-action-btn" type="button" onClick={() => {
+                     clearLastIsisActions();
+                     addUserMessage('✏️ Editar agendamento');
+                     handleServiceSelectionFlow();
+                  }}>✏️ Editar agendamento</button>
+                  <button className="chat-action-btn cancel-btn" type="button" onClick={() => {
+                     clearLastIsisActions();
+                     addUserMessage('❌ Cancelar');
+                     showMenu('Agendamento cancelado. Como posso te ajudar agora?');
+                  }}>❌ Cancelar</button>
+              </div>
+           )
         }]);
         setTimeout(() => scrollToBottom('smooth'), 100);
      }, 1200);
   };
 
-  const DateActions = ({ selections: dateSelections }: { selections: {service: any, professional: any}[] }) => {
-     const [showCustom, setShowCustom] = useState(false);
-     const [showCalendar, setShowCalendar] = useState(false);
-     const [dateInput, setDateInput] = useState('');
-     const [dateError, setDateError] = useState('');
 
-     // Use first service/professional as primary for time loading (multi-service logic is handled in loadAvailableTimes)
-     const primaryService = dateSelections[0]?.service;
-     const primaryProfessional = dateSelections[0]?.professional;
-
-     const handleQuickDate = (days: number, label: string) => {
-        const d = new Date();
-        d.setDate(d.getDate() + days);
-        const iso = d.toLocaleDateString('en-CA');
-        clearLastIsisActions();
-        addUserMessage(label);
-        loadAvailableTimes(iso, primaryService, primaryProfessional, dateSelections);
-     };
-
-     const validateDate = (dateStr: string) => {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        const selected = new Date(y, m - 1, d);
-        
-        if (selected.getFullYear() !== y || selected.getMonth() !== m - 1 || selected.getDate() !== d) {
-           setDateError("Essa data não me parece certa! 🧐 Verifique o dia e o mês.");
-           return false;
-        }
-
-        const today = new Date();
-        today.setHours(0,0,0,0);
-
-        if (selected < today) {
-           setDateError("Poxa, essa data já passou! 😅 Escolha uma data de hoje em diante.");
-           return false;
-        }
-        setDateError('');
-        return true;
-     };
-
-     const handleCustomDateSubmit = (dateStr: string) => {
-        if (!validateDate(dateStr)) return;
-
-        clearLastIsisActions();
-        addUserMessage(`Escolhi o dia ${new Date(dateStr + 'T00:00:00').toLocaleDateString('pt-BR')}`);
-        loadAvailableTimes(dateStr, primaryService, primaryProfessional, dateSelections);
-     };
-
-     if (!showCustom) {
-        return (
-           <div className="action-buttons-grid">
-              <button className="chat-action-btn" type="button" onClick={() => handleQuickDate(0, 'Hoje')}>Hoje</button>
-              <button className="chat-action-btn" type="button" onClick={() => handleQuickDate(1, 'Amanhã')}>Amanhã</button>
-              <button className="chat-action-btn" type="button" onClick={() => setShowCustom(true)}>📅 Outro dia</button>
-              <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Mudar serviços'); handleServiceSelectionFlow(); }}>⬅️ Mudar serviços</button>
-              <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('🏠 Menu Principal'); showMenu(); }}>🏠 Menu Principal</button>
-           </div>
-        );
-     }
-
-     return (
-        <div className="action-buttons-grid">
-           <div className="date-input-container" style={{ position: 'relative' }}>
-              <input 
-                 type="text" 
-                 className="chat-action-btn date-input-field" 
-                 placeholder="Ex: 25/03/2026"
-                 value={dateInput}
-                 onChange={(e) => {
-                    let v = e.target.value.replace(/\D/g, '');
-                    if (v.length > 8) v = v.slice(0, 8);
-                    if (v.length > 4) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
-                    else if (v.length > 2) v = `${v.slice(0,2)}/${v.slice(2)}`;
-                    setDateInput(v);
-                    
-                    if (v.length === 10) {
-                       const [d, m, y] = v.split('/');
-                       validateDate(`${y}-${m}-${d}`);
-                    } else {
-                       setDateError('');
-                    }
-                 }} 
-              />
-              <button type="button" className="calendar-trigger-btn" onClick={() => setShowCalendar(!showCalendar)}>
-                 <ICalendar />
-              </button>
-              {dateInput.length === 10 && !dateError && (
-                 <button type="button" className="confirm-date-btn" onClick={() => {
-                    const [d, m, y] = dateInput.split('/');
-                    handleCustomDateSubmit(`${y}-${m}-${d}`);
-                 }}>
-                    Confirmar
-                 </button>
-              )}
-
-              {showCalendar && (
-                 <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 1001, width: '100%' }}>
-                     <Calendar 
-                        value={dateInput.length === 10 ? `${dateInput.split('/')[2]}-${dateInput.split('/')[1]}-${dateInput.split('/')[0]}` : new Date().toLocaleDateString('en-CA')} 
-                       onChange={(d: string) => { 
-                          const [y, m, day] = d.split('-');
-                          setDateInput(`${day}/${m}/${y}`); 
-                          handleCustomDateSubmit(d); 
-                       }}
-                       onClose={() => setShowCalendar(false)}
-                    />
-                 </div>
-              )}
-           </div>
-           
-           {dateError && <div className="date-error-msg">{dateError}</div>}
-
-           <button className="chat-action-btn menu-btn" type="button" onClick={() => { setShowCustom(false); setDateError(''); setDateInput(''); }}>⬅️ Voltar</button>
-           <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('🏠 Menu Principal'); showMenu(); }}>🏠 Menu Principal</button>
-        </div>
-     );
-  };
-
-  const handleConfirmAppointmentFlow = (selections: {service: any, professional: any}[], date: string, time: string) => {
      setIsTyping(true);
      setTimeout(() => {
         setIsTyping(false);
@@ -849,23 +817,24 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      }, 1200);
   };
 
-  const handleCompleteAppointment = async (selections: {service: any, professional: any}[], date: string, time: string) => {
+  const handleCompleteAppointment = async (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
      setIsTyping(true);
-     
-     const startObj = new Date(`${date}T${time}:00`);
-     const totalDuration = selections.reduce((acc, s) => acc + (s.service.duracao_minutos || 30), 0);
-     const endObj = new Date(startObj.getTime() + totalDuration * 60000);
+
+     const startObj = new Date(`${date}T${selections[0].timeSlot}:00`);
+     let maxEndMs = startObj.getTime();
+     for (const sel of selections) {
+       const st = new Date(`${date}T${sel.timeSlot}:00`).getTime();
+       const en = st + (sel.service.duracao_minutos || 30) * 60000;
+       if (en > maxEndMs) maxEndMs = en;
+     }
+     const endObj = new Date(maxEndMs);
      const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
 
      const currentCliente = cliente || clienteRef.current;
-
-      if (!currentCliente) {
-         console.error('Erro: Cliente não identificado no momento da conclusão.');
-         toast('Ops! Tivemos um problema para identificar seu cadastro. Pode tentar informar seu telefone novamente?', 'error');
-         setStep('identification');
-         setIsTyping(false);
-         return;
-      }
+     if (!currentCliente) {
+        toast('Ops! Problema ao identificar seu cadastro. Tente novamente.', 'error');
+        setStep('identification'); setIsTyping(false); return;
+     }
 
       try {
          let error;
