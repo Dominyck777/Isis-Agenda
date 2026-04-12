@@ -356,15 +356,23 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         
         .modal-card::-webkit-scrollbar { width: 6px; }
         .modal-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        @media (max-width: 600px) {
+          .modal-header-flex { flex-direction: column; align-items: flex-start !important; gap: 16px !important; }
+          .procedures-grid { grid-template-columns: 1fr !important; }
+          .procedure-row { position: relative; padding-right: 48px !important; }
+          .procedure-add-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+          .total-badge-mobile { width: 100%; justify-content: space-between; }
+        }
       `}</style>
       
       <div className="modal-overlay" onClick={onClose} style={{ zIndex: 3000 }}>
         <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95dvw', maxHeight: '90dvh', padding: '24px', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', background: '#111827', borderRadius: '16px' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
-            <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '1.4rem', fontWeight: 700 }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
+          <div className="modal-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+            <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '1.25rem', fontWeight: 700 }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="total-badge-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {!isReadOnly && (
                 <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 500 }}>Total do Procedimento:</span>
@@ -478,7 +486,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
               <div className="form-group-flat">
                 <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Procedimentos (Serviço + Profissional)</label>
                 {selections.map((sel, index) => (
-                  <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid #374151' }}>
+                  <div key={index} className="procedures-grid procedure-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid #374151' }}>
                     <select value={sel.serviceCode} onChange={async (e) => {
                       const val = e.target.value;
                       const newSelections = [...selections];
@@ -511,9 +519,9 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     </select>
 
                     {index === selections.length - 1 ? (
-                      <button type="button" onClick={() => setSelections([...selections, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer' }}>+</button>
+                      <button className="procedure-add-btn" type="button" onClick={() => setSelections([...selections, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer' }}>+</button>
                     ) : (
-                      <button type="button" onClick={() => {
+                      <button className="procedure-add-btn" type="button" onClick={() => {
                         const newS = [...selections];
                         newS.splice(index, 1);
                         setSelections(newS);
