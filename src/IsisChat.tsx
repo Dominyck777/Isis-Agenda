@@ -227,17 +227,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                   .single();
 
                if (ctData && ctData.status === 'ativo') {
-                  setIsCompanyBlocked(false);
-                  setMessages([]); // Limpa as mensagens de bloqueio
-                  setLoadingState('premium_wait');
-                  setTimeout(() => {
-                     setLoadingState('chat');
-                     setIsTyping(true);
-                     setTimeout(() => {
-                        setIsTyping(false);
-                        startWelcomeFlow(empresa);
-                     }, 1500);
-                  }, 1500);
+                  window.location.reload();
                }
             } catch (err) { }
          }, 10000); // Check every 10s pra dar o feeling de realtime
