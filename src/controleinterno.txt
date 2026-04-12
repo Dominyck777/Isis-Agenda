@@ -1,0 +1,71 @@
+A Isis envia e centraliza as conversas e feedbacks utilizando uma tabela no Supabase dedicada exclusivamente a ela (através do client supabaseIsis), o que permite que uma aplicação de gerenciamento externa leia facilmente essas informações.
+
+O processo acontece em duas etapas principais através de operações de UPSERT (Update ou Insert) na tabela isis, utilizando o ID da sessão (sessionId) como a chave primária para unificar tanto as mensagens enviadas quanto o feedback final na mesma linha.
+
+Aqui está o funcionamento detalhado para você aplicar no seu outro software:
+
+1. Envio das conversas em tempo real
+Toda vez que uma nova mensagem (do usuário ou da Isis) é disparada no chat, o frontend resgata o histórico atual, acopla a nova mensagem e faz um upsert no Supabase usando o sessionId como o id da linha.
+
+A lógica (encontrada no IsisContext.jsx) se baseia no seguinte fluxo:
+
+javascript
+// Exemplo de payload dinâmico gerado no envio de mensagem
+const row = {
+  id: String(sessionId), // UUID da sessão atual
+  cod_cliente: clienteId, 
+  nome_cliente: clienteNome,
+  empresa: empresaNome, // Nome do parceiro (ex: nome da quadra/arena)
+  projeto: 'nome_do_seu_outro_software', // Identificador da sua aplicação (no Fluxo7 estava 'fluxo7arena')
+  conversa: novaConversaArray, // Array JS limpo com as mensagens [{ ts, from: 'user'|'assistant', text }]
+  timestamp: new Date().toISOString(),
+};
+// Faz o upsert. Como a chave é a sessão, a conversa é sempre atualizada na mesma linha
+const { error } = await supabaseIsis.from('isis').upsert(row, { onConflict: 'id' });
+2. Envio de Feedback Final
+No final do atendimento, quando o cliente dá a nota e escreve um comentário, ocorre mais um upsert buscando o mesmo contexto de id para enriquecer a linha da conversa com a nota.
+
+Isso é feito na função herdada do isisFeedback.js:
+
+javascript
+const enviarFeedbackParaGerenciamento = async (feedbackData) => {
+  const row = {
+    // Usamos o sessionId para amarrar o feedback com a conversa que já ocorreu!
+    id: String(feedbackData.sessionId), 
+    
+    // Identificação
+    cod_cliente: feedbackData.cliente_id,
+    nome_cliente: feedbackData.cliente_nome,
+    empresa: feedbackData.empresa_nome,
+    projeto: 'nome_do_seu_outro_software',
+    
+    // Dados da Avaliação
+    nota: feedbackData.rating,       // Estrelas de 1 a 5
+    comentario: feedbackData.comentario, // O texto do feedback extra (opcional)
+    
+    // Carregamos a conversa novamente para evitar sobreescrever como NULO
+    // Se não tiver e for opcional enviar as mensagens aqui, use o que tem.
+    conversa: feedbackData.conversaArray, 
+    
+    timestamp: new Date().toISOString(),
+  };
+  const { error } = await supabaseIsis.from('isis').upsert(row, { onConflict: 'id' });
+  
+  if (error) {
+    // É recomendado salvar em LocalStorage como fallback caso o banco falhe temporariamente
+    salvarFeedbackLocal(row);
+  }
+}
+3. Estrutura do Banco (Para a sua Tabela Externa)
+O gerenciador vai simplesmente ir até a tabela isis da base compartilhada e filtrar os itens pelo nome do projeto ou visualizar a saúde do atendimento cruzado pelas colunas:
+
+id (String - PK da sessão)
+cod_cliente (String)
+nome_cliente (String)
+empresa (String)
+projeto (String - Muito importante preencher para separar de qual software a Isis atendeu)
+nota (Number - Ex: 5)
+comentario (Text/String)
+conversa (JSONB - Um array de objetos com todo o histórico)
+timestamp (Data)
+Bônus: Existe também no código original uma persistência legada utilizando Edge Functions com JSONBin (via variável ENABLE_EDGE_PERSIST), mas o método primário e mais robusto para espelhar isso de forma limpa no seu outro software usando o controle atual é pela própria instância centralizada do banco com o .upsert() através do identificador único da sessão. Assim você terá controle minucioso da conversa a cada balão disparado e atrelará a pontuação ao final na mesma linha do "ticket" dela.

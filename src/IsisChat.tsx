@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
+import { supabaseControl } from './lib/supabaseControl';
 import { toast } from './Toast';
 import './IsisChat.css';
 
@@ -63,7 +64,51 @@ const Calendar = ({ value, onChange, onClose }: any) => {
   );
 };
 
+const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void }) => {
+   const [rating, setRating] = useState(0);
+   const [hover, setHover] = useState(0);
+   const [comentario, setComentario] = useState('');
+
+   return (
+     <div className="registration-form" style={{ marginTop: '16px' }}>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#fff', textAlign: 'center' }}>Como foi seu atendimento?</p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+           {[1,2,3,4,5].map(star => (
+               <span 
+                  key={star}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHover(star)}
+                  onMouseLeave={() => setHover(0)}
+                  style={{ fontSize: '2.2rem', cursor: 'pointer', color: (hover || rating) >= star ? '#eab308' : '#4b5563', transition: 'color 0.2s', userSelect: 'none' }}
+               >
+                  ★
+               </span>
+           ))}
+        </div>
+        {rating > 0 && (
+           <div className="form-group" style={{ animation: 'slideUp 0.3s ease' }}>
+              <textarea 
+                 placeholder="Deixe um comentário curtinho (opcional)"
+                 value={comentario}
+                 onChange={e => setComentario(e.target.value)}
+                 style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', minHeight: '60px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
+              />
+              <button 
+                 type="button" 
+                 className="chat-action-btn pri"
+                 onClick={() => onSubmit(rating, comentario)}
+                 style={{ marginTop: '12px', width: '100%' }}
+              >
+                 Enviar Avaliação
+              </button>
+           </div>
+        )}
+     </div>
+   );
+};
+
 export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
+  const [sessionId] = useState(() => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2));
   const [empresa, setEmpresa] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingState, setLoadingState] = useState<'fetching' | 'premium_wait' | 'chat'>('fetching');
@@ -112,6 +157,32 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       return () => vv.removeEventListener('resize', handleResize);
     }
   }, []);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const syncChat = async () => {
+      try {
+        const conversaSincronizar = messages.map(m => ({
+           ts: m.time,
+           from: m.sender === 'user' ? 'user' : 'assistant',
+           text: typeof m.text === 'string' ? m.text : 'Mensagem interativa/Widget'
+        }));
+        
+        const row = {
+          id: sessionId,
+          cod_cliente: cliente?.id || null,
+          nome_cliente: cliente?.nome || null,
+          empresa: empresa?.nome_exibicao || null,
+          projeto: 'isis_agenda',
+          conversa: conversaSincronizar,
+          timestamp: new Date().toISOString()
+        };
+        const { error } = await supabaseControl.from('isis').upsert(row, { onConflict: 'id' });
+        if (error) console.error('Erro ao sync chat Isis:', error);
+      } catch (e) {}
+    };
+    syncChat();
+  }, [messages, sessionId, cliente, empresa]);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (chatEndRef.current) {
@@ -1017,6 +1088,42 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       }
   };
 
+   const submitFeedback = async (rating: number, comentario: string) => {
+      setIsTyping(true);
+      try {
+        const conversaSincronizar = messages.map(m => ({
+           ts: m.time,
+           from: m.sender === 'user' ? 'user' : 'assistant',
+           text: typeof m.text === 'string' ? m.text : 'Mensagem interativa/Widget'
+        }));
+        
+        const row = {
+          id: sessionId,
+          cod_cliente: cliente?.id || null,
+          nome_cliente: cliente?.nome || null,
+          empresa: empresa?.nome_exibicao || null,
+          projeto: 'isis_agenda',
+          nota: rating,
+          comentario: comentario,
+          conversa: conversaSincronizar,
+          timestamp: new Date().toISOString()
+        };
+        await supabaseControl.from('isis').upsert(row, { onConflict: 'id' });
+      } catch (e) {
+         console.error(e);
+      }
+      setTimeout(() => {
+          setIsTyping(false);
+          setMessages(prev => [...prev, {
+             id: Date.now(),
+             sender: 'isis',
+             time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+             text: <>Agradeço demais pela avaliação! 💜<br/><br/><strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
+          }]);
+          setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 800);
+   };
+
    const handleFinalizeAtendimento = () => {
       setIsTyping(true);
       setTimeout(() => {
@@ -1025,7 +1132,15 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             id: Date.now(),
             sender: 'isis',
             time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-            text: <>Foi um prazer te atender! Se precisar de algo mais, é só me chamar. Tenha um ótimo dia! 😊✨<br/><br/><strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
+            text: "Foi um prazer te atender! Antes de ir, poderia me avaliar e deixar um comentário rápido sobre sua experiência? 😊✨",
+            actions: (
+                <FeedbackWidget 
+                   onSubmit={(rating, comentario) => {
+                      clearLastIsisActions();
+                      submitFeedback(rating, comentario);
+                   }}
+                />
+            )
          }]);
          setTimeout(() => scrollToBottom('smooth'), 100);
       }, 1000);
