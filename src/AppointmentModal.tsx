@@ -357,6 +357,33 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         .modal-card::-webkit-scrollbar { width: 6px; }
         .modal-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
+        .isis-badge {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(168, 85, 247, 0.05);
+          border: 1px solid rgba(168, 85, 247, 0.2);
+          padding: 3px 10px 3px 4px;
+          border-radius: 20px;
+          flex-shrink: 0;
+          height: fit-content;
+        }
+        .isis-badge img {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 1px solid rgba(168, 85, 247, 0.4);
+        }
+        .isis-badge span {
+          font-size: 0.7rem;
+          font-weight: 700;
+          white-space: nowrap;
+          background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
         @media (max-width: 600px) {
           .modal-header-flex { flex-direction: column; align-items: flex-start !important; gap: 16px !important; }
           .procedures-grid { grid-template-columns: 1fr !important; }
@@ -370,7 +397,17 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95dvw', maxHeight: '90dvh', padding: '24px', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', background: '#111827', borderRadius: '16px' }}>
           
           <div className="modal-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
-            <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '1.25rem', fontWeight: 700 }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '1.25rem', fontWeight: 700 }}>
+                {agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}
+              </h3>
+              {agendamentoItem?.isis_criou && (
+                <div className="isis-badge" style={{ padding: '2px 8px 2px 3px' }}>
+                  <img src="/isisneutraperfil.png" alt="Ísis" />
+                  <span>Ísis</span>
+                </div>
+              )}
+            </div>
             
             <div className="total-badge-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {!isReadOnly && (
@@ -394,8 +431,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     {form.codigo_cliente === 'avulso' ? (nomeAvulso || 'Cliente Sem Cadastro') : (clientes.find(c => String(c.id) === String(form.codigo_cliente))?.nome || 'Cliente')}
                   </h2>
                 </div>
-                <div style={{ padding: '6px 12px', borderRadius: '20px', background: form.status === 'finalizado' ? '#10b98120' : '#0ea5e920', color: form.status === 'finalizado' ? '#10b981' : '#0ea5e9', fontSize: '0.85rem', fontWeight: 600 }}>
-                  {form.status.toUpperCase()}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ padding: '6px 12px', borderRadius: '20px', background: form.status === 'finalizado' ? '#10b98120' : '#0ea5e920', color: form.status === 'finalizado' ? '#10b981' : '#0ea5e9', fontSize: '0.85rem', fontWeight: 600 }}>
+                    {form.status.toUpperCase()}
+                  </div>
                 </div>
               </div>
 
