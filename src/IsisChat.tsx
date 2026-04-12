@@ -93,11 +93,14 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
                     style={{ 
                        fontSize: '2.5rem', 
                        cursor: 'pointer', 
-                       color: isActive ? '#f59e0b' : '#3f3f46', 
-                       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+                       color: isActive ? '#fbbf24' : 'transparent', 
+                       transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', 
                        userSelect: 'none',
-                       transform: isActive ? 'scale(1.15) translateY(-2px)' : 'scale(1)',
-                       textShadow: isActive ? '0 0 16px rgba(245, 158, 11, 0.4)' : 'none'
+                       transform: isActive ? 'scale(1.25) translateY(-4px)' : 'scale(1)',
+                       textShadow: isActive ? '0 0 16px rgba(251, 191, 36, 0.6), 0 0 32px rgba(251, 191, 36, 0.4)' : '0 0 4px rgba(255,255,255,0.05)',
+                       WebkitTextStroke: isActive ? 'none' : '1.5px #52525b',
+                       margin: '0 4px',
+                       display: 'inline-block'
                     }}
                  >
                     ★
@@ -231,6 +234,46 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
        );
        
        if (matched) {
+          // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
+          if (matched.codigodev) {
+             try {
+                const { data: controlData } = await supabaseControl
+                   .from('clientes')
+                   .select('status')
+                   .eq('code', matched.codigodev)
+                   .single();
+
+                if (controlData && controlData.status === 'pendente') {
+                   setEmpresa(matched);
+                   setLoadingState('premium_wait');
+                   setTimeout(() => {
+                      setLoadingState('chat');
+                      setIsTyping(true);
+                      setTimeout(() => {
+                         setIsTyping(false);
+                         const phoneInfo = matched.telefone ? `o telefone deles: **${matched.telefone}**` : 'o telefone disponibilizado nas redes sociais';
+                         const blockMsgs = [
+                            `Oii! Fui avisada que não posso processar agendamentos para a **${matched.nome_fantasia || matched.nome_exibicao}** no momento devido a um bloqueio no controle interno. 😕 Por favor, contate-os diretamente pel${phoneInfo}.`,
+                            `Poxa... Encontrei uma pendência administrativa na conta da **${matched.nome_fantasia || matched.nome_exibicao}** e minha função de agendamentos está temporariamente desativada. 😔\nTente agendar diretamente usando ${phoneInfo}!`,
+                            `Infelizmente as funções de marcação online para a **${matched.nome_fantasia || matched.nome_exibicao}** encontram-se indisponíveis por questões internas do sistema. 🚫\nPara agendar um horário, fale diretamente com o estabelecimento pel${phoneInfo}.`
+                         ];
+                         const randomMsg = blockMsgs[Math.floor(Math.random() * blockMsgs.length)];
+                         setMessages([{
+                            id: Date.now(),
+                            sender: 'isis',
+                            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                            text: randomMsg
+                         }]);
+                      }, 2000);
+                   }, 2000);
+                   return; // Interrompe o fluxo normal
+                }
+             } catch (e) {
+                console.error("Erro ao verificar controle do cliente:", e);
+             }
+          }
+          // -------------------------------------------------
+
           setEmpresa(matched);
           loadDependencies(matched.codigo);
           setLoadingState('premium_wait');

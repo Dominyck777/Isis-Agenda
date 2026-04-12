@@ -511,7 +511,7 @@
 }
 
 @media (max-width: 768px) {
-  .chat-footer { padding: 16px 16px 72px 16px; }
+  .chat-footer { padding: 16px; }
   .header-right { display: none; }
   .pill-company span { font-size: 0.75rem; }
   .chat-bubble { max-width: 90%; }
