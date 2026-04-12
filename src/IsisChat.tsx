@@ -283,7 +283,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                         setIsTyping(true);
                         setTimeout(() => {
                            setIsTyping(false);
-                           const phoneInfo = matched.telefone ? ` **${matched.telefone}**` : ' **disponibilizado nas redes sociais**';
                            setMessages([{
                               id: Date.now(),
                               sender: 'isis',
