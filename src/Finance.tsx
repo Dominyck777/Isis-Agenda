@@ -28,7 +28,7 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
         .from('servicos')
         .select('codigo, nome, valor')
         .eq('codigo_empresa', user.codigo_empresa);
-      
+
       if (svcs) setServicos(svcs);
 
       // Simple date filter logic
@@ -40,8 +40,8 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
 
       const now = new Date();
       if (dateFilter === 'today') {
-        const start = new Date(now.setHours(0,0,0,0)).toISOString();
-        const end = new Date(now.setHours(23,59,59,999)).toISOString();
+        const start = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        const end = new Date(now.setHours(23, 59, 59, 999)).toISOString();
         query = query.gte('data_hora_inicio', start).lte('data_hora_inicio', end);
       } else if (dateFilter === 'week') {
         const weekAgo = new Date(now.setDate(now.getDate() - 7)).toISOString();
@@ -66,7 +66,7 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
 
   const stats = useMemo(() => {
     const dicServicos = servicos.reduce((acc, s) => ({ ...acc, [s.codigo]: s.valor }), {} as any);
-    
+
     let totalRevenue = 0;
     let completedCount = 0;
     let isisCount = 0;
@@ -81,7 +81,7 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
 
       if (ag.status === 'finalizado') {
         completedCount++;
-        
+
         // Se já tivermos o valor_total gravado no agendamento, usamos ele (Persistência histórica)
         if (ag.valor_total !== undefined && ag.valor_total !== null) {
           totalRevenue += Number(ag.valor_total);
@@ -89,15 +89,15 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
           // Fallback para agendamentos antigos ou sem valor_total gravado
           let svcArray = [];
           try {
-            svcArray = typeof ag.servicos_selecionados === 'string' 
-              ? JSON.parse(ag.servicos_selecionados) 
+            svcArray = typeof ag.servicos_selecionados === 'string'
+              ? JSON.parse(ag.servicos_selecionados)
               : (ag.servicos_selecionados || []);
-          } catch(e) {
+          } catch (e) {
             svcArray = [ag.codigo_servico];
           }
-  
+
           if (!Array.isArray(svcArray)) svcArray = [ag.codigo_servico];
-  
+
           svcArray.forEach((sId: any) => {
             totalRevenue += Number(dicServicos[sId] || 0);
           });
@@ -167,7 +167,7 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
         </div>
 
         <div className="stat-card">
-          <span className="stat-label">Ticket Médio</span>
+          <span className="stat-label">Valor Médio</span>
           <span className="stat-value">
             {(stats.completedCount > 0 ? stats.totalRevenue / stats.completedCount : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
@@ -177,7 +177,7 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
 
       <div className="origin-breakdown" style={{ maxWidth: '500px', margin: '24px auto 0' }}>
         <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', textAlign: 'center' }}>Distribuição de Origem</h3>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="origin-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
             <div className="origin-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -202,11 +202,11 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
           </div>
         </div>
       </div>
-      
+
       <div style={{ marginTop: '40px', padding: '24px', background: 'rgba(14, 165, 233, 0.05)', borderRadius: '16px', border: '1px dashed var(--primary-color)' }}>
-         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            📊 Dica: Use o filtro de data acima para analisar o crescimento da sua clínica em diferentes períodos.
-         </p>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+          Dica: Use o filtro de data acima para analisar o crescimento da sua empresa em diferentes períodos.
+        </p>
       </div>
     </div>
   );

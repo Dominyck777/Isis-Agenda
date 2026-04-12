@@ -22,18 +22,57 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let channel: any;
+
     if (isAuthenticated) {
-      checkLicense();
-      // Verificação automática a cada 2 minutos
-      const interval = setInterval(checkLicense, 120000);
-      return () => clearInterval(interval);
+      // 1. Verificação inicial e setup do Realtime
+      const setupMonitoring = async () => {
+        const codigodev = await checkLicense();
+        
+        if (codigodev) {
+          // 2. Configurar o Realtime para escutar mudanças no status deste cliente
+          channel = supabaseControl
+            .channel('license-updates')
+            .on(
+              'postgres_changes',
+              {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'clientes',
+                filter: `code=eq.${codigodev}`
+              },
+              (payload: any) => {
+                const newStatus = payload.new.status;
+                setLicenseStatus(prevStatus => {
+                  if (newStatus === 'ativo' && prevStatus === 'pendente') {
+                    toast('Acesso liberado! Bem-vindo de volta.', 'success');
+                  }
+                  return newStatus;
+                });
+              }
+            )
+            .subscribe();
+        }
+      };
+
+      setupMonitoring();
+
+      // 3. Fallback: Verificação automática a cada 5 minutos
+      const interval = setInterval(checkLicense, 300000);
+      
+      return () => {
+        clearInterval(interval);
+        if (channel) {
+          supabaseControl.removeChannel(channel);
+        }
+      };
     }
   }, [isAuthenticated]);
 
   const checkLicense = async () => {
     try {
       const userStr = localStorage.getItem('isis_user');
-      if (!userStr) return;
+      if (!userStr) return null;
       const user = JSON.parse(userStr);
       
       setIsCheckingLicense(true);
@@ -48,7 +87,7 @@ function App() {
       if (empError || !empresa?.codigodev) {
         console.error('Erro ao buscar codigodev:', empError);
         setIsCheckingLicense(false);
-        return;
+        return null;
       }
 
       // 2. Verificar status na base de controle (Supabase Secundário)
@@ -61,18 +100,22 @@ function App() {
       if (controlError) {
         console.error('Erro na base de controle:', controlError);
         setIsCheckingLicense(false);
-        return;
+        return empresa.codigodev;
       }
 
       if (controlData) {
-        setLicenseStatus(controlData.status);
-        if (controlData.status === 'ativo' && licenseStatus === 'pendente') {
-           // Se acabou de regularizar, dá o feedback
-           toast('Acesso liberado! Bem-vindo de volta.', 'success');
-        }
+        setLicenseStatus(prevStatus => {
+          if (controlData.status === 'ativo' && prevStatus === 'pendente') {
+            toast('Acesso liberado! Bem-vindo de volta.', 'success');
+          }
+          return controlData.status;
+        });
       }
+      
+      return empresa.codigodev;
     } catch (err) {
       console.error('Erro crítico na verificação de licença:', err);
+      return null;
     } finally {
       setIsCheckingLicense(false);
     }

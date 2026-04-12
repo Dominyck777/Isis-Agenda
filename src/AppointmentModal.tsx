@@ -44,11 +44,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
       let rawServices = agendamentoItem.servicos_selecionados;
       if (typeof rawServices === 'string') {
-        try { rawServices = JSON.parse(rawServices); } catch(e) { rawServices = null; }
+        try { rawServices = JSON.parse(rawServices); } catch (e) { rawServices = null; }
       }
-      
+
       let initialSelections = [{ serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }];
-      
+
       if (agendamentoItem.profissionais_vinculo && Array.isArray(agendamentoItem.profissionais_vinculo) && agendamentoItem.profissionais_vinculo.length > 0) {
         initialSelections = agendamentoItem.profissionais_vinculo.map((v: any) => ({
           serviceCode: String(v.serviceCode),
@@ -58,21 +58,21 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
           loadingSlots: false
         }));
       } else if (rawServices && Array.isArray(rawServices) && rawServices.length > 0) {
-          initialSelections = rawServices.map((s: any) => ({
-            serviceCode: String(s),
-            professionalCode: String(agendamentoItem.codigo_professional),
-            timeSlot: ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            availableSlots: [],
-            loadingSlots: false
-          }));
+        initialSelections = rawServices.map((s: any) => ({
+          serviceCode: String(s),
+          professionalCode: String(agendamentoItem.codigo_professional),
+          timeSlot: ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          availableSlots: [],
+          loadingSlots: false
+        }));
       } else if (agendamentoItem.codigo_servico) {
-          initialSelections = [{
-            serviceCode: String(agendamentoItem.codigo_servico),
-            professionalCode: String(agendamentoItem.codigo_profissional),
-            timeSlot: ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            availableSlots: [],
-            loadingSlots: false
-          }];
+        initialSelections = [{
+          serviceCode: String(agendamentoItem.codigo_servico),
+          professionalCode: String(agendamentoItem.codigo_profissional),
+          timeSlot: ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          availableSlots: [],
+          loadingSlots: false
+        }];
       }
 
       setForm({
@@ -101,12 +101,12 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         initialTime = baseHour.toString().padStart(2, '0') + ':00';
       }
 
-      setSelections([{ 
-        serviceCode: '', 
-        professionalCode: user && !user.is_admin ? String(user.codigo) : '', 
-        timeSlot: initialTime, 
-        availableSlots: [], 
-        loadingSlots: false 
+      setSelections([{
+        serviceCode: '',
+        professionalCode: user && !user.is_admin ? String(user.codigo) : '',
+        timeSlot: initialTime,
+        availableSlots: [],
+        loadingSlots: false
       }]);
       setIsReadOnly(false); // Sempre editável em criação
     }
@@ -141,7 +141,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     const duracaoSvc = service.duracao_minutos || 30;
     const hasLunch = dayCfg.almoco_ativo;
     const lunchStart = hasLunch ? timeToMin(dayCfg.almoco_inicio) : 0;
-    const lunchEnd   = hasLunch ? timeToMin(dayCfg.almoco_fim)   : 0;
+    const lunchEnd = hasLunch ? timeToMin(dayCfg.almoco_fim) : 0;
     let cur = timeToMin(dayCfg.inicio || '07:00');
     const end = timeToMin(dayCfg.fim || '22:00');
     const slots: string[] = [];
@@ -152,10 +152,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       if (cur < minSuggested) { cur += 15; continue; }
       const tStr = minToTime(cur);
       const slotStart = new Date(`${date}T${tStr}:00`);
-      const slotEnd   = new Date(slotStart.getTime() + duracaoSvc * 60000);
+      const slotEnd = new Date(slotStart.getTime() + duracaoSvc * 60000);
 
       if (hasLunch && cur < lunchEnd && cur + duracaoSvc > lunchStart) { cur = lunchEnd; continue; }
-      
+
       // Se for hoje, não mostrar horários passados (com margem de 10 min)
       const isToday = new Date().toLocaleDateString('en-CA') === date;
       if (isToday && slotStart.getTime() < now.getTime() - 600000) { cur += 15; continue; }
@@ -174,9 +174,9 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   const triggerLoadSlots = async (index: number, svcCode: string, profCode: string, date: string, currentSelections: any[]) => {
     if (!svcCode || !profCode || !date) return;
-    
+
     setSelections(prev => prev.map((s, i) => i === index ? { ...s, loadingSlots: true } : s));
-    
+
     let suggested: string | undefined = undefined;
     if (index > 0) {
       const prev = currentSelections[index - 1];
@@ -190,7 +190,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     }
 
     const slots = await generateAvailableSlots(date, svcCode, profCode, suggested);
-    
+
     setSelections(prev => prev.map((s, i) => {
       if (i === index) {
         let bestSlot = s.timeSlot;
@@ -258,14 +258,14 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     try {
       // Gerar a lista de payloads para inserção (Fragmentação) baseado em cada TimeSlot
       const payloads: any[] = [];
-      
+
       for (const sel of selections) {
         if (!sel.serviceCode || !sel.professionalCode || !sel.timeSlot) continue;
 
         const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
         const duracao = s ? s.duracao_minutos : 15;
         const valor = s ? Number(s.valor || 0) : 0;
-        
+
         const currentStart = new Date(`${form.data}T${sel.timeSlot}:00`);
         const currentEnd = new Date(currentStart.getTime() + duracao * 60000);
 
@@ -305,7 +305,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       if (!agendamentoItem) {
         const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', user.codigo_empresa);
         let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
-        
+
         const finalPayloads = payloads.map(p => ({ ...p, codigo: nextCod++ }));
         const { error } = await supabase.from('agendamentos').insert(finalPayloads);
         if (error) throw error;
@@ -392,10 +392,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
           .total-badge-mobile { width: 100%; justify-content: space-between; }
         }
       `}</style>
-      
+
       <div className="modal-overlay" onClick={onClose} style={{ zIndex: 3000 }}>
         <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95dvw', maxHeight: '90dvh', padding: '24px', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', background: '#111827', borderRadius: '16px' }}>
-          
+
           <div className="modal-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '1.25rem', fontWeight: 700 }}>
@@ -408,7 +408,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 </div>
               )}
             </div>
-            
+
             <div className="total-badge-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {!isReadOnly && (
                 <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -424,7 +424,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
             <p style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>Carregando dados...</p>
           ) : isReadOnly ? (
             <div className="appointment-view-mode" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <p style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Cliente</p>
                   <h2 style={{ margin: 0, fontSize: '1.6rem', color: '#fff', fontWeight: 700 }}>
@@ -443,10 +443,10 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                   <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </div>
                 <div>
-                   <p style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
+                  <p style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
                     {new Date(form.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-                   </p>
-                   <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>Início: <strong>{form.hora}</strong></p>
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>Início: <strong>{form.hora}</strong></p>
                 </div>
               </div>
 
@@ -462,20 +462,20 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
               </div>
 
               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button type="button" onClick={() => setIsReadOnly(false)} style={{ width: '100%', height: '50px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>Editar Agendamento</button>
-                <button type="button" onClick={onClose} style={{ width: '100%', height: '40px', background: 'transparent', color: '#fff', border: '1px solid #374151', borderRadius: '12px', cursor: 'pointer' }}>Fechar</button>
+                <button type="button" onClick={() => setIsReadOnly(false)} style={{ width: '100%', height: '50px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>Editar Agendamento</button>
+                <button type="button" onClick={onClose} style={{ width: '100%', height: '50px', background: 'transparent', color: '#fff', border: '1px solid #374151', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>Fechar</button>
               </div>
             </div>
           ) : (
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
+
               <div className="form-group-flat">
                 <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Cliente (Base)</label>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <select 
-                    value={form.codigo_cliente} 
-                    onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }} 
-                    required 
+                  <select
+                    value={form.codigo_cliente}
+                    onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }}
+                    required
                     style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', fontSize: '1rem' }}
                   >
                     <option value="">-- Selecionar Cliente --</option>
@@ -484,7 +484,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                   </select>
                   <button type="button" onClick={() => setShowQuickCli(!showQuickCli)} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '48px', height: '48px', fontSize: '1.5rem', cursor: 'pointer' }}>+</button>
                 </div>
-                
+
                 {form.codigo_cliente === 'avulso' && (
                   <input type="text" placeholder="Nome do Cliente" value={nomeAvulso} onChange={e => setNomeAvulso(e.target.value)} required style={{ width: '100%', marginTop: '12px', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px dashed #374151' }} />
                 )}
@@ -505,9 +505,9 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                     {form.data ? new Date(form.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long' }) : ''}
                   </span>
                 </label>
-                <input 
-                  type="date" 
-                  value={form.data} 
+                <input
+                  type="date"
+                  value={form.data}
                   onChange={async (e) => {
                     const newVal = e.target.value;
                     setForm({ ...form, data: newVal });
@@ -516,8 +516,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                         await triggerLoadSlots(i, selections[i].serviceCode, selections[i].professionalCode, newVal, selections);
                       }
                     }
-                  }} 
-                  required 
+                  }}
+                  required
                   style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', fontSize: '1.2rem', fontWeight: 700 }}
                 />
               </div>
@@ -578,7 +578,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
               <div className="form-group-flat">
                 <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Observação Interna</label>
-                <textarea value={form.observacao} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="adiciona uma observação" rows={2} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', resize: 'none' }} />
+                <textarea value={form.observacao} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="✨ Agendamento realizado via Assistente Ísis" rows={2} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', resize: 'none' }} />
               </div>
 
               <div className="form-group-flat">
@@ -591,12 +591,14 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
-                <button type="submit" style={{ width: '100%', height: '56px', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>Confirmar Novo Agendamento</button>
-                <button type="button" onClick={onClose} style={{ width: '100%', height: '48px', background: 'transparent', color: '#fff', border: '1px solid #374151', borderRadius: '12px', fontSize: '1rem', cursor: 'pointer' }}>Cancelar</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
+                <button type="submit" style={{ width: '100%', height: '56px', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer', transition: 'filter 0.2s' }}>Confirmar Agendamento</button>
+
                 {agendamentoItem && (
-                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} style={{ width: '100%', height: '40px', background: '#ef444410', color: '#ef4444', border: '1px solid #ef444430', borderRadius: '12px', fontSize: '0.85rem', marginTop: '10px' }}>Excluir Agendamento</button>
+                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} style={{ width: '100%', height: '50px', background: 'rgba(239, 68, 68, 0.05)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>Cancelar Agendamento</button>
                 )}
+
+                <button type="button" onClick={onClose} style={{ width: '100%', height: '50px', background: '#111827', color: '#fff', border: '1px solid #374151', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Fechar</button>
               </div>
             </form>
           )}
@@ -605,11 +607,11 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         {isDeleteConfirmOpen && (
           <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.8)' }} onClick={() => setIsDeleteConfirmOpen(false)}>
             <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px', textAlign: 'center', background: '#111827', borderRadius: '16px' }} onClick={e => e.stopPropagation()}>
-              <h3 style={{ color: '#ef4444', margin: '0 0 16px 0' }}>Excluir Agendamento?</h3>
+              <h3 style={{ color: '#ef4444', margin: '0 0 16px 0' }}>Cancelar Agendamento?</h3>
               <p style={{ color: '#9ca3af', marginBottom: '24px' }}>Esta ação não pode ser desfeita.</p>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={() => setIsDeleteConfirmOpen(false)} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #374151', color: '#fff', borderRadius: '8px' }}>Voltar</button>
-                <button onClick={handleCancelApptAction} style={{ flex: 1, padding: '12px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '8px' }}>Sim, Excluir</button>
+                <button onClick={() => setIsDeleteConfirmOpen(false)} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #374151', color: '#fff', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 700 }}>Voltar</button>
+                <button onClick={handleCancelApptAction} style={{ flex: 1, padding: '12px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 700 }}>Sim, Cancelar</button>
               </div>
             </div>
           </div>
