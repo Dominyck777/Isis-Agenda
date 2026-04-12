@@ -891,7 +891,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                        boxSizing: 'border-box'
                                      }}
                                      onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
-                                  <strong style={{ fontSize: '0.75rem', color: colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                                  <strong 
+                                    style={{ fontSize: '0.75rem', color: ag.isis_criou ? 'transparent' : colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'inline-block', width: 'fit-content' }}
+                                    className={ag.isis_criou ? 'isis-rainbow-text' : ''}
+                                  >
                                     {sInfo?.nome || (v.serviceCode ? `S:${v.serviceCode}` : 'Serviço')}
                                   </strong>
                                   <div style={{ fontSize: '0.65rem', opacity: 0.9, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
@@ -928,7 +931,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                    boxSizing: 'border-box'
                                  }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
-                               <strong style={{ fontSize: '0.85rem', color: colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>
+                               <strong 
+                                 style={{ fontSize: '0.85rem', color: ag.isis_criou ? 'transparent' : colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'inline-block', width: 'fit-content' }}
+                                 className={ag.isis_criou ? 'isis-rainbow-text' : ''}
+                               >
                                  {dicServicos[ag.codigo_servico] || (ag.codigo_servico ? `S:${ag.codigo_servico}` : 'Serviço')}
                                </strong>
                                <span style={{ fontSize: '0.75rem', opacity: 0.9, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block' }}>

@@ -708,3 +708,19 @@ button:active {
   }
 }
 @media (max-width: 400px) { .isis-notif-card { min-width: 0; padding: 12px; gap: 10px; } .isis-notif-header strong { font-size: 0.85rem; } .isis-notif-content p { font-size: 0.8rem; } }
+
+/* Texto Arco-íris Estático para Agendamentos da Ísis */
+.isis-rainbow-text {
+  background: linear-gradient(
+    to right, 
+    #d8b4fe 0%, 
+    #a855f7 40%, 
+    #3b82f6 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+  font-weight: 800 !important;
+  filter: drop-shadow(0 0 1px rgba(255,255,255,0.1));
+}
