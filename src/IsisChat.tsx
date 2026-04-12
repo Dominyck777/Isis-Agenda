@@ -64,40 +64,67 @@ const Calendar = ({ value, onChange, onClose }: any) => {
   );
 };
 
+const getPlainText = (node: any): string => {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(getPlainText).join('');
+  if (node.props && node.props.children) return getPlainText(node.props.children);
+  return 'Mensagem com elementos visuais';
+};
+
 const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void }) => {
    const [rating, setRating] = useState(0);
    const [hover, setHover] = useState(0);
    const [comentario, setComentario] = useState('');
 
    return (
-     <div className="registration-form" style={{ marginTop: '16px' }}>
-        <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#fff', textAlign: 'center' }}>Como foi seu atendimento?</p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
-           {[1,2,3,4,5].map(star => (
-               <span 
-                  key={star}
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHover(star)}
-                  onMouseLeave={() => setHover(0)}
-                  style={{ fontSize: '2.2rem', cursor: 'pointer', color: (hover || rating) >= star ? '#eab308' : '#4b5563', transition: 'color 0.2s', userSelect: 'none' }}
-               >
-                  ★
-               </span>
-           ))}
+     <div className="registration-form" style={{ marginTop: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+        <p style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 600, color: '#fff', textAlign: 'center' }}>Como você avalia nossa conversa?</p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
+           {[1,2,3,4,5].map(star => {
+               const isActive = (hover || rating) >= star;
+               return (
+                 <span 
+                    key={star}
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHover(star)}
+                    onMouseLeave={() => setHover(0)}
+                    style={{ 
+                       fontSize: '2.5rem', 
+                       cursor: 'pointer', 
+                       color: isActive ? '#f59e0b' : '#3f3f46', 
+                       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+                       userSelect: 'none',
+                       transform: isActive ? 'scale(1.15) translateY(-2px)' : 'scale(1)',
+                       textShadow: isActive ? '0 0 16px rgba(245, 158, 11, 0.4)' : 'none'
+                    }}
+                 >
+                    ★
+                 </span>
+               );
+           })}
         </div>
         {rating > 0 && (
-           <div className="form-group" style={{ animation: 'slideUp 0.3s ease' }}>
+           <div className="form-group" style={{ animation: 'slideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)' }}>
+              <div style={{ marginBottom: '16px', textAlign: 'center', color: '#f59e0b', fontWeight: 500, fontSize: '0.9rem' }}>
+                 {rating === 1 && "Poxa, o que deu errado? 😕"}
+                 {rating === 2 && "Podemos melhorar! O que faltou? 🤔"}
+                 {rating === 3 && "Obrigado! Como chegar a 5 estrelas? 😊"}
+                 {rating === 4 && "Quase lá! Muito obrigado! ⭐"}
+                 {rating === 5 && "Incrível! Fico muito feliz! 🌟"}
+              </div>
               <textarea 
-                 placeholder="Deixe um comentário curtinho (opcional)"
+                 placeholder="Deixe um comentário curto (opcional)"
                  value={comentario}
                  onChange={e => setComentario(e.target.value)}
-                 style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', minHeight: '60px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
+                 style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', minHeight: '80px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'none', fontSize: '0.95rem' }}
               />
               <button 
                  type="button" 
                  className="chat-action-btn pri"
                  onClick={() => onSubmit(rating, comentario)}
-                 style={{ marginTop: '12px', width: '100%' }}
+                 style={{ marginTop: '16px', width: '100%', background: '#0ea5e9', border: 'none', boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)', padding: '14px', fontSize: '1rem' }}
               >
                  Enviar Avaliação
               </button>
@@ -165,7 +192,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         const conversaSincronizar = messages.map(m => ({
            ts: m.time,
            from: m.sender === 'user' ? 'user' : 'assistant',
-           text: typeof m.text === 'string' ? m.text : 'Mensagem interativa/Widget'
+           text: getPlainText(m.text)
         }));
         
         const row = {
@@ -1094,7 +1121,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         const conversaSincronizar = messages.map(m => ({
            ts: m.time,
            from: m.sender === 'user' ? 'user' : 'assistant',
-           text: typeof m.text === 'string' ? m.text : 'Mensagem interativa/Widget'
+           text: getPlainText(m.text)
         }));
         
         const row = {
@@ -1114,11 +1141,17 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       }
       setTimeout(() => {
           setIsTyping(false);
+          let reactMsg = "";
+          if (rating <= 2) reactMsg = "Poxa, sinto muito que sua experiência não tenha sido a melhor de todas. Vou repassar seu feedback pra equipe melhorar! 🔧";
+          else if (rating === 3) reactMsg = "Anotado! Agradeço de coração a sinceridade, prometo que vamos trabalhar para que da próxima vez seja 5 estrelas! 💪";
+          else if (rating === 4) reactMsg = "Uhuul! Muito obrigada pela avaliação! Foi muito bom falar com você. 💜";
+          else reactMsg = "Incrível!! ⭐ Fiquei super feliz com as 5 estrelas! Sempre que precisar estarei por aqui. 🥰";
+
           setMessages(prev => [...prev, {
              id: Date.now(),
              sender: 'isis',
              time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-             text: <>Agradeço demais pela avaliação! 💜<br/><br/><strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
+             text: <>{reactMsg}<br/><br/>A <strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
           }]);
           setTimeout(() => scrollToBottom('smooth'), 100);
       }, 800);
@@ -1128,11 +1161,20 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       setIsTyping(true);
       setTimeout(() => {
          setIsTyping(false);
+         const fbMsgs = [
+            "Foi um prazer te atender! Antes de ir, poderia me avaliar e deixar um comentário rápido sobre sua experiência? 😊✨",
+            "Espero ter ajudado! Para eu continuar melhorando, que nota você daria para o nosso atendimento hoje? ⭐",
+            "Tudo certinho por aqui! Você se importaria de avaliar meu atendimento rapidamente? Isso me ajuda muito! 💜",
+            "Atendimento finalizado com sucesso! De 1 a 5 estrelas, como foi sua experiência comigo hoje? 🌟",
+            "Adorei falar com você! Pra fechar com chave de ouro, deixe uma avaliação rápida sobre mim abaixo! 👇"
+         ];
+         const randomFb = fbMsgs[Math.floor(Math.random() * fbMsgs.length)];
+
          setMessages(prev => [...prev, {
             id: Date.now(),
             sender: 'isis',
             time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-            text: "Foi um prazer te atender! Antes de ir, poderia me avaliar e deixar um comentário rápido sobre sua experiência? 😊✨",
+            text: randomFb,
             actions: (
                 <FeedbackWidget 
                    onSubmit={(rating, comentario) => {
