@@ -213,6 +213,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     return text.split('**').map((item, i) => i % 2 !== 0 ? <strong key={i}>{item}</strong> : item);
   };
 
+  // Retorna apenas nome + sobrenome (primeiras 2 palavras)
+  const shortName = (nome: string) => {
+    if (!nome) return '';
+    const parts = nome.trim().split(/\s+/);
+    return parts.slice(0, 2).join(' ');
+  };
+
   const applyMask = (v: string) => {
     let r = v.replace(/\D/g, '');
     if (r.length > 11) r = r.slice(0, 11);
@@ -333,88 +340,169 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
     }, 1000);
   };
 
-  const handleServiceSelectionFlow = (customGreeting?: string) => {
-    if (services.length === 1) {
-       handleProfessionalSelectionFlow(services[0], customGreeting);
-       return;
-    }
+  // --- WIDGET DE SELEÇÃO DE SERVIÇOS (Multi-serviço, inspirado no AppointmentModal) ---
+  const ServiceSelectionWidget = ({ onConfirm, onBack }: { onConfirm: (selections: {service: any, professional: any}[]) => void, onBack: () => void }) => {
+    const [selections, setSelections] = React.useState<{ serviceCode: string, professionalCode: string }[]>([{ serviceCode: '', professionalCode: '' }]);
 
+    const getEnabledProfessionals = (serviceCode: string) => {
+      if (!serviceCode) return [];
+      const svc = services.find((s: any) => String(s.codigo) === String(serviceCode));
+      if (!svc) return [];
+      return professionals.filter((p: any) =>
+        (svc.profissionais_habilitados || []).map(String).includes(String(p.codigo))
+      );
+    };
+
+    const handleServiceChange = (index: number, val: string) => {
+      const newSel = selections.map((s, i) => i === index ? { serviceCode: val, professionalCode: '' } : s);
+      // Auto-select professional if only one available
+      const profs = getEnabledProfessionals(val);
+      if (profs.length === 1) newSel[index].professionalCode = String(profs[0].codigo);
+      setSelections(newSel);
+    };
+
+    const handleProfChange = (index: number, val: string) => {
+      setSelections(selections.map((s, i) => i === index ? { ...s, professionalCode: val } : s));
+    };
+
+    const addRow = () => setSelections([...selections, { serviceCode: '', professionalCode: '' }]);
+
+    const removeRow = (index: number) => setSelections(selections.filter((_, i) => i !== index));
+
+    const isValid = selections.length > 0 && selections[0].serviceCode !== '' && selections[0].professionalCode !== '';
+
+    const handleConfirmClick = () => {
+      const valid = selections.filter(s => s.serviceCode && s.professionalCode);
+      if (valid.length === 0) return;
+      const resolved = valid.map(s => ({
+        service: services.find((sv: any) => String(sv.codigo) === String(s.serviceCode)),
+        professional: professionals.find((p: any) => String(p.codigo) === String(s.professionalCode))
+      })).filter(r => r.service && r.professional);
+      onConfirm(resolved);
+    };
+
+    return (
+      <div className="service-selection-widget">
+        {selections.map((sel, index) => {
+          const profs = getEnabledProfessionals(sel.serviceCode);
+          const svc = services.find((s: any) => String(s.codigo) === String(sel.serviceCode));
+          return (
+            <div key={index} className="service-row">
+              <div className="service-row-selects">
+                <div className="service-select-group">
+                  <select
+                    className="chat-action-select"
+                    value={sel.serviceCode}
+                    onChange={e => handleServiceChange(index, e.target.value)}
+                  >
+                    <option value="">✨ Selecione o serviço</option>
+                    {services.map((s: any) => (
+                      <option key={s.codigo} value={s.codigo}>
+                        {s.nome} — R$ {parseFloat(s.valor).toFixed(2).replace('.', ',')}
+                      </option>
+                    ))}
+                  </select>
+                  {svc && (
+                    <div className="service-meta">⏱ {svc.duracao_minutos} min</div>
+                  )}
+                </div>
+
+                <div className="service-select-group">
+                  <select
+                    className="chat-action-select"
+                    value={sel.professionalCode}
+                    onChange={e => handleProfChange(index, e.target.value)}
+                    disabled={!sel.serviceCode || profs.length === 0}
+                    style={{ opacity: sel.serviceCode ? 1 : 0.5 }}
+                  >
+                    <option value="">
+                      {!sel.serviceCode ? 'Escolha o serviço primeiro' : profs.length === 0 ? 'Sem profissionais disponíveis' : '👤 Selecione o profissional'}
+                    </option>
+                    {profs.map((p: any) => (
+                      <option key={p.codigo} value={p.codigo}>{p.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {index > 0 && (
+                <button
+                  type="button"
+                  className="service-remove-btn"
+                  onClick={() => removeRow(index)}
+                  title="Remover este serviço"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          className="chat-action-btn add-service-btn"
+          onClick={addRow}
+        >
+          ➕ Adicionar outro serviço
+        </button>
+
+        <button
+          type="button"
+          className={`chat-action-btn pri confirm-services-btn ${!isValid ? 'disabled-btn' : ''}`}
+          onClick={handleConfirmClick}
+          disabled={!isValid}
+        >
+          ✅ Confirmar serviços e escolher data
+        </button>
+
+        <button
+          type="button"
+          className="chat-action-btn menu-btn"
+          onClick={onBack}
+        >
+          ⬅️ Voltar ao Menu
+        </button>
+      </div>
+    );
+  };
+
+  const handleServiceSelectionFlow = (customGreeting?: string) => {
     const greetings = [
-      "Qual dos nossos serviços você gostaria de agendar hoje?",
-      "Agora me conta, qual serviço você está procurando?",
+      "Qual dos nossos serviços você gostaria de agendar?",
+      "Me conta, qual serviço você está procurando?",
       "Que tal escolher o serviço que deseja realizar?",
       "Qual procedimento vamos marcar?",
-      "Qual desses serviços você quer agendar?"
+      "Escolha o serviço e o profissional abaixo:"
     ];
     const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
     const finalGreet = customGreeting || randomGreet;
 
     setIsTyping(true);
     setTimeout(() => {
-       setIsTyping(false);
-       setMessages(prev => [...prev, {
-          id: Date.now(),
-          sender: 'isis',
-          time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-          text: finalGreet,
-          actions: (
-            <div className="action-buttons-grid">
-               {services.slice(0, 10).map(s => (
-                  <button key={s.codigo} className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage(`Vou querer ${s.nome}`); handleProfessionalSelectionFlow(s); }}>
-                     {s.nome} - <span style={{ opacity: 0.8, fontSize: '0.8rem' }}>R$ {parseFloat(s.valor).toFixed(2).replace('.', ',')}</span>
-                     <div style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '2px' }}>⏱ Duração: {s.duracao_minutos} min</div>
-                  </button>
-               ))}
-               {services.length > 10 && <button className="chat-action-btn" type="button">Ver todos os serviços</button>}
-               <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}>⬅️ Voltar ao Menu</button>
-            </div>
-          )
-       }]);
-       setTimeout(() => scrollToBottom('smooth'), 100);
+      setIsTyping(false);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        sender: 'isis',
+        time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+        text: finalGreet,
+        actions: (
+          <ServiceSelectionWidget
+            onConfirm={(resolved) => {
+              clearLastIsisActions();
+              const summary = resolved.map(r => `${r.service.nome} c/ ${shortName(r.professional.nome)}`).join(', ');
+              addUserMessage(`Escolhi: ${summary}`);
+              handleDateTimeSelectionFlow(resolved);
+            }}
+            onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
+          />
+        )
+      }]);
+      setTimeout(() => scrollToBottom('smooth'), 100);
     }, 1200);
   };
 
-  const handleProfessionalSelectionFlow = (service: any, customGreeting?: string) => {
-    
-    // Filtra profissionais habilitados para este serviço
-    const allowedProfs = professionals.filter(p => 
-       (service.profissionais_habilitados || []).map(String).includes(String(p.codigo))
-    );
-
-    if (allowedProfs.length === 1) {
-       handleDateTimeSelectionFlow(service, allowedProfs[0], customGreeting);
-       return;
-    }
-
-    const greetPrefix = customGreeting ? `${customGreeting} ` : '';
-    const finalGreet = `${greetPrefix}Você escolheu **${service.nome}**. Agora me diga, com qual **profissional** você deseja realizar o atendimento?`;
-
-    setIsTyping(true);
-    setTimeout(() => {
-       setIsTyping(false);
-       setMessages(prev => [...prev, {
-          id: Date.now(),
-          sender: 'isis',
-          time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-          text: finalGreet,
-          actions: (
-            <div className="action-buttons-grid">
-               {allowedProfs.map((p: any) => (
-                  <button key={p.codigo} className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage(`Quero com ${p.nome}`); handleDateTimeSelectionFlow(service, p); }}>
-                     {p.nome}
-                  </button>
-               ))}
-               {allowedProfs.length === 0 && <div style={{ fontSize: '0.95rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '8px' }}>Puxa, parece que não há profissionais disponíveis para este serviço no momento. 😔</div>}
-               <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Mudar Serviço'); handleServiceSelectionFlow(); }}>⬅️ Mudar Serviço</button>
-               <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('🏠 Menu Principal'); showMenu(); }}>🏠 Menu Principal</button>
-            </div>
-          )
-       }]);
-       setTimeout(() => scrollToBottom('smooth'), 100);
-    }, 1200);
-  };
-
-  const loadAvailableTimes = async (date: string, service: any, professional: any) => {
+  const loadAvailableTimes = async (date: string, service: any, professional: any, allSelections?: {service: any, professional: any}[]) => {
      setIsTyping(true);
      
      try {
@@ -460,7 +548,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
               text: `Poxa, o estabelecimento não atende **${dayConfig?.nome || 'domingo'}**. 😕 Deseja escolher outro dia?`,
               actions: (
                  <div className="action-buttons-grid">
-                    <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(service, professional); }}>📅 Escolher outro dia</button>
+                    <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(allSelections || [{ service, professional }]); }}>📅 Escolher outro dia</button>
                  </div>
               )
            }]);
@@ -525,11 +613,12 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            currentMinutes += 15;
         }
 
+        const selectionsForConfirm = allSelections || [{ service, professional }];
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
            time: nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: `Encontrei estes horários disponíveis para **${service.nome}** com **${professional.nome}** no dia **${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}** (${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}):`,
+           text: `Encontrei estes horários disponíveis para **${service.nome}** com **${shortName(professional.nome)}** no dia **${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}** (${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}):`,
            actions: (
               <div className="action-buttons-grid">
                  {slots.length > 0 ? (
@@ -542,7 +631,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                              if (val) {
                                 clearLastIsisActions();
                                 addUserMessage(`Quero para às ${val}`);
-                                handleConfirmAppointmentFlow(service, professional, date, val);
+                                handleConfirmAppointmentFlow(selectionsForConfirm, date, val);
                              }
                           }}
                        >
@@ -556,7 +645,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                        <small style={{ opacity: 0.8 }}>Horário atual em Brasília: {nowBR.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</small>
                     </div>
                  )}
-                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(service, professional, "Escolha outro dia:"); }}>📅 Mudar Dia</button>
+                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); handleDateTimeSelectionFlow(selectionsForConfirm, "Escolha outro dia:"); }}>📅 Mudar Dia</button>
               </div>
            )
         }]);
@@ -572,9 +661,10 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
 
 
-  const handleDateTimeSelectionFlow = (service: any, professional: any, customGreeting?: string) => {
+  const handleDateTimeSelectionFlow = (selections: {service: any, professional: any}[], customGreeting?: string) => {
      const greetPrefix = customGreeting ? `${customGreeting} ` : '';
-     const finalGreet = `${greetPrefix}Show! Você escolheu **${service.nome}** com **${professional.nome}**. Qual **dia** fica melhor pra você?`;
+     const servicesSummary = selections.map(s => `**${s.service.nome}** c/ **${shortName(s.professional.nome)}**`).join(', ');
+     const finalGreet = `${greetPrefix}Show! Você escolheu ${servicesSummary}. Qual **dia** fica melhor pra você?`;
 
      setIsTyping(true);
      setTimeout(() => {
@@ -584,22 +674,21 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
            sender: 'isis',
            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
            text: finalGreet,
-           actions: <DateActions service={service} professional={professional} />
+           actions: <DateActions selections={selections} />
         }]);
         setTimeout(() => scrollToBottom('smooth'), 100);
      }, 1200);
   };
 
-  const DateActions = ({ service, professional }: any) => {
+  const DateActions = ({ selections: dateSelections }: { selections: {service: any, professional: any}[] }) => {
      const [showCustom, setShowCustom] = useState(false);
      const [showCalendar, setShowCalendar] = useState(false);
      const [dateInput, setDateInput] = useState('');
      const [dateError, setDateError] = useState('');
 
-     // Filtra profissionais habilitados para este serviço para saber se mostramos o botão de mudar
-     const allowedProfsCount = professionals.filter(p => 
-        (service.profissionais_habilitados || []).map(String).includes(String(p.codigo))
-     ).length;
+     // Use first service/professional as primary for time loading (multi-service logic is handled in loadAvailableTimes)
+     const primaryService = dateSelections[0]?.service;
+     const primaryProfessional = dateSelections[0]?.professional;
 
      const handleQuickDate = (days: number, label: string) => {
         const d = new Date();
@@ -607,7 +696,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         const iso = d.toLocaleDateString('en-CA');
         clearLastIsisActions();
         addUserMessage(label);
-        loadAvailableTimes(iso, service, professional);
+        loadAvailableTimes(iso, primaryService, primaryProfessional, dateSelections);
      };
 
      const validateDate = (dateStr: string) => {
@@ -635,7 +724,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
         clearLastIsisActions();
         addUserMessage(`Escolhi o dia ${new Date(dateStr + 'T00:00:00').toLocaleDateString('pt-BR')}`);
-        loadAvailableTimes(dateStr, service, professional);
+        loadAvailableTimes(dateStr, primaryService, primaryProfessional, dateSelections);
      };
 
      if (!showCustom) {
@@ -644,11 +733,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
               <button className="chat-action-btn" type="button" onClick={() => handleQuickDate(0, 'Hoje')}>Hoje</button>
               <button className="chat-action-btn" type="button" onClick={() => handleQuickDate(1, 'Amanhã')}>Amanhã</button>
               <button className="chat-action-btn" type="button" onClick={() => setShowCustom(true)}>📅 Outro dia</button>
-              
-              {allowedProfsCount > 1 && (
-                 <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Mudar Profissional'); handleProfessionalSelectionFlow(service); }}>⬅️ Mudar Profissional</button>
-              )}
-              
+              <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('⬅️ Mudar serviços'); handleServiceSelectionFlow(); }}>⬅️ Mudar serviços</button>
               <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('🏠 Menu Principal'); showMenu(); }}>🏠 Menu Principal</button>
            </div>
         );
@@ -712,12 +797,16 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      );
   };
 
-  const handleConfirmAppointmentFlow = (service: any, professional: any, date: string, time: string) => {
+  const handleConfirmAppointmentFlow = (selections: {service: any, professional: any}[], date: string, time: string) => {
      setIsTyping(true);
      setTimeout(() => {
         setIsTyping(false);
-        const valorFormatado = parseFloat(service.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const currentEditingAg = editingAg || editingAgRef.current;
+        const totalDuration = selections.reduce((acc, s) => acc + (s.service.duracao_minutos || 30), 0);
+        const endTime = new Date(new Date(`${date}T${time}:00`).getTime() + totalDuration * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
+        const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
@@ -726,10 +815,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
               <>
                  {currentEditingAg && <div style={{ marginBottom: '8px', fontSize: '0.85rem', opacity: 0.9 }}>📍 Editando Agendamento: <strong>#{currentEditingAg.codigo}</strong></div>}
                  Confirmando seu agendamento:<br/><br/>
-                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{new Date(new Date(`${date}T${time}:00`).getTime() + (service.duracao_minutos || 30) * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong><br/>
-                 ✨ <strong>{service.nome}</strong><br/>
-                 👤 <strong>{professional.nome}</strong><br/>
-                 💰 Valor: <strong>{valorFormatado}</strong><br/><br/>
+                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{endTime}</strong><br/><br/>
+                 {selections.map((sel, i) => (
+                   <React.Fragment key={i}>
+                     ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{sel.professional.nome}</strong><br/>
+                   </React.Fragment>
+                 ))}
+                 <br/>💰 Total: <strong>{totalFormatado}</strong><br/><br/>
                  Posso confirmar?
               </>
            ),
@@ -738,7 +830,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                  <button className="chat-action-btn pri" type="button" onClick={() => { 
                     clearLastIsisActions(); 
                     addUserMessage('Sim, pode confirmar! ✅'); 
-                    handleCompleteAppointment(service, professional, date, time);
+                    handleCompleteAppointment(selections, date, time);
                  }}>✅ Confirmar agendamento</button>
                  <button className="chat-action-btn" type="button" onClick={() => { 
                      clearLastIsisActions(); 
@@ -757,13 +849,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
      }, 1200);
   };
 
-  const handleCompleteAppointment = async (service: any, professional: any, date: string, time: string) => {
+  const handleCompleteAppointment = async (selections: {service: any, professional: any}[], date: string, time: string) => {
      setIsTyping(true);
      
-     // 1. Preparar Payload para o Banco
      const startObj = new Date(`${date}T${time}:00`);
-     const duracao = service.duracao_minutos || 30;
-     const endObj = new Date(startObj.getTime() + duracao * 60000);
+     const totalDuration = selections.reduce((acc, s) => acc + (s.service.duracao_minutos || 30), 0);
+     const endObj = new Date(startObj.getTime() + totalDuration * 60000);
+     const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
 
      const currentCliente = cliente || clienteRef.current;
 
@@ -779,19 +871,25 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          let error;
          let finalCodigo = '';
          const currentEditingAg = editingAg || editingAgRef.current;
+         const primarySvc = selections[0].service;
+         const primaryProf = selections[0].professional;
+         const profissionaisVinculo = selections.map(s => ({ serviceCode: String(s.service.codigo), professionalCode: String(s.professional.codigo) }));
+         const servicosSelecionados = JSON.stringify(selections.map(s => s.service.codigo));
 
          if (currentEditingAg) {
             finalCodigo = currentEditingAg.codigo;
             const { error: err } = await supabase.from('agendamentos').update({
-               codigo_servico: service.codigo,
-               codigo_profissional: professional.codigo,
+               codigo_servico: primarySvc.codigo,
+               codigo_profissional: primaryProf.codigo,
+               servicos_selecionados: servicosSelecionados,
+               profissionais_vinculo: profissionaisVinculo,
+               valor_total: totalValor,
                data_hora_inicio: startObj.toISOString(),
                data_hora_fim: endObj.toISOString(),
                observacao: '✨ Agendamento alterado via Assistente Ísis',
             }).eq('id', currentEditingAg.id);
             error = err;
          } else {
-            // Gerar próximo código seqüencial para a empresa
             const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
             const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
             finalCodigo = nextCod.toString();
@@ -799,9 +897,12 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             const payload = {
                codigo: nextCod,
                codigo_empresa: empresa.codigo,
-               codigo_servico: service.codigo,
+               codigo_servico: primarySvc.codigo,
                codigo_cliente: currentCliente.id,
-               codigo_profissional: professional.codigo,
+               codigo_profissional: primaryProf.codigo,
+               servicos_selecionados: servicosSelecionados,
+               profissionais_vinculo: profissionaisVinculo,
+               valor_total: totalValor,
                data_hora_inicio: startObj.toISOString(),
                data_hora_fim: endObj.toISOString(),
                status: 'agendado',
@@ -810,7 +911,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             };
 
             console.log('--- ÍSIS CHAT: TENTANDO GRAVAR AGENDAMENTO ---', payload);
-
             const { error: err } = await supabase.from('agendamentos').insert(payload);
             error = err;
           }
@@ -825,7 +925,8 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
         console.log('--- ÍSIS CHAT: AGENDAMENTO GRAVADO COM SUCESSO! ---');
 
         setIsTyping(false);
-        const valorFormatado = parseFloat(service.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const endTimeStr = endObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         setMessages(prev => [...prev, {
            id: Date.now(),
            sender: 'isis',
@@ -836,10 +937,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                  ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br/>
                  Código: <strong>#{finalCodigo}</strong><br/><br/>
                  Resumo final:<br/>
-                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{new Date(new Date(`${date}T${time}:00`).getTime() + (service.duracao_minutos || 30) * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong><br/>
-                 ✨ <strong>{service.nome}</strong><br/>
-                 👤 <strong>{professional.nome}</strong><br/>
-                 💰 Valor: <strong>{valorFormatado}</strong><br/>
+                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{endTimeStr}</strong><br/><br/>
+                 {selections.map((sel, i) => (
+                   <React.Fragment key={i}>
+                     ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{sel.professional.nome}</strong><br/>
+                   </React.Fragment>
+                 ))}
+                 <br/>💰 Total: <strong>{totalFormatado}</strong><br/>
                  {empresa.endereco && (
                     <>📍 Endereço: <strong>{empresa.endereco}</strong></>
                  )}
