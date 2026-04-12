@@ -23,10 +23,8 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
   const [nomeAvulso, setNomeAvulso] = useState('');
   const [showQuickCli, setShowQuickCli] = useState(false);
   const [quickCli, setQuickCli] = useState({ nome: '', telefone: '' });
-  const [selections, setSelections] = useState<{ serviceCode: string, professionalCode: string }[]>([{ serviceCode: '', professionalCode: '' }]);
-  const [agendamentosDoDia, setAgendamentosDoDia] = useState<any[]>([]);
+  const [selections, setSelections] = useState<{ serviceCode: string, professionalCode: string, timeSlot: string, availableSlots: string[], loadingSlots: boolean }[]>([{ serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }]);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,22 +47,31 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         try { rawServices = JSON.parse(rawServices); } catch(e) { rawServices = null; }
       }
       
-      let initialSelections = [{ serviceCode: '', professionalCode: '' }];
+      let initialSelections = [{ serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }];
       
       if (agendamentoItem.profissionais_vinculo && Array.isArray(agendamentoItem.profissionais_vinculo) && agendamentoItem.profissionais_vinculo.length > 0) {
         initialSelections = agendamentoItem.profissionais_vinculo.map((v: any) => ({
           serviceCode: String(v.serviceCode),
-          professionalCode: String(v.professionalCode)
+          professionalCode: String(v.professionalCode),
+          timeSlot: v.timeSlot || ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          availableSlots: [],
+          loadingSlots: false
         }));
       } else if (rawServices && Array.isArray(rawServices) && rawServices.length > 0) {
           initialSelections = rawServices.map((s: any) => ({
             serviceCode: String(s),
-            professionalCode: String(agendamentoItem.codigo_profissional)
+            professionalCode: String(agendamentoItem.codigo_professional),
+            timeSlot: ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            availableSlots: [],
+            loadingSlots: false
           }));
       } else if (agendamentoItem.codigo_servico) {
           initialSelections = [{
             serviceCode: String(agendamentoItem.codigo_servico),
-            professionalCode: String(agendamentoItem.codigo_profissional)
+            professionalCode: String(agendamentoItem.codigo_profissional),
+            timeSlot: ini.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            availableSlots: [],
+            loadingSlots: false
           }];
       }
 
@@ -77,7 +84,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       });
       setNomeAvulso(extNome);
       setShowQuickCli(false);
-      setConfirmCancel(false);
       setSelections(initialSelections);
       setIsReadOnly(initialReadOnly);
     } else if (!agendamentoItem && isOpen && !loading) {
@@ -90,141 +96,114 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       });
       setNomeAvulso('');
       setShowQuickCli(false);
-      setConfirmCancel(false);
-      setSelections([{ serviceCode: '', professionalCode: user && !user.is_admin ? String(user.codigo) : '' }]);
+      let initialTime = '09:00';
+      if (baseHour !== null && baseHour !== undefined) {
+        initialTime = baseHour.toString().padStart(2, '0') + ':00';
+      }
+
+      setSelections([{ 
+        serviceCode: '', 
+        professionalCode: user && !user.is_admin ? String(user.codigo) : '', 
+        timeSlot: initialTime, 
+        availableSlots: [], 
+        loadingSlots: false 
+      }]);
       setIsReadOnly(false); // Sempre editável em criação
     }
   }, [agendamentoItem, isOpen, loading, baseDate, baseHour]);
 
-  useEffect(() => {
-    const fetchAgendamentosDia = async () => {
-      const involvedProfs = Array.from(new Set(selections.filter(s => s.professionalCode).map(s => String(s.professionalCode))));
-      if (involvedProfs.length === 0 || !form.data) {
-        setAgendamentosDoDia([]);
-        return;
-      }
-      const paramData = form.data;
-      const startOfDay = new Date(`${paramData}T00:00:00`).toISOString();
-      const endOfDay = new Date(`${paramData}T23:59:59`).toISOString();
 
-      // Busca agendamentos de QUALQUER um dos profissionais envolvidos para checar conflitos
-      const orFilter = involvedProfs.map(p => `codigo_profissional.eq.${p},profissionais_vinculo.cs.[{"professionalCode":"${p}"}]`).join(',');
+  // --- LÓGICA DE GERAÇÃO DE SLOTS (Vindo do Ísis Chat) ---
+  const generateAvailableSlots = async (date: string, serviceCode: string, professionalCode: string, suggestedStart?: string): Promise<string[]> => {
+    const service = servicos.find((s: any) => String(s.codigo) === String(serviceCode));
+    if (!service) return [];
 
-      const { data } = await supabase.from('agendamentos')
-        .select('id, data_hora_inicio, data_hora_fim, status, profissionais_vinculo, codigo_profissional')
-        .eq('codigo_empresa', user.codigo_empresa)
-        .or(orFilter)
-        .gte('data_hora_inicio', startOfDay)
-        .lte('data_hora_inicio', endOfDay);
+    const timeToMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
 
-      setAgendamentosDoDia(data || []);
-    };
-    fetchAgendamentosDia();
-  }, [JSON.stringify(selections.map(s => s.professionalCode)), form.data, user?.codigo_empresa]);
+    const [y, mo, d] = date.split('-').map(Number);
+    const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
+    const dayCfg = (configAgenda?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+    if (!dayCfg || !dayCfg.aberto) return [];
 
-  const getWorkingRange = () => {
-    let earliest = 9;
-    let latest = 18;
-    if (configAgenda?.horarios) {
-      const openDays = configAgenda.horarios.filter((h: any) => h.aberto);
-      if (openDays.length > 0) {
-        earliest = Math.min(...openDays.map((h: any) => {
-          if (!h.inicio) return 9;
-          const part = h.inicio.split(':')[0];
-          return part ? parseInt(part) : 9;
-        }));
-        const latestFromHours = openDays.map((h: any) => {
-          if (!h.fim) return 18;
-          const [hh, mm] = h.fim.split(':').map(Number);
-          return (hh || 18) + (mm > 0 ? 1 : 0);
-        });
-        latest = Math.max(...latestFromHours);
-      }
-    }
-    return { earliest, latest };
-  };
+    const startOfDay = `${date}T00:00:00`;
+    const endOfDay = `${date}T23:59:59`;
 
-  const getHorariosGerados = () => {
-    if (!form.data) return [];
-    const { earliest, latest } = getWorkingRange();
-    const slots = [];
-    for (let h = earliest; h < latest; h++) {
-      for (let min of [0, 15, 30, 45]) {
-        slots.push(`${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
-      }
+    const { data: appts } = await supabase.from('agendamentos')
+      .select('id, data_hora_inicio, data_hora_fim, status')
+      .eq('codigo_empresa', user.codigo_empresa)
+      .eq('codigo_profissional', professionalCode)
+      .neq('status', 'cancelado')
+      .gte('data_hora_inicio', startOfDay)
+      .lte('data_hora_inicio', endOfDay);
+
+    const now = new Date();
+    const duracaoSvc = service.duracao_minutos || 30;
+    const hasLunch = dayCfg.almoco_ativo;
+    const lunchStart = hasLunch ? timeToMin(dayCfg.almoco_inicio) : 0;
+    const lunchEnd   = hasLunch ? timeToMin(dayCfg.almoco_fim)   : 0;
+    let cur = timeToMin(dayCfg.inicio || '07:00');
+    const end = timeToMin(dayCfg.fim || '22:00');
+    const slots: string[] = [];
+
+    const minSuggested = suggestedStart ? timeToMin(suggestedStart) : 0;
+
+    while (cur + duracaoSvc <= end) {
+      if (cur < minSuggested) { cur += 15; continue; }
+      const tStr = minToTime(cur);
+      const slotStart = new Date(`${date}T${tStr}:00`);
+      const slotEnd   = new Date(slotStart.getTime() + duracaoSvc * 60000);
+
+      if (hasLunch && cur < lunchEnd && cur + duracaoSvc > lunchStart) { cur = lunchEnd; continue; }
+      
+      // Se for hoje, não mostrar horários passados (com margem de 10 min)
+      const isToday = new Date().toLocaleDateString('en-CA') === date;
+      if (isToday && slotStart.getTime() < now.getTime() - 600000) { cur += 15; continue; }
+
+      const conflict = (appts || []).some(ag => {
+        if (agendamentoItem && String(ag.id) === String(agendamentoItem.id)) return false;
+        const as = new Date(ag.data_hora_inicio), ae = new Date(ag.data_hora_fim);
+        return slotStart < ae && slotEnd > as;
+      });
+
+      if (!conflict) slots.push(tStr);
+      cur += 15;
     }
     return slots;
   };
 
-  const isSlotDisponivel = (slotTime: string) => {
-    const validSelections = selections.filter(s => s.serviceCode !== '' && s.professionalCode !== '');
-    if (validSelections.length === 0) return true;
-
-    const slotStart = new Date(`${form.data}T${slotTime}:00`);
-    let currentOffset = 0;
-
-    // Helper: Converte "HH:mm" para minutos totais desde 00:00
-    const tToMin = (t: string) => {
-      if (!t) return 0;
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + (m || 0);
-    };
-
-    // Obter configuração do dia da semana (0-6)
-    const dayOfWeek = slotStart.getDay();
-    const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === dayOfWeek);
-
-    for (const sel of validSelections) {
-      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
-      const duracao = s ? s.duracao_minutos : 0;
-      
-      const selStart = new Date(slotStart.getTime() + currentOffset * 60000);
-      const selEnd = new Date(selStart.getTime() + duracao * 60000);
-
-      // --- VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (Apenas se não for Admin) ---
-      if (!user?.is_admin && dayCfg) {
-          const sMin = selStart.getHours() * 60 + selStart.getMinutes();
-          const eMin = selEnd.getHours() * 60 + selEnd.getMinutes();
-          
-          const cfgIni = tToMin(dayCfg.inicio);
-          const cfgFim = tToMin(dayCfg.fim);
-
-          // 1. Fora do horário de abertura/fecho
-          if (!dayCfg.aberto || sMin < cfgIni || eMin > cfgFim) return false;
-
-          // 2. Sobreposição com almoço
-          if (dayCfg.almoco_ativo) {
-              const almIni = tToMin(dayCfg.almoco_inicio);
-              const almFim = tToMin(dayCfg.almoco_fim);
-              // Há sobreposição se o serviço começa antes do fim do almoço E termina depois do início do almoço
-              if (sMin < almFim && eMin > almIni) return false;
-          }
+  const triggerLoadSlots = async (index: number, svcCode: string, profCode: string, date: string, currentSelections: any[]) => {
+    if (!svcCode || !profCode || !date) return;
+    
+    setSelections(prev => prev.map((s, i) => i === index ? { ...s, loadingSlots: true } : s));
+    
+    let suggested: string | undefined = undefined;
+    if (index > 0) {
+      const prev = currentSelections[index - 1];
+      if (prev.timeSlot && prev.serviceCode) {
+        const prevSvc = servicos.find(s => String(s.codigo) === String(prev.serviceCode));
+        const dur = prevSvc ? (prevSvc.duracao_minutos || 0) : 0;
+        const [h, m] = prev.timeSlot.split(':').map(Number);
+        const totalMin = h * 60 + m + dur;
+        suggested = `${Math.floor(totalMin / 60).toString().padStart(2, '0')}:${(totalMin % 60).toString().padStart(2, '0')}`;
       }
-      
-      // --- VALIDAÇÃO DE CONFLITOS COM OUTROS AGENDAMENTOS ---
-      for (const ag of agendamentosDoDia) {
-        if (agendamentoItem && String(ag.id) === String(agendamentoItem.id)) continue;
-        if (ag.status === 'cancelado') continue;
-
-        const profsNoAg = [String(ag.codigo_profissional)];
-        if (ag.profissionais_vinculo && Array.isArray(ag.profissionais_vinculo)) {
-          ag.profissionais_vinculo.forEach((v: any) => profsNoAg.push(String(v.professionalCode)));
-        }
-
-        const isSameProf = profsNoAg.includes(String(sel.professionalCode));
-        if (!isSameProf) continue;
-
-        const agStart = new Date(ag.data_hora_inicio);
-        const agEnd = new Date(ag.data_hora_fim);
-        
-        if (selStart < agEnd && selEnd > agStart) return false;
-      }
-
-      currentOffset += duracao;
     }
 
-    return true;
+    const slots = await generateAvailableSlots(date, svcCode, profCode, suggested);
+    
+    setSelections(prev => prev.map((s, i) => {
+      if (i === index) {
+        let bestSlot = s.timeSlot;
+        // Se mudou o serviço/profissional e o slot atual não está na lista nova, ou se não tem slot
+        if (!bestSlot || !slots.includes(bestSlot)) {
+          bestSlot = slots.length > 0 ? (suggested && slots.includes(suggested) ? suggested : slots[0]) : '';
+        }
+        return { ...s, availableSlots: slots, loadingSlots: false, timeSlot: bestSlot };
+      }
+      return s;
+    }));
   };
+
 
   const loadDependencies = async () => {
     setLoading(true);
@@ -261,9 +240,9 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validSelections = selections.filter(s => s.serviceCode !== '' && s.professionalCode !== '');
-    if (!form.codigo_cliente || validSelections.length === 0 || !form.data || !form.hora) {
-      toast('Preencha as informações principais (Cliente, Serviço e Profissional).', 'error');
+    const validSelections = selections.filter(s => s.serviceCode !== '' && s.professionalCode !== '' && s.timeSlot !== '');
+    if (!form.codigo_cliente || validSelections.length === 0 || !form.data) {
+      toast('Preencha as informações principais (Cliente, Procedimentos e Data).', 'error');
       return;
     }
 
@@ -276,26 +255,21 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       finalObs = `👤 ${nomeAvulso} | ${finalObs}`;
     }
 
-    const startObj = new Date(`${form.data}T${form.hora}:00`);
-    
-    // Validação final de horário (Almoço, Fecho, Conflitos)
-    if (!isSlotDisponivel(form.hora)) {
-      toast('Este horário não está disponível (Almoço, Fechado ou Conflito).', 'error');
-      return;
-    }
-
     try {
-      // Gerar a lista de payloads para inserção (Fragmentação)
-      let currentStart = new Date(startObj);
+      // Gerar a lista de payloads para inserção (Fragmentação) baseado em cada TimeSlot
       const payloads: any[] = [];
       
-      for (const sel of validSelections) {
+      for (const sel of selections) {
+        if (!sel.serviceCode || !sel.professionalCode || !sel.timeSlot) continue;
+
         const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
         const duracao = s ? s.duracao_minutos : 15;
         const valor = s ? Number(s.valor || 0) : 0;
+        
+        const currentStart = new Date(`${form.data}T${sel.timeSlot}:00`);
         const currentEnd = new Date(currentStart.getTime() + duracao * 60000);
 
-        // Verificação de conflito específica para este fragmento
+        // Verificação rápida de conflito (apenas garantia extra, já validado pela geração de slots)
         const { data: conflitos } = await supabase.from('agendamentos')
           .select('id')
           .eq('codigo_empresa', user.codigo_empresa)
@@ -326,8 +300,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
           valor_total: valor,
           isis_criou: false
         });
-
-        currentStart = new Date(currentEnd); // Próximo serviço começa quando este termina
       }
 
       if (!agendamentoItem) {
@@ -350,11 +322,6 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
     }
   };
 
-  const handleCancelAppt = async () => {
-    const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
-    if (error) toast('Erro ao cancelar', 'error');
-    else { toast('Agendamento cancelado!', 'success'); onSaveSuccess(); onClose(); }
-  };
 
   const handleCancelApptAction = async () => {
     const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
@@ -369,323 +336,227 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
   if (!isOpen) return null;
 
+  const totalProcedimento = selections.reduce((acc, sel) => {
+    const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
+    return acc + (s ? Number(s.valor || 0) : 0);
+  }, 0);
+
   return (
     <>
       <style>{`
-      .resp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      @keyframes modalFadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .appointment-view-mode {
-        animation: modalFadeIn 0.3s ease-out forwards;
-      }
-      @media (max-width: 768px) { .resp-grid { grid-template-columns: 1fr; } }
-    `}</style>
+        .resp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @keyframes modalFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .appointment-view-mode {
+          animation: modalFadeIn 0.3s ease-out forwards;
+        }
+        @media (max-width: 768px) { .resp-grid { grid-template-columns: 1fr; } }
+        
+        .modal-card::-webkit-scrollbar { width: 6px; }
+        .modal-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+      `}</style>
+      
       <div className="modal-overlay" onClick={onClose} style={{ zIndex: 3000 }}>
-        <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95dvw', maxHeight: '90dvh', padding: '16px', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', maxWidth: '100%' }}>
-            <div>
-              <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
-              {agendamentoItem && (() => {
-                const totalVal = selections.reduce((acc, sel) => {
-                  const svc = servicos.find(s => String(s.codigo) === String(sel.serviceCode));
-                  return acc + (svc?.valor ? Number(svc.valor) : 0);
-                }, 0);
-                const val = totalVal > 0 ? totalVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
-                const stColor = form.status === 'cancelado' ? '#ef4444' : form.status === 'finalizado' ? '#10b981' : form.status === 'em andamento' ? '#f59e0b' : '#0ea5e9';
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', marginTop: '12px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      Das {new Date(agendamentoItem.data_hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às {new Date(agendamentoItem.data_hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '12px', backgroundColor: `${stColor}20`, color: stColor, textTransform: 'uppercase' }}>
-                        {form.status}
-                      </span>
-                      <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>
-                        {val}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
+        <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95dvw', maxHeight: '90dvh', padding: '24px', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', background: '#111827', borderRadius: '16px' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+            <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '1.4rem', fontWeight: 700 }}>{agendamentoItem ? `Agendamento #${agendamentoItem.codigo}` : 'Novo Agendamento na Grade'}</h3>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {!isReadOnly && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 500 }}>Total do Procedimento:</span>
+                  <span style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 700 }}>{totalProcedimento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                </div>
+              )}
+              <button className="settings-close-btn" onClick={onClose} style={{ margin: 0, padding: 0, background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}><IClose /></button>
             </div>
-            <button className="settings-close-btn" onClick={onClose}><IClose /></button>
           </div>
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)' }}>Mapeando dados da clínica...</p>
+            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>Carregando dados...</p>
           ) : isReadOnly ? (
             <div className="appointment-view-mode" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {/* Header: Cliente e Status */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Cliente</p>
-                  <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#fff', fontWeight: 700 }}>
-                    {form.codigo_cliente === 'avulso' ? (nomeAvulso || 'Cliente Sem Cadastro') : (clientes.find(c => String(c.id) === String(form.codigo_cliente))?.nome || 'Carregando...')}
+                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Cliente</p>
+                  <h2 style={{ margin: 0, fontSize: '1.6rem', color: '#fff', fontWeight: 700 }}>
+                    {form.codigo_cliente === 'avulso' ? (nomeAvulso || 'Cliente Sem Cadastro') : (clientes.find(c => String(c.id) === String(form.codigo_cliente))?.nome || 'Cliente')}
                   </h2>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                  <div style={{ 
-                    padding: '6px 12px', 
-                    borderRadius: '20px', 
-                    background: form.status === 'finalizado' ? '#10b98120' : form.status === 'em andamento' ? '#f59e0b20' : form.status === 'cancelado' ? '#ef444420' : '#0ea5e920',
-                    color: form.status === 'finalizado' ? '#10b981' : form.status === 'em andamento' ? '#f59e0b' : form.status === 'cancelado' ? '#ef4444' : '#0ea5e9',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    border: `1px solid ${form.status === 'finalizado' ? '#10b98140' : form.status === 'em andamento' ? '#f59e0b40' : form.status === 'cancelado' ? '#ef444440' : '#0ea5e940'}`
-                  }}>
-                    {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
-                  </div>
+                <div style={{ padding: '6px 12px', borderRadius: '20px', background: form.status === 'finalizado' ? '#10b98120' : '#0ea5e920', color: form.status === 'finalizado' ? '#10b981' : '#0ea5e9', fontSize: '0.85rem', fontWeight: 600 }}>
+                  {form.status.toUpperCase()}
                 </div>
               </div>
 
-              {/* Data e Hora */}
-              <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <div style={{ background: 'var(--primary-color)', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ background: '#3b82f6', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#fff' }}>
+                   <p style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
                     {new Date(form.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Horário de início: <strong>{form.hora}h</strong></p>
+                   </p>
+                   <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>Início: <strong>{form.hora}</strong></p>
                 </div>
               </div>
 
-              {/* Lista de Serviços */}
-              <div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Serviços Selecionados</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {selections.map((sel: any, idx: number) => {
-                    const servName = servicos.find(s => String(s.codigo) === String(sel.serviceCode))?.nome || 'Serviço não encontrado';
-                    const profName = profissionais.find(u => String(u.codigo) === String(sel.professionalCode))?.nome || 'Profissional não definido';
-                    return (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 600, color: '#fff' }}>{servName}</span>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Executado por: {profName}</span>
-                        </div>
-                        <div style={{ color: 'var(--primary-color)', fontSize: '0.8rem', fontWeight: 600 }}>OK</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Observações */}
-              {form.observacao && (
-                <div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Observações</p>
-                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px dotted var(--border-color)', color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                    {form.observacao}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {selections.map((sel: any, idx: number) => (
+                  <div key={idx} style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>{servicos.find(s => String(s.codigo) === String(sel.serviceCode))?.nome}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{profissionais.find(p => String(p.codigo) === String(sel.professionalCode))?.nome} - {sel.timeSlot}</div>
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
 
-              {/* Registro de Criação */}
-              {agendamentoItem?.created_at && (
-                <div style={{ marginTop: 'auto', padding: '12px 16px', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Agendamento registrado em: <strong style={{ color: '#cbd5e1' }}>{new Date(agendamentoItem.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
-                  </p>
-                </div>
-              )}
-
-              {/* Ações do Modo de Visualização */}
-
-              {/* Ações do Modo de Visualização */}
-              <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                <button type="button" onClick={() => setIsReadOnly(false)} className="btn-save" style={{ margin: 0, flex: '1 1 100%', height: '54px', fontSize: '1.1rem', background: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', border: 'none', borderRadius: '8px' }}>
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                  Editar Agendamento
-                </button>
-                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff', borderRadius: '8px', cursor: 'pointer' }}>Fechar</button>
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button type="button" onClick={() => setIsReadOnly(false)} style={{ width: '100%', height: '50px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>Editar Agendamento</button>
+                <button type="button" onClick={onClose} style={{ width: '100%', height: '40px', background: 'transparent', color: '#fff', border: '1px solid #374151', borderRadius: '12px', cursor: 'pointer' }}>Fechar</button>
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSave} className="form-grid full" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '100%', boxSizing: 'border-box', pointerEvents: 'auto', opacity: 1 }}>
-              <div className="resp-grid" style={{ maxWidth: '100%' }}>
-                <div className="form-group-flat full" style={{ gridColumn: '1 / -1', maxWidth: '100%' }}>
-                  <label>Cliente (Base)</label>
-                  <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-                    <select value={form.codigo_cliente} onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }} required disabled={isReadOnly} style={{ flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', boxSizing: 'border-box', textOverflow: 'ellipsis' }}>
-                      <option value="">-- Selecionar Cliente --</option>
-                      <option value="avulso">Cliente Sem Cadastro</option>
-                      {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              <div className="form-group-flat">
+                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Cliente (Base)</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <select 
+                    value={form.codigo_cliente} 
+                    onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }} 
+                    required 
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', fontSize: '1rem' }}
+                  >
+                    <option value="">-- Selecionar Cliente --</option>
+                    <option value="avulso">Cliente Sem Cadastro</option>
+                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setShowQuickCli(!showQuickCli)} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '48px', height: '48px', fontSize: '1.5rem', cursor: 'pointer' }}>+</button>
+                </div>
+                
+                {form.codigo_cliente === 'avulso' && (
+                  <input type="text" placeholder="Nome do Cliente" value={nomeAvulso} onChange={e => setNomeAvulso(e.target.value)} required style={{ width: '100%', marginTop: '12px', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px dashed #374151' }} />
+                )}
+
+                {showQuickCli && (
+                  <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(56, 189, 248, 0.05)', borderRadius: '12px', border: '1px solid #0ea5e9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <input type="text" placeholder="Nome *" value={quickCli.nome} onChange={e => setQuickCli({ ...quickCli, nome: e.target.value })} style={{ padding: '10px', background: '#111827', border: '1px solid #374151', borderRadius: '8px', color: '#fff' }} />
+                    <input type="text" placeholder="WhatsApp" value={quickCli.telefone} onChange={e => setQuickCli({ ...quickCli, telefone: e.target.value })} style={{ padding: '10px', background: '#111827', border: '1px solid #374151', borderRadius: '8px', color: '#fff' }} />
+                    <button type="button" onClick={handleQuickSaveCli} style={{ background: '#0ea5e9', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 600 }}>Salvar Cliente</button>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group-flat">
+                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Data Escolhida</span>
+                  <span style={{ color: '#0ea5e9', fontWeight: 600, textTransform: 'capitalize' }}>
+                    {form.data ? new Date(form.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long' }) : ''}
+                  </span>
+                </label>
+                <input 
+                  type="date" 
+                  value={form.data} 
+                  onChange={async (e) => {
+                    const newVal = e.target.value;
+                    setForm({ ...form, data: newVal });
+                    for (let i = 0; i < selections.length; i++) {
+                      if (selections[i].serviceCode && selections[i].professionalCode) {
+                        await triggerLoadSlots(i, selections[i].serviceCode, selections[i].professionalCode, newVal, selections);
+                      }
+                    }
+                  }} 
+                  required 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', fontSize: '1.2rem', fontWeight: 700 }}
+                />
+              </div>
+
+              <div className="form-group-flat">
+                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Procedimentos (Serviço + Profissional)</label>
+                {selections.map((sel, index) => (
+                  <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid #374151' }}>
+                    <select value={sel.serviceCode} onChange={async (e) => {
+                      const val = e.target.value;
+                      const newSelections = [...selections];
+                      newSelections[index].serviceCode = val;
+                      setSelections(newSelections);
+                      if (val && newSelections[index].professionalCode) await triggerLoadSlots(index, val, newSelections[index].professionalCode, form.data, newSelections);
+                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
+                      <option value="">Serviço</option>
+                      {servicos.map(s => <option key={s.codigo} value={s.codigo}>{s.nome}</option>)}
                     </select>
-                    <button type="button" onClick={() => { setShowQuickCli(!showQuickCli); setForm({ ...form, codigo_cliente: '' }); }} style={{ background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 16px', fontSize: '1.2rem', cursor: 'pointer', flexShrink: 0 }} title="Cadastrar Novo Cliente Rápidamente">+</button>
+
+                    <select value={sel.professionalCode} onChange={async (e) => {
+                      const val = e.target.value;
+                      const newSelections = [...selections];
+                      newSelections[index].professionalCode = val;
+                      setSelections(newSelections);
+                      if (val && newSelections[index].serviceCode) await triggerLoadSlots(index, newSelections[index].serviceCode, val, form.data, newSelections);
+                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
+                      <option value="">Profissional</option>
+                      {profissionais.map(p => <option key={p.codigo} value={p.codigo}>{p.nome}</option>)}
+                    </select>
+
+                    <select value={sel.timeSlot} onChange={e => {
+                      const newSelections = [...selections];
+                      newSelections[index].timeSlot = e.target.value;
+                      setSelections(newSelections);
+                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
+                      <option value="">Hora</option>
+                      {sel.availableSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+
+                    {index === selections.length - 1 ? (
+                      <button type="button" onClick={() => setSelections([...selections, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer' }}>+</button>
+                    ) : (
+                      <button type="button" onClick={() => {
+                        const newS = [...selections];
+                        newS.splice(index, 1);
+                        setSelections(newS);
+                      }} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer' }}>x</button>
+                    )}
                   </div>
-                  {form.codigo_cliente === 'avulso' && (
-                    <div style={{ marginTop: '12px', maxWidth: '100%' }}>
-                      <input type="text" placeholder="Nome do Cliente" value={nomeAvulso} onChange={e => setNomeAvulso(e.target.value)} required style={{ width: '100%', maxWidth: '100%', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px dashed var(--border-color)', outline: 'none', boxSizing: 'border-box' }} />
-                    </div>
-                  )}
-
-                  {showQuickCli && (
-                    <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--primary-color)', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', maxWidth: '100%', boxSizing: 'border-box' }}>
-                      <strong style={{ fontSize: '0.95rem', color: 'var(--primary-color)' }}>Novo Cadastro Rápido</strong>
-                      <input type="text" placeholder="Nome Completo *" value={quickCli.nome} onChange={e => setQuickCli({ ...quickCli, nome: e.target.value })} style={{ width: '100%', maxWidth: '100%', padding: '10px', borderRadius: '6px', background: '#00000030', color: '#fff', border: 'none', outline: 'none', boxSizing: 'border-box' }} />
-                      <input type="text" placeholder="Telefone ou WhatsApp" value={quickCli.telefone} onChange={e => setQuickCli({ ...quickCli, telefone: e.target.value })} style={{ width: '100%', maxWidth: '100%', padding: '10px', borderRadius: '6px', background: '#00000030', color: '#fff', border: 'none', outline: 'none', boxSizing: 'border-box' }} />
-                      <button type="button" onClick={handleQuickSaveCli} style={{ background: 'var(--primary-color)', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Cadastrar</button>
-                      <button type="button" onClick={() => setShowQuickCli(false)} style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>x</button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group-flat full" style={{ maxWidth: '100%' }}>
-                  <label>Procedimentos (Serviço + Profissional)</label>
-                  {selections.map((sel, index) => (
-                    <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'start', width: '100%', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                      <select value={sel.serviceCode} onChange={e => {
-                        const val = e.target.value;
-                        const newSelections = [...selections];
-                        newSelections[index].serviceCode = val;
-                        if (index > 0 && !newSelections[index].professionalCode && selections[0].professionalCode) {
-                          const s = servicos.find(sv => String(sv.codigo) === String(val));
-                          if (s && (s.profissionais_habilitados || []).includes(Number(selections[0].professionalCode))) {
-                            newSelections[index].professionalCode = selections[0].professionalCode;
-                          }
-                        }
-                        setSelections(newSelections);
-                      }} required={index === 0} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.9rem', outline: 'none' }}>
-                        <option value="">-- Serviço --</option>
-                        {servicos.map(s => <option key={s.codigo} value={s.codigo}>{s.nome}</option>)}
-                      </select>
-
-                      <select value={sel.professionalCode} onChange={e => {
-                        const newSelections = [...selections];
-                        newSelections[index].professionalCode = e.target.value;
-                        setSelections(newSelections);
-                      }} disabled={!sel.serviceCode} required={index === 0} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.9rem', outline: 'none', opacity: sel.serviceCode ? 1 : 0.5 }}>
-                        <option value="">{sel.serviceCode ? '-- Profissional --' : 'Escolha o Serviço'}</option>
-                        {profissionais.map(p => {
-                          const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
-                          const isHabilitado = s ? (s.profissionais_habilitados || []).includes(p.codigo) : true;
-                          if (!isHabilitado && sel.serviceCode) return null;
-                          if (user && !user.is_admin && p.codigo !== user.codigo) return null;
-                          return <option key={p.codigo} value={p.codigo}>{p.nome}</option>;
-                        })}
-                      </select>
-
-                      {index === selections.length - 1 ? (
-                        <button type="button" onClick={() => setSelections([...selections, { serviceCode: '', professionalCode: '' }])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '6px', width: '38px', height: '38px', fontSize: '1.2rem', cursor: 'pointer' }}>+</button>
-                      ) : (
-                        <button type="button" onClick={() => {
-                          const newSelections = [...selections];
-                          newSelections.splice(index, 1);
-                          setSelections(newSelections);
-                        }} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', width: '38px', height: '38px', fontSize: '1rem', cursor: 'pointer' }}>x</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="form-group-flat full">
-                  <label>Data Escolhida</label>
-                  <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-                </div>
-
-                <div className="form-group-flat full">
-                  <label>Hora de Chegada (Início)</label>
-                  <select value={form.hora} onChange={e => setForm({ ...form, hora: e.target.value })} disabled={selections.every(s => !s.professionalCode) || !form.data || selections.every(s => !s.serviceCode)} required style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}>
-                    <option value="">{(selections.every(s => !s.professionalCode) || selections.every(s => !s.serviceCode)) ? 'Selecione Profissional e Serviço' : '-- Escolha o Horário --'}</option>
-                    {selections.some(s => s.professionalCode) && selections.some(s => s.serviceCode) && form.data && getHorariosGerados().map(slot => {
-                      const isAval = isSlotDisponivel(slot);
-                      
-                      // Lógica idêntica ao isSlotDisponivel para detectar especificamente o almoço para estilo visual
-                      const tToMin = (t: string) => { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
-                      const dayOfWeek = new Date(`${form.data}T00:00:00`).getDay();
-                      const dayCfg = configAgenda?.horarios?.find((h: any) => h.dia === dayOfWeek);
-                      const sMin = tToMin(slot);
-                      const isAlmoco = dayCfg?.almoco_ativo && sMin >= tToMin(dayCfg.almoco_inicio) && sMin < tToMin(dayCfg.almoco_fim);
-                      
-                      return (
-                        <option 
-                          key={slot} 
-                          value={slot} 
-                          disabled={!isAval}
-                          style={
-                            isAlmoco 
-                              ? { backgroundColor: '#f59e0b40', color: '#64748b' } 
-                              : (!isAval ? { backgroundColor: '#ef444440', color: '#64748b' } : {})
-                          }
-                        >
-                          {slot} {isAlmoco ? ' (Almoço)' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {selections.some(s => s.serviceCode) && (
-                  <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>Total do Procedimento:</span>
-                    <span style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>
-                      {selections.reduce((acc, sel) => {
-                        const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
-                        return acc + (s ? Number(s.valor || 0) : 0);
-                      }, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  </div>
-                )}
-
-                {agendamentoItem?.created_at && (
-                  <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      🕒 Registrado no sistema em: <span style={{ color: '#fff' }}>{new Date(agendamentoItem.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    </p>
-                  </div>
-                )}
+                ))}
               </div>
 
-              <div className="form-group-flat full">
-                <label>Observação Interna</label>
-                <textarea value={form.observacao || ''} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="adiciona uma observação" rows={2} style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', resize: 'vertical', outline: 'none' }} />
+              <div className="form-group-flat">
+                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Observação Interna</label>
+                <textarea value={form.observacao} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="adiciona uma observação" rows={2} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', resize: 'none' }} />
               </div>
 
-                <div className="form-group-flat full">
-                  <label>Status do Agendamento</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}>
-                    <option value="agendado">Agendado</option>
-                    <option value="em andamento">Em Andamento</option>
-                    <option value="finalizado">Finalizado</option>
-                    <option value="cancelado">Cancelado</option>
-                  </select>
-                </div>
+              <div className="form-group-flat">
+                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Status do Agendamento</label>
+                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151' }}>
+                  <option value="agendado">Agendado</option>
+                  <option value="em andamento">Em Andamento</option>
+                  <option value="finalizado">Finalizado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
 
-               <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', pointerEvents: 'auto' }}>
-                <button type="submit" className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', height: '48px', fontSize: '1rem' }}>{agendamentoItem ? 'Salvar alterações' : 'Confirmar Novo Agendamento'}</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+                <button type="submit" style={{ width: '100%', height: '56px', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>Confirmar Novo Agendamento</button>
+                <button type="button" onClick={onClose} style={{ width: '100%', height: '48px', background: 'transparent', color: '#fff', border: '1px solid #374151', borderRadius: '12px', fontSize: '1rem', cursor: 'pointer' }}>Cancelar</button>
                 {agendamentoItem && (
-                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="btn-save" style={{ margin: 0, flex: '1 1 calc(50% - 6px)', background: '#ef4444', height: '48px', color: '#fff', border: 'none' }}>Cancelar Agendamento</button>
+                  <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} style={{ width: '100%', height: '40px', background: '#ef444410', color: '#ef4444', border: '1px solid #ef444430', borderRadius: '12px', fontSize: '0.85rem', marginTop: '10px' }}>Excluir Agendamento</button>
                 )}
-                <button type="button" onClick={onClose} className="btn-save" style={{ margin: 0, flex: '1 1 100%', background: 'transparent', border: '1px solid var(--border-color)', height: '48px', color: '#fff' }}>Cancelar</button>
               </div>
             </form>
           )}
         </div>
 
-        {confirmCancel && (
-          <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)' }} onClick={() => setConfirmCancel(false)}>
-            <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px 24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Desmarcar Horário?</h3>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => setConfirmCancel(false)} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: 'transparent', color: '#fff', border: '1px solid var(--border-color)', minWidth: '0' }}>Voltar</button>
-                <button type="button" onClick={handleCancelAppt} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: '#ef4444', color: '#fff', border: 'none', minWidth: '0' }}>Sim, Cancelar</button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {isDeleteConfirmOpen && (
-          <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)' }} onClick={() => setIsDeleteConfirmOpen(false)}>
-            <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px 24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-              <h3 style={{ color: '#ef4444', margin: '0 0 12px 0' }}>Cancelar Agendamento?</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>O agendamento continuará registrado no sistema, porém o horário será liberado na agenda.</p>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => setIsDeleteConfirmOpen(false)} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: 'transparent', color: '#fff', border: '1px solid var(--border-color)', minWidth: '0' }}>Voltar</button>
-                <button type="button" onClick={handleCancelApptAction} className="btn-save" style={{ margin: 0, flex: '1 1 140px', background: '#ef4444', color: '#fff', border: 'none', minWidth: '0' }}>Sim, Cancelar</button>
+          <div className="modal-overlay" style={{ zIndex: 4000, background: 'rgba(0,0,0,0.8)' }} onClick={() => setIsDeleteConfirmOpen(false)}>
+            <div className="modal-card" style={{ maxWidth: '400px', width: '90%', padding: '32px', textAlign: 'center', background: '#111827', borderRadius: '16px' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ color: '#ef4444', margin: '0 0 16px 0' }}>Excluir Agendamento?</h3>
+              <p style={{ color: '#9ca3af', marginBottom: '24px' }}>Esta ação não pode ser desfeita.</p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button onClick={() => setIsDeleteConfirmOpen(false)} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #374151', color: '#fff', borderRadius: '8px' }}>Voltar</button>
+                <button onClick={handleCancelApptAction} style={{ flex: 1, padding: '12px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '8px' }}>Sim, Excluir</button>
               </div>
             </div>
           </div>
