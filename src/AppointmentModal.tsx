@@ -272,7 +272,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
 
     if (finalClienteId === 'avulso') {
       if (!nomeAvulso) return toast('Digite o nome do cliente sem cadastro!', 'error');
-      finalClienteId = 0; 
+      finalClienteId = 0;
       finalObs = `👤 ${nomeAvulso} | ${finalObs}`;
     }
 
@@ -284,62 +284,65 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
       return;
     }
 
-    const totalPrice = validSelections.reduce((acc: number, sel) => {
-      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
-      return acc + (s ? Number(s.valor || 0) : 0);
-    }, 0);
-
-    const totalDuration = validSelections.reduce((acc: number, sel) => {
-      const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
-      return acc + (s ? s.duracao_minutos : 0);
-    }, 0);
-    const endObj = new Date(startObj.getTime() + totalDuration * 60000);
-
     try {
-      const involvedProfs = Array.from(new Set(validSelections.map(s => s.professionalCode)));
-      for (const pCode of involvedProfs) {
+      // Gerar a lista de payloads para inserção (Fragmentação)
+      let currentStart = new Date(startObj);
+      const payloads: any[] = [];
+      
+      for (const sel of validSelections) {
+        const s = servicos.find(sv => String(sv.codigo) === String(sel.serviceCode));
+        const duracao = s ? s.duracao_minutos : 15;
+        const valor = s ? Number(s.valor || 0) : 0;
+        const currentEnd = new Date(currentStart.getTime() + duracao * 60000);
+
+        // Verificação de conflito específica para este fragmento
         const { data: conflitos } = await supabase.from('agendamentos')
-          .select('id, profissionais_vinculo')
+          .select('id')
           .eq('codigo_empresa', user.codigo_empresa)
           .neq('status', 'cancelado')
-          .or(`codigo_profissional.eq.${pCode},profissionais_vinculo.cs.[{"professionalCode":"${pCode}"}]`)
-          .lt('data_hora_inicio', endObj.toISOString())
-          .gt('data_hora_fim', startObj.toISOString());
+          .or(`codigo_profissional.eq.${sel.professionalCode},profissionais_vinculo.cs.[{"professionalCode":"${sel.professionalCode}"}]`)
+          .lt('data_hora_inicio', currentEnd.toISOString())
+          .gt('data_hora_fim', currentStart.toISOString());
 
         const isConflict = conflitos && conflitos.some((c: any) => !agendamentoItem || c.id !== agendamentoItem.id);
         if (isConflict) {
-          const profName = profissionais.find(p => String(p.codigo) === String(pCode))?.nome || 'Um profissional';
-          toast(`⛔ Conflito! ${profName} está ocupado nesse intervalo.`, 'error');
+          const profName = profissionais.find(p => String(p.codigo) === String(sel.professionalCode))?.nome || 'Um profissional';
+          const servName = s?.nome || 'Serviço';
+          toast(`⛔ Conflito no serviço "${servName}"! ${profName} está ocupado nesse intervalo.`, 'error');
           return;
         }
-      }
 
-      const payload = {
-        codigo_empresa: user.codigo_empresa,
-        codigo_cliente: finalClienteId,
-        codigo_profissional: validSelections[0].professionalCode,
-        codigo_servico: validSelections[0].serviceCode,
-        servicos_selecionados: JSON.stringify(validSelections.map(s => s.serviceCode)),
-        profissionais_vinculo: validSelections,
-        data_hora_inicio: startObj.toISOString(),
-        data_hora_fim: endObj.toISOString(),
-        status: form.status,
-        observacao: finalObs,
-        valor_total: totalPrice,
-        isis_criou: false
-      };
+        payloads.push({
+          codigo_empresa: user.codigo_empresa,
+          codigo_cliente: finalClienteId,
+          codigo_profissional: sel.professionalCode,
+          codigo_servico: sel.serviceCode,
+          servicos_selecionados: JSON.stringify([sel.serviceCode]),
+          profissionais_vinculo: [sel],
+          data_hora_inicio: currentStart.toISOString(),
+          data_hora_fim: currentEnd.toISOString(),
+          status: form.status,
+          observacao: finalObs,
+          valor_total: valor,
+          isis_criou: false
+        });
+
+        currentStart = new Date(currentEnd); // Próximo serviço começa quando este termina
+      }
 
       if (!agendamentoItem) {
-        const { data: allAgend } = await supabase.from('agendamentos').select('codigo', { count: 'exact', head: false }).eq('codigo_empresa', user.codigo_empresa);
-        const nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
-        const { error } = await supabase.from('agendamentos').insert({ codigo: nextCod, ...payload });
+        const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', user.codigo_empresa);
+        let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
+        
+        const finalPayloads = payloads.map(p => ({ ...p, codigo: nextCod++ }));
+        const { error } = await supabase.from('agendamentos').insert(finalPayloads);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('agendamentos').update(payload).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
+        const { error } = await supabase.from('agendamentos').update(payloads[0]).eq('id', agendamentoItem.id).eq('codigo_empresa', user.codigo_empresa);
         if (error) throw error;
       }
 
-      toast(agendamentoItem ? 'Agendamento atualizado!' : 'Agendamento confirmado!', 'success');
+      toast(agendamentoItem ? 'Agendamento atualizado!' : 'Agendamentos confirmados!', 'success');
       onSaveSuccess();
       onClose();
     } catch (err: any) {
