@@ -766,57 +766,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
   };
 
 
-     setIsTyping(true);
-     setTimeout(() => {
-        setIsTyping(false);
-        const currentEditingAg = editingAg || editingAgRef.current;
-        const totalDuration = selections.reduce((acc, s) => acc + (s.service.duracao_minutos || 30), 0);
-        const endTime = new Date(new Date(`${date}T${time}:00`).getTime() + totalDuration * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
-        const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-        setMessages(prev => [...prev, {
-           id: Date.now(),
-           sender: 'isis',
-           time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: (
-              <>
-                 {currentEditingAg && <div style={{ marginBottom: '8px', fontSize: '0.85rem', opacity: 0.9 }}>📍 Editando Agendamento: <strong>#{currentEditingAg.codigo}</strong></div>}
-                 Confirmando seu agendamento:<br/><br/>
-                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{endTime}</strong><br/><br/>
-                 {selections.map((sel, i) => (
-                   <React.Fragment key={i}>
-                     ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{sel.professional.nome}</strong><br/>
-                   </React.Fragment>
-                 ))}
-                 <br/>💰 Total: <strong>{totalFormatado}</strong><br/><br/>
-                 Posso confirmar?
-              </>
-           ),
-           actions: (
-              <div className="action-buttons-grid">
-                 <button className="chat-action-btn pri" type="button" onClick={() => { 
-                    clearLastIsisActions(); 
-                    addUserMessage('Sim, pode confirmar! ✅'); 
-                    handleCompleteAppointment(selections, date, time);
-                 }}>✅ Confirmar agendamento</button>
-                 <button className="chat-action-btn" type="button" onClick={() => { 
-                     clearLastIsisActions(); 
-                     addUserMessage('✏️ Editar agendamento'); 
-                     handleServiceSelectionFlow('Qual serviço você quer?'); 
-                  }}>✏️ Editar agendamento</button>
-                  <button className="chat-action-btn cancel-btn" type="button" onClick={() => { 
-                     clearLastIsisActions(); 
-                     addUserMessage('❌ Cancelar agendamento'); 
-                     showMenu('Agendamento cancelado. Como posso te ajudar agora?'); 
-                  }}>❌ Cancelar agendamento</button>
-              </div>
-           )
-        }]);
-        setTimeout(() => scrollToBottom('smooth'), 100);
-     }, 1200);
-  };
-
   const handleCompleteAppointment = async (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
      setIsTyping(true);
 
@@ -906,7 +855,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                  ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br/>
                  Código: <strong>#{finalCodigo}</strong><br/><br/>
                  Resumo final:<br/>
-                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{time}</strong> às <strong>{endTimeStr}</strong><br/><br/>
+                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{selections[0].timeSlot}</strong> às <strong>{endTimeStr}</strong><br/><br/>
                  {selections.map((sel, i) => (
                    <React.Fragment key={i}>
                      ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{sel.professional.nome}</strong><br/>
