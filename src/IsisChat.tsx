@@ -12,65 +12,65 @@ const IArrowLeft = () => <svg width="20" height="20" fill="none" stroke="current
 const IArrowRight = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>;
 
 const Calendar = ({ value, onChange, onClose }: any) => {
-  const [viewDate, setViewDate] = useState(new Date());
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+   const [viewDate, setViewDate] = useState(new Date());
+   const today = new Date();
+   today.setHours(0, 0, 0, 0);
 
-  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-  const changeMonth = (offset: number) => {
-    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
-  };
+   const changeMonth = (offset: number) => {
+      setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
+   };
 
-  const days = [];
-  const totalDays = daysInMonth(viewDate.getFullYear(), viewDate.getMonth());
-  const startOffset = firstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
+   const days = [];
+   const totalDays = daysInMonth(viewDate.getFullYear(), viewDate.getMonth());
+   const startOffset = firstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
 
-  for (let i = 0; i < startOffset; i++) days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
-  for (let i = 1; i <= totalDays; i++) {
-    const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), i);
-    const isPast = d < today;
-    const isSelected = value === d.toISOString().split('T')[0];
-    const isToday = d.getTime() === today.getTime();
+   for (let i = 0; i < startOffset; i++) days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+   for (let i = 1; i <= totalDays; i++) {
+      const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), i);
+      const isPast = d < today;
+      const isSelected = value === d.toISOString().split('T')[0];
+      const isToday = d.getTime() === today.getTime();
 
-    days.push(
-      <div 
-        key={i} 
-        className={`calendar-day ${isPast ? 'disabled' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
-        onClick={() => !isPast && (onChange(d.toISOString().split('T')[0]), onClose())}
-      >
-        {i}
+      days.push(
+         <div
+            key={i}
+            className={`calendar-day ${isPast ? 'disabled' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
+            onClick={() => !isPast && (onChange(d.toISOString().split('T')[0]), onClose())}
+         >
+            {i}
+         </div>
+      );
+   }
+
+   return (
+      <div className="custom-calendar" onClick={e => e.stopPropagation()}>
+         <div className="calendar-header">
+            <button type="button" onClick={() => changeMonth(-1)}><IArrowLeft /></button>
+            <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
+            <button type="button" onClick={() => changeMonth(1)}><IArrowRight /></button>
+         </div>
+         <div className="calendar-weekdays">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d}>{d}</div>)}
+         </div>
+         <div className="calendar-grid">
+            {days}
+         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="custom-calendar" onClick={e => e.stopPropagation()}>
-      <div className="calendar-header">
-        <button type="button" onClick={() => changeMonth(-1)}><IArrowLeft /></button>
-        <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
-        <button type="button" onClick={() => changeMonth(1)}><IArrowRight /></button>
-      </div>
-      <div className="calendar-weekdays">
-        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d}>{d}</div>)}
-      </div>
-      <div className="calendar-grid">
-        {days}
-      </div>
-    </div>
-  );
+   );
 };
 
 const getPlainText = (node: any): string => {
-  if (!node) return '';
-  if (typeof node === 'string') return node;
-  if (typeof node === 'number') return String(node);
-  if (Array.isArray(node)) return node.map(getPlainText).join('');
-  if (node.props && node.props.children) return getPlainText(node.props.children);
-  return 'Mensagem com elementos visuais';
+   if (!node) return '';
+   if (typeof node === 'string') return node;
+   if (typeof node === 'number') return String(node);
+   if (Array.isArray(node)) return node.map(getPlainText).join('');
+   if (node.props && node.props.children) return getPlainText(node.props.children);
+   return 'Mensagem com elementos visuais';
 };
 
 const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void }) => {
@@ -79,311 +79,307 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
    const [comentario, setComentario] = useState('');
 
    return (
-     <div className="registration-form" style={{ marginTop: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-        <p style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 600, color: '#fff', textAlign: 'center' }}>Como você avalia nossa conversa?</p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
-           {[1,2,3,4,5].map(star => {
+      <div className="registration-form" style={{ marginTop: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+         <p style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 600, color: '#fff', textAlign: 'center' }}>Como você avalia nossa conversa?</p>
+         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
+            {[1, 2, 3, 4, 5].map(star => {
                const isActive = (hover || rating) >= star;
                return (
-                 <span 
-                    key={star}
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHover(star)}
-                    onMouseLeave={() => setHover(0)}
-                    style={{ 
-                       fontSize: '2.5rem', 
-                       cursor: 'pointer', 
-                       color: isActive ? '#fbbf24' : 'transparent', 
-                       transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', 
-                       userSelect: 'none',
-                       transform: isActive ? 'scale(1.25) translateY(-4px)' : 'scale(1)',
-                       textShadow: isActive ? '0 0 16px rgba(251, 191, 36, 0.6), 0 0 32px rgba(251, 191, 36, 0.4)' : '0 0 4px rgba(255,255,255,0.05)',
-                       WebkitTextStroke: isActive ? 'none' : '1.5px #52525b',
-                       margin: '0 4px',
-                       display: 'inline-block'
-                    }}
-                 >
-                    ★
-                 </span>
+                  <span
+                     key={star}
+                     onClick={() => setRating(star)}
+                     onMouseEnter={() => setHover(star)}
+                     onMouseLeave={() => setHover(0)}
+                     style={{
+                        fontSize: '2.5rem',
+                        cursor: 'pointer',
+                        color: isActive ? '#fbbf24' : 'transparent',
+                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        userSelect: 'none',
+                        transform: isActive ? 'scale(1.25) translateY(-4px)' : 'scale(1)',
+                        textShadow: isActive ? '0 0 16px rgba(251, 191, 36, 0.6), 0 0 32px rgba(251, 191, 36, 0.4)' : '0 0 4px rgba(255,255,255,0.05)',
+                        WebkitTextStroke: isActive ? 'none' : '1.5px #52525b',
+                        margin: '0 4px',
+                        display: 'inline-block'
+                     }}
+                  >
+                     ★
+                  </span>
                );
-           })}
-        </div>
-        {rating > 0 && (
-           <div className="form-group" style={{ animation: 'slideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)' }}>
-              <div style={{ marginBottom: '16px', textAlign: 'center', color: '#f59e0b', fontWeight: 500, fontSize: '0.9rem' }}>
-                 {rating === 1 && "Poxa, o que deu errado? 😕"}
-                 {rating === 2 && "Podemos melhorar! O que faltou? 🤔"}
-                 {rating === 3 && "Obrigado! Como chegar a 5 estrelas? 😊"}
-                 {rating === 4 && "Quase lá! Muito obrigado! ⭐"}
-                 {rating === 5 && "Incrível! Fico muito feliz! 🌟"}
-              </div>
-              <textarea 
-                 placeholder="Deixe um comentário curto (opcional)"
-                 value={comentario}
-                 onChange={e => setComentario(e.target.value)}
-                 style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', minHeight: '80px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'none', fontSize: '0.95rem' }}
-              />
-              <button 
-                 type="button" 
-                 className="chat-action-btn pri"
-                 onClick={() => onSubmit(rating, comentario)}
-                 style={{ marginTop: '16px', width: '100%', background: '#0ea5e9', border: 'none', boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)', padding: '14px', fontSize: '1rem' }}
-              >
-                 Enviar Avaliação
-              </button>
-           </div>
-        )}
-     </div>
+            })}
+         </div>
+         {rating > 0 && (
+            <div className="form-group" style={{ animation: 'slideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)' }}>
+               <div style={{ marginBottom: '16px', textAlign: 'center', color: '#f59e0b', fontWeight: 500, fontSize: '0.9rem' }}>
+                  {rating === 1 && "Poxa, o que deu errado? 😕"}
+                  {rating === 2 && "Podemos melhorar! O que faltou? 🤔"}
+                  {rating === 3 && "Obrigado! Como chegar a 5 estrelas? 😊"}
+                  {rating === 4 && "Quase lá! Muito obrigado! ⭐"}
+                  {rating === 5 && "Incrível! Fico muito feliz! 🌟"}
+               </div>
+               <textarea
+                  placeholder="Deixe um comentário curto (opcional)"
+                  value={comentario}
+                  onChange={e => setComentario(e.target.value)}
+                  style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', minHeight: '80px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'none', fontSize: '0.95rem' }}
+               />
+               <button
+                  type="button"
+                  className="chat-action-btn pri"
+                  onClick={() => onSubmit(rating, comentario)}
+                  style={{ marginTop: '16px', width: '100%', background: '#0ea5e9', border: 'none', boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)', padding: '14px', fontSize: '1rem' }}
+               >
+                  Enviar Avaliação
+               </button>
+            </div>
+         )}
+      </div>
    );
 };
 
 export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
-  const [sessionId] = useState(() => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2));
-  const [empresa, setEmpresa] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingState, setLoadingState] = useState<'fetching' | 'premium_wait' | 'chat'>('fetching');
-  
-  const [messages, setMessages] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [professionals, setProfessionals] = useState<any[]>([]);
-  const [inputVal, setInputVal] = useState('');
-  const [inputType, setInputType] = useState<'phone' | 'email'>('phone');
-  const [step, setStep] = useState<'identification' | 'registration' | 'actions'>('identification');
-  const [registrationData, setRegistrationData] = useState({ nome: '', telefone: '', email: '' });
-  const [isTyping, setIsTyping] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [cliente, _setCliente] = useState<any>(null);
-  const clienteRef = useRef<any>(null);
-  const [editingAg, _setEditingAg] = useState<any>(null);
-  const editingAgRef = useRef<any>(null);
+   const [sessionId] = useState(() => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2));
+   const [empresa, setEmpresa] = useState<any>(null);
+   const [loading, setLoading] = useState(true);
+   const [loadingState, setLoadingState] = useState<'fetching' | 'premium_wait' | 'chat'>('fetching');
 
-  const setCliente = (val: any) => {
-    _setCliente(val);
-    clienteRef.current = val;
-  };
+   const [messages, setMessages] = useState<any[]>([]);
+   const [services, setServices] = useState<any[]>([]);
+   const [professionals, setProfessionals] = useState<any[]>([]);
+   const [inputVal, setInputVal] = useState('');
+   const [inputType, setInputType] = useState<'phone' | 'email'>('phone');
+   const [step, setStep] = useState<'identification' | 'registration' | 'actions'>('identification');
+   const [registrationData, setRegistrationData] = useState({ nome: '', telefone: '', email: '' });
+   const [isTyping, setIsTyping] = useState(false);
+   const [isRegistering, setIsRegistering] = useState(false);
+   const [isCompanyBlocked, setIsCompanyBlocked] = useState(false);
+   const [cliente, _setCliente] = useState<any>(null);
+   const clienteRef = useRef<any>(null);
+   const [editingAg, _setEditingAg] = useState<any>(null);
+   const editingAgRef = useRef<any>(null);
 
-  const setEditingAg = (val: any) => {
-    _setEditingAg(val);
-    editingAgRef.current = val;
-  };
+   const setCliente = (val: any) => {
+      _setCliente(val);
+      clienteRef.current = val;
+   };
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+   const setEditingAg = (val: any) => {
+      _setEditingAg(val);
+      editingAgRef.current = val;
+   };
 
-  const decodedNome = decodeURIComponent(nomeAcesso).replace(/-/g, '').toLowerCase();
+   const chatEndRef = useRef<HTMLDivElement>(null);
+   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadCompany();
+   const decodedNome = decodeURIComponent(nomeAcesso).replace(/-/g, '').toLowerCase();
 
-    const vv = window.visualViewport;
-    if (vv) {
-      const handleResize = () => {
-        if (containerRef.current) {
-          containerRef.current.style.height = `${vv.height}px`;
-          scrollToBottom('smooth');
-        }
+   useEffect(() => {
+      loadCompany();
+
+      const vv = window.visualViewport;
+      if (vv) {
+         const handleResize = () => {
+            if (containerRef.current) {
+               containerRef.current.style.height = `${vv.height}px`;
+               scrollToBottom('smooth');
+            }
+         };
+         vv.addEventListener('resize', handleResize);
+         return () => vv.removeEventListener('resize', handleResize);
+      }
+   }, []);
+
+   useEffect(() => {
+      if (messages.length === 0) return;
+      const syncChat = async () => {
+         try {
+            const conversaSincronizar = messages.map(m => ({
+               ts: m.time,
+               from: m.sender === 'user' ? 'user' : 'assistant',
+               text: getPlainText(m.text)
+            }));
+
+            const row = {
+               id: sessionId,
+               cod_cliente: cliente?.id || null,
+               nome_cliente: cliente?.nome || null,
+               empresa: empresa?.nome_exibicao || null,
+               projeto: 'isis_agenda',
+               conversa: conversaSincronizar,
+               timestamp: new Date().toISOString()
+            };
+            const { error } = await supabaseControl.from('isis').upsert(row, { onConflict: 'id' });
+            if (error) console.error('Erro ao sync chat Isis:', error);
+         } catch (e) { }
       };
-      vv.addEventListener('resize', handleResize);
-      return () => vv.removeEventListener('resize', handleResize);
-    }
-  }, []);
+      syncChat();
+   }, [messages, sessionId, cliente, empresa]);
 
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const syncChat = async () => {
-      try {
-        const conversaSincronizar = messages.map(m => ({
-           ts: m.time,
-           from: m.sender === 'user' ? 'user' : 'assistant',
-           text: getPlainText(m.text)
-        }));
-        
-        const row = {
-          id: sessionId,
-          cod_cliente: cliente?.id || null,
-          nome_cliente: cliente?.nome || null,
-          empresa: empresa?.nome_exibicao || null,
-          projeto: 'isis_agenda',
-          conversa: conversaSincronizar,
-          timestamp: new Date().toISOString()
-        };
-        const { error } = await supabaseControl.from('isis').upsert(row, { onConflict: 'id' });
-        if (error) console.error('Erro ao sync chat Isis:', error);
-      } catch (e) {}
-    };
-    syncChat();
-  }, [messages, sessionId, cliente, empresa]);
-  
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
-    }
-  };
+   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+      if (chatEndRef.current) {
+         chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
+      }
+   };
 
-  const handleInputFocus = () => {
-    setTimeout(() => scrollToBottom('smooth'), 300);
-  };
+   const handleInputFocus = () => {
+      setTimeout(() => scrollToBottom('smooth'), 300);
+   };
 
-  const loadCompany = async () => {
-    const { data } = await supabase.from('empresas').select('*');
-    if (data) {
-       const matched = data.find(emp => 
-          (emp.nome_exibicao || '').replace(/[\s-]/g, '').toLowerCase() === decodedNome 
-          || 
-          (emp.nome_fantasia || '').replace(/[\s-]/g, '').toLowerCase() === decodedNome
-       );
-       
-       if (matched) {
-          // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
-          if (matched.codigodev) {
-             try {
-                const { data: controlData } = await supabaseControl
-                   .from('clientes')
-                   .select('status')
-                   .eq('code', matched.codigodev)
-                   .single();
+   const loadCompany = async () => {
+      const { data } = await supabase.from('empresas').select('*');
+      if (data) {
+         const matched = data.find(emp =>
+            (emp.nome_exibicao || '').replace(/[\s-]/g, '').toLowerCase() === decodedNome
+            ||
+            (emp.nome_fantasia || '').replace(/[\s-]/g, '').toLowerCase() === decodedNome
+         );
 
-                if (controlData && controlData.status === 'pendente') {
-                   setEmpresa(matched);
-                   setLoadingState('premium_wait');
-                   setTimeout(() => {
-                      setLoadingState('chat');
-                      setIsTyping(true);
-                      setTimeout(() => {
-                         setIsTyping(false);
-                         const phoneInfo = matched.telefone ? `o telefone deles: **${matched.telefone}**` : 'o telefone disponibilizado nas redes sociais';
-                         const blockMsgs = [
-                            `Oii! Fui avisada que não posso processar agendamentos para a **${matched.nome_fantasia || matched.nome_exibicao}** no momento devido a um bloqueio no controle interno. 😕 Por favor, contate-os diretamente pel${phoneInfo}.`,
-                            `Poxa... Encontrei uma pendência administrativa na conta da **${matched.nome_fantasia || matched.nome_exibicao}** e minha função de agendamentos está temporariamente desativada. 😔\nTente agendar diretamente usando ${phoneInfo}!`,
-                            `Infelizmente as funções de marcação online para a **${matched.nome_fantasia || matched.nome_exibicao}** encontram-se indisponíveis por questões internas do sistema. 🚫\nPara agendar um horário, fale diretamente com o estabelecimento pel${phoneInfo}.`
-                         ];
-                         const randomMsg = blockMsgs[Math.floor(Math.random() * blockMsgs.length)];
-                         setMessages([{
-                            id: Date.now(),
-                            sender: 'isis',
-                            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-                            text: randomMsg
-                         }]);
-                      }, 2000);
-                   }, 2000);
-                   return; // Interrompe o fluxo normal
-                }
-             } catch (e) {
-                console.error("Erro ao verificar controle do cliente:", e);
-             }
-          }
-          // -------------------------------------------------
+         if (matched) {
+            // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
+            if (matched.codigodev) {
+               try {
+                  const { data: controlData } = await supabaseControl
+                     .from('clientes')
+                     .select('status')
+                     .eq('code', matched.codigodev)
+                     .single();
 
-          setEmpresa(matched);
-          loadDependencies(matched.codigo);
-          setLoadingState('premium_wait');
-          setTimeout(() => {
-             setLoadingState('chat');
-             setIsTyping(true);
-             setTimeout(() => {
-                setIsTyping(false);
-                startWelcomeFlow(matched);
-             }, 2000);
-          }, 2000);
-       } else {
-          setLoading(false);
-       }
-    } else {
-       setLoading(false);
-    }
-  };
+                  if (controlData && controlData.status === 'pendente') {
+                     setEmpresa(matched);
+                     setIsCompanyBlocked(true);
+                     setLoadingState('premium_wait');
+                     setTimeout(() => {
+                        setLoadingState('chat');
+                        setIsTyping(true);
+                        setTimeout(() => {
+                           setIsTyping(false);
+                           const phoneInfo = matched.telefone ? ` **${matched.telefone}**` : ' **disponibilizado nas redes sociais**';
+                           setMessages([{
+                              id: Date.now(),
+                              sender: 'isis',
+                              time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                              text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão temporariamente indisponíveis por uma pendência do estabelecimento. 🚫\nPara agendar, fale diretamente pelo telefone:${phoneInfo}.`
+                           }]);
+                        }, 2000);
+                     }, 2000);
+                     return; // Interrompe o fluxo normal
+                  }
+               } catch (e) {
+                  console.error("Erro ao verificar controle do cliente:", e);
+               }
+            }
+            // -------------------------------------------------
 
-  const loadDependencies = async (empId: any) => {
-    const { data: svcs } = await supabase
-      .from('servicos')
-      .select('*')
-      .eq('codigo_empresa', empId)
-      .eq('ativo', true)
-      .order('nome', { ascending: true });
-    
-    const { data: profs } = await supabase
-      .from('usuarios')
-      .select('codigo, nome')
-      .eq('codigo_empresa', empId)
-      .eq('ativo', true)
-      .order('nome', { ascending: true });
+            setEmpresa(matched);
+            loadDependencies(matched.codigo);
+            setLoadingState('premium_wait');
+            setTimeout(() => {
+               setLoadingState('chat');
+               setIsTyping(true);
+               setTimeout(() => {
+                  setIsTyping(false);
+                  startWelcomeFlow(matched);
+               }, 2000);
+            }, 2000);
+         } else {
+            setLoading(false);
+         }
+      } else {
+         setLoading(false);
+      }
+   };
 
-    if (svcs) setServices(svcs);
-    if (profs) setProfessionals(profs);
-  };
+   const loadDependencies = async (empId: any) => {
+      const { data: svcs } = await supabase
+         .from('servicos')
+         .select('*')
+         .eq('codigo_empresa', empId)
+         .eq('ativo', true)
+         .order('nome', { ascending: true });
 
-  const startWelcomeFlow = (emp: any) => {
-     const greetings = [
-        <>Opa! <strong>Boa noite!</strong> 🎤 <strong>Ísis</strong> aqui, sua assistente virtual da <strong>{emp.nome_fantasia || emp.nome_exibicao}</strong>!<br/><br/>Vamos <strong>marcar seu horário</strong>? É rapidinho!<br/><br/>Me informa seu <strong>telefone</strong> ou <strong>e-mail</strong> para começarmos:</>,
-        <>Oi! Tudo bem? ✨ Sou a <strong>Ísis</strong>, assistente oficial da <strong>{emp.nome_fantasia || emp.nome_exibicao}</strong>!<br/><br/>Estou pronta para <strong>agendar seu horário</strong>. É bem simples!<br/><br/>Qual o seu <strong>telefone</strong> ou <strong>e-mail</strong>?</>,
-        <>Olá! Que bom te ver por aqui! 💜 Meu nome é <strong>Ísis</strong>, e gerencio as reservas da <strong>{emp.nome_fantasia || emp.nome_exibicao}</strong>!<br/><br/>Quer <strong>garantir seu horário</strong> conosco?<br/><br/>Por favor, digite seu <strong>telefone</strong> ou <strong>e-mail</strong>:</>
-     ];
-     const randomMsg = greetings[Math.floor(Math.random() * greetings.length)];
-     setMessages([{
-        id: 1, sender: 'isis',
-        time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-        text: randomMsg
-     }]);
-  };
+      const { data: profs } = await supabase
+         .from('usuarios')
+         .select('codigo, nome')
+         .eq('codigo_empresa', empId)
+         .eq('ativo', true)
+         .order('nome', { ascending: true });
 
-  const addUserMessage = (content: React.ReactNode) => {
-    setMessages(prev => [...prev, {
-       id: Date.now(),
-       sender: 'user',
-       time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-       text: content
-    }]);
-    setTimeout(() => scrollToBottom('smooth'), 100);
-  };
+      if (svcs) setServices(svcs);
+      if (profs) setProfessionals(profs);
+   };
 
-  const clearLastIsisActions = () => {
-    setMessages(prev => {
-       const newMsgs = [...prev];
-       for (let i = newMsgs.length - 1; i >= 0; i--) {
-          if (newMsgs[i].sender === 'isis' && newMsgs[i].actions) {
-             newMsgs[i] = { ...newMsgs[i], actions: null };
-             break;
-          }
-       }
-       return newMsgs;
-    });
-  };
+   const startWelcomeFlow = (emp: any) => {
+      const greetings = [
+         <>Opa! <strong>Boa noite!</strong> 🎤 <strong>Ísis</strong> aqui, sua assistente virtual da <strong>{emp.nome_fantasia || emp.nome_exibicao}</strong>!<br /><br />Vamos <strong>marcar seu horário</strong>? É rapidinho!<br /><br />Me informa seu <strong>telefone</strong> ou <strong>e-mail</strong> para começarmos:</>,
+         <>Oi! Tudo bem? ✨ Sou a <strong>Ísis</strong>, assistente oficial da <strong>{emp.nome_fantasia || emp.nome_exibicao}</strong>!<br /><br />Estou pronta para <strong>agendar seu horário</strong>. É bem simples!<br /><br />Qual o seu <strong>telefone</strong> ou <strong>e-mail</strong>?</>,
+         <>Olá! Que bom te ver por aqui! 💜 Meu nome é <strong>Ísis</strong>, e gerencio as reservas da <strong>{emp.nome_fantasia || emp.nome_exibicao}</strong>!<br /><br />Quer <strong>garantir seu horário</strong> conosco?<br /><br />Por favor, digite seu <strong>telefone</strong> ou <strong>e-mail</strong>:</>
+      ];
+      const randomMsg = greetings[Math.floor(Math.random() * greetings.length)];
+      setMessages([{
+         id: 1, sender: 'isis',
+         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+         text: randomMsg
+      }]);
+   };
 
-  const formatMarkdown = (text: any) => {
-    if (!text || typeof text !== 'string') return text;
-    return text.split('**').map((item, i) => i % 2 !== 0 ? <strong key={i}>{item}</strong> : item);
-  };
+   const addUserMessage = (content: React.ReactNode) => {
+      setMessages(prev => [...prev, {
+         id: Date.now(),
+         sender: 'user',
+         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+         text: content
+      }]);
+      setTimeout(() => scrollToBottom('smooth'), 100);
+   };
 
-  // Retorna apenas nome + sobrenome (primeiras 2 palavras)
-  const shortName = (nome: string) => {
-    if (!nome) return '';
-    const parts = nome.trim().split(/\s+/);
-    return parts.slice(0, 2).join(' ');
-  };
+   const clearLastIsisActions = () => {
+      setMessages(prev => {
+         const newMsgs = [...prev];
+         for (let i = newMsgs.length - 1; i >= 0; i--) {
+            if (newMsgs[i].sender === 'isis' && newMsgs[i].actions) {
+               newMsgs[i] = { ...newMsgs[i], actions: null };
+               break;
+            }
+         }
+         return newMsgs;
+      });
+   };
 
-  const applyMask = (v: string) => {
-    let r = v.replace(/\D/g, '');
-    if (r.length > 11) r = r.slice(0, 11);
-    if (r.length > 10) return `(${r.slice(0,2)}) ${r.slice(2,7)}-${r.slice(7)}`;
-    if (r.length > 6) return `(${r.slice(0,2)}) ${r.slice(2,6)}-${r.slice(6)}`;
-    if (r.length > 2) return `(${r.slice(0,2)}) ${r.slice(2)}`;
-    return r;
-  };
+   const formatMarkdown = (text: any) => {
+      if (!text || typeof text !== 'string') return text;
+      return text.split('**').map((item, i) => i % 2 !== 0 ? <strong key={i}>{item}</strong> : item);
+   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+   // Retorna apenas nome + sobrenome (primeiras 2 palavras)
+   const shortName = (nome: string) => {
+      if (!nome) return '';
+      const parts = nome.trim().split(/\s+/);
+      return parts.slice(0, 2).join(' ');
+   };
+
+   const applyMask = (v: string) => {
+      let r = v.replace(/\D/g, '');
+      if (r.length > 11) r = r.slice(0, 11);
+      if (r.length > 10) return `(${r.slice(0, 2)}) ${r.slice(2, 7)}-${r.slice(7)}`;
+      if (r.length > 6) return `(${r.slice(0, 2)}) ${r.slice(2, 6)}-${r.slice(6)}`;
+      if (r.length > 2) return `(${r.slice(0, 2)}) ${r.slice(2)}`;
+      return r;
+   };
+
+   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
       if (inputType === 'phone') setInputVal(applyMask(v));
       else setInputVal(v);
-  };
+   };
 
-  const handleSend = async (e?: React.FormEvent) => {
+   const handleSend = async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
       if (!inputVal) return;
-      
+
       const userMsg = inputVal;
       setMessages(prev => [...prev, {
          id: Date.now(), sender: 'user',
-         time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
          text: userMsg
       }]);
       setInputVal('');
@@ -393,26 +389,26 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
       let query = supabase.from('clientes').select('*').eq('codigo_empresa', empresa.codigo);
       if (inputType === 'phone') {
-          // Usamos filter direto para evitar problemas com caracteres especiais no telefone
-          query = query.filter('telefone', 'eq', userMsg);
+         // Usamos filter direto para evitar problemas com caracteres especiais no telefone
+         query = query.filter('telefone', 'eq', userMsg);
       } else {
-          query = query.ilike('email', userMsg.trim());
+         query = query.ilike('email', userMsg.trim());
       }
       const { data: cliData } = await query.single();
-      
+
       setTimeout(() => {
          setIsTyping(false);
          if (cliData) {
             setCliente(cliData); // Added this line
             setStep('actions');
             const firstName = (cliData.nome || '').split(' ')[0];
-            
+
             const greetings = [
-              `Que bom te ver de novo, **${firstName}**! 😊`,
-              `Que alegria te ver por aqui de novo, **${firstName}**! 😊`,
-              `Oi **${firstName}**, que bom que você voltou! Vamos agendar algo novo? 💜`,
-              `Seja bem-vindo(a) de volta, **${firstName}**! Como posso te ajudar hoje? ✨`,
-              `Olá **${firstName}**, é um prazer te atender novamente! 😊`
+               `Que bom te ver de novo, **${firstName}**! 😊`,
+               `Que alegria te ver por aqui de novo, **${firstName}**! 😊`,
+               `Oi **${firstName}**, que bom que você voltou! Vamos agendar algo novo? 💜`,
+               `Seja bem-vindo(a) de volta, **${firstName}**! Como posso te ajudar hoje? ✨`,
+               `Olá **${firstName}**, é um prazer te atender novamente! 😊`
             ];
             const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
             showMenu(randomGreet);
@@ -429,500 +425,500 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
             setMessages(prev => [...prev, {
                id: Date.now() + 1, sender: 'isis',
-               time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                text: "Ops! Não encontrei o seu cadastro ainda. Mas não tem problema! 😊 Vamos fazer agora rapidinho para você poder agendar?",
                actions: <div style={{ height: '8px' }}></div>
             }]);
          }
       }, 2000);
-  };
+   };
 
-  const handleWrongNumber = () => {
-    setCliente(null);
-    setEditingAg(null);
-    setStep('identification');
-    setInputVal('');
+   const handleWrongNumber = () => {
+      setCliente(null);
+      setEditingAg(null);
+      setStep('identification');
+      setInputVal('');
 
-    const messages_wrong = [
-      "Sem problemas! Acontece. 😊 Por favor, me informe o número ou e-mail correto para que eu possa te encontrar:",
-      "Não tem problema! ✨ Digite agora o seu telefone ou e-mail certinho para começarmos o agendamento:",
-      "Tudo certo! 💜 Vamos corrigir isso. Me diz qual o seu telefone ou e-mail de cadastro:"
-    ];
-    const randomMsg = messages_wrong[Math.floor(Math.random() * messages_wrong.length)];
-    
-    setMessages([{
-       id: Date.now(),
-       sender: 'isis',
-       time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-       text: randomMsg
-    }]);
-  };
+      const messages_wrong = [
+         "Sem problemas! Acontece. 😊 Por favor, me informe o número ou e-mail correto para que eu possa te encontrar:",
+         "Não tem problema! ✨ Digite agora o seu telefone ou e-mail certinho para começarmos o agendamento:",
+         "Tudo certo! 💜 Vamos corrigir isso. Me diz qual o seu telefone ou e-mail de cadastro:"
+      ];
+      const randomMsg = messages_wrong[Math.floor(Math.random() * messages_wrong.length)];
 
-  const showMenu = (customGreeting?: string) => {
-    setEditingAg(null);
-    setIsTyping(true);
-    setTimeout(() => {
-       setIsTyping(false);
-       setMessages(prev => [...prev, {
-          id: Date.now(),
-          sender: 'isis',
-          time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-          text: customGreeting || "O que você deseja fazer agora? Escolha uma opção abaixo:",
-          actions: (
-            <div className="action-buttons-grid">
-               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
-               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
-               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Informei o número errado'); handleWrongNumber(); }}>📱 Informei o número errado</button>
-               <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
-            </div>
-          )
-       }]);
-       setTimeout(() => scrollToBottom('smooth'), 100);
-    }, 1000);
-  };
-
-  // ===== HELPER: gera slots disponíveis para um profissional num dado dia =====
-  const generateAvailableSlots = async (date: string, serviceCode: string, professionalCode: string): Promise<string[]> => {
-    const service = services.find((s: any) => String(s.codigo) === String(serviceCode));
-    if (!service) return [];
-
-    const timeToMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-    const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
-
-    const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
-    const [y, mo, d] = date.split('-').map(Number);
-    const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
-    const dayCfg = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
-    if (!dayCfg || !dayCfg.aberto) return [];
-
-    const { data: appts } = await supabase.from('agendamentos')
-      .select('*')
-      .eq('codigo_empresa', empresa.codigo)
-      .eq('codigo_profissional', professionalCode)
-      .neq('status', 'cancelado')
-      .gte('data_hora_inicio', `${date}T00:00:00-03:00`)
-      .lte('data_hora_inicio', `${date}T23:59:59-03:00`);
-
-    const now = new Date();
-    const duracaoSvc = service.duracao_minutos || 30;
-    const hasLunch = dayCfg.almoco_ativo;
-    const lunchStart = hasLunch ? timeToMin(dayCfg.almoco_inicio) : 0;
-    const lunchEnd   = hasLunch ? timeToMin(dayCfg.almoco_fim)   : 0;
-    let cur = timeToMin(dayCfg.inicio || '07:00');
-    const end = timeToMin(dayCfg.fim || '22:00');
-    const slots: string[] = [];
-
-    while (cur + duracaoSvc <= end) {
-      const tStr = minToTime(cur);
-      const slotStart = new Date(`${date}T${tStr}:00-03:00`);
-      const slotEnd   = new Date(slotStart.getTime() + duracaoSvc * 60000);
-
-      if (hasLunch && cur < lunchEnd && cur + duracaoSvc > lunchStart) { cur = lunchEnd; continue; }
-      if (slotStart <= now) { cur += 15; continue; }
-      const conflict = (appts || []).some(ag => {
-        const as = new Date(ag.data_hora_inicio), ae = new Date(ag.data_hora_fim);
-        return slotStart < ae && slotEnd > as;
-      });
-      if (!conflict) slots.push(tStr);
-      cur += 15;
-    }
-    return slots;
-  };
-
-  // ===== WIDGET: DatePickerWidget (escolha de data antes dos serviços) =====
-  const DatePickerWidget = ({ onDateSelected, onBack }: { onDateSelected: (d: string) => void, onBack: () => void }) => {
-    const [showCal, setShowCal] = useState(false);
-    const [dateInput, setDateInput] = useState('');
-    const [dateError, setDateError] = useState('');
-
-    const validate = (iso: string) => {
-      const [y, m, d] = iso.split('-').map(Number);
-      const sel = new Date(y, m - 1, d);
-      if (sel.getFullYear() !== y || sel.getMonth() !== m - 1 || sel.getDate() !== d) {
-        setDateError('Essa data não parece correta! 🧐'); return false;
-      }
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      if (sel < today) { setDateError('Essa data já passou! 😅'); return false; }
-      setDateError(''); return true;
-    };
-
-    const submit = (iso: string) => { if (validate(iso)) onDateSelected(iso); };
-
-    const quickDate = (days: number) => {
-      const d = new Date(); d.setDate(d.getDate() + days);
-      submit(d.toLocaleDateString('en-CA'));
-    };
-
-    return (
-      <div className="action-buttons-grid">
-        <button className="chat-action-btn" type="button" onClick={() => quickDate(0)}>Hoje</button>
-        <button className="chat-action-btn" type="button" onClick={() => quickDate(1)}>Amanhã</button>
-        <div className="date-input-container" style={{ position: 'relative' }}>
-          <input
-            type="text" className="chat-action-btn date-input-field" placeholder="Ex: 25/03/2026"
-            value={dateInput}
-            onChange={(e) => {
-              let v = e.target.value.replace(/\D/g, '');
-              if (v.length > 8) v = v.slice(0, 8);
-              if (v.length > 4) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
-              else if (v.length > 2) v = `${v.slice(0,2)}/${v.slice(2)}`;
-              setDateInput(v);
-              if (v.length === 10) { const [d,m,y] = v.split('/'); validate(`${y}-${m}-${d}`); } else setDateError('');
-            }}
-          />
-          <button type="button" className="calendar-trigger-btn" onClick={() => setShowCal(!showCal)}><ICalendar /></button>
-          {dateInput.length === 10 && !dateError && (
-            <button type="button" className="confirm-date-btn" onClick={() => { const [d,m,y] = dateInput.split('/'); submit(`${y}-${m}-${d}`); }}>Confirmar</button>
-          )}
-          {showCal && (
-            <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 1001, width: '100%' }}>
-              <Calendar
-                value={dateInput.length === 10 ? `${dateInput.split('/')[2]}-${dateInput.split('/')[1]}-${dateInput.split('/')[0]}` : new Date().toLocaleDateString('en-CA')}
-                onChange={(d: string) => { const [y,m,day]=d.split('-'); setDateInput(`${day}/${m}/${y}`); submit(d); }}
-                onClose={() => setShowCal(false)}
-              />
-            </div>
-          )}
-        </div>
-        {dateError && <div className="date-error-msg">{dateError}</div>}
-        <button className="chat-action-btn menu-btn" type="button" onClick={onBack}>⬅️ Voltar ao Menu</button>
-      </div>
-    );
-  };
-
-  // ===== WIDGET: ServiceSelectionWidget com horário por linha =====
-  type RowState = { serviceCode: string; professionalCode: string; timeSlot: string; availableSlots: string[]; loadingSlots: boolean; };
-
-  const ServiceSelectionWidget = ({
-    date, onConfirm, onBack, onChangeDate
-  }: {
-    date: string;
-    onConfirm: (rows: { service: any; professional: any; timeSlot: string }[]) => void;
-    onBack: () => void;
-    onChangeDate: () => void;
-  }) => {
-    const [rows, setRows] = React.useState<RowState[]>([
-      { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }
-    ]);
-
-    const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
-
-    // Calcula o horário ideal de início para a linha `index` baseando-se sempre no final do ÚLTIMO serviço.
-    const getSuggestedStart = (index: number, currentRows: RowState[]): string | null => {
-      if (index === 0) return null;
-      const prev = currentRows[index - 1];
-      if (!prev.timeSlot || !prev.serviceCode) return null;
-      const [h, m] = prev.timeSlot.split(':').map(Number);
-      const svc = services.find((s: any) => String(s.codigo) === String(prev.serviceCode));
-      const dur = svc ? (svc.duracao_minutos || 0) : 0;
-      return minToTime(h * 60 + m + dur);
-    };
-
-    const triggerLoad = async (index: number, serviceCode: string, professionalCode: string, currentRows: RowState[]) => {
-      if (!serviceCode || !professionalCode) return;
-      setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: true, timeSlot: '', availableSlots: [] } : r));
-      try {
-        let slots = await generateAvailableSlots(date, serviceCode, professionalCode);
-        const suggested = getSuggestedStart(index, currentRows);
-        
-        let autoSlot = '';
-        if (suggested) {
-            slots = slots.filter(s => s >= suggested);
-            autoSlot = slots.length > 0 ? slots[0] : '';
-        } else if (index === 0 && slots.length > 0) {
-            autoSlot = '';
-        }
-        setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false, availableSlots: slots, timeSlot: autoSlot } : r));
-      } catch {
-        setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false } : r));
-      }
-    };
-
-    const getEnabledProfs = (serviceCode: string) => {
-      if (!serviceCode) return [];
-      const svc = services.find((s: any) => String(s.codigo) === String(serviceCode));
-      if (!svc) return [];
-      return professionals.filter((p: any) => (svc.profissionais_habilitados || []).map(String).includes(String(p.codigo)));
-    };
-
-    const handleServiceChange = (index: number, val: string) => {
-      const truncated = rows.slice(0, index + 1);
-      const updated = truncated.map((r, i) => i === index ? { ...r, serviceCode: val, professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false } : r);
-      const profs = getEnabledProfs(val);
-      if (profs.length === 1) updated[index].professionalCode = String(profs[0].codigo);
-      setRows(updated);
-      if (profs.length === 1) triggerLoad(index, val, String(profs[0].codigo), updated);
-    };
-
-    const handleProfChange = (index: number, val: string) => {
-      const truncated = rows.slice(0, index + 1);
-      const updated = truncated.map((r, i) => i === index ? { ...r, professionalCode: val, timeSlot: '', availableSlots: [], loadingSlots: false } : r);
-      setRows(updated);
-      if (val && updated[index].serviceCode) triggerLoad(index, updated[index].serviceCode, val, updated);
-    };
-
-    const handleTimeChange = (index: number, val: string) => {
-      const truncated = rows.slice(0, index + 1);
-      const updated = truncated.map((r, i) => i === index ? { ...r, timeSlot: val } : r);
-      setRows(updated);
-    };
-
-    const addRow = () => setRows(prev => [...prev, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }]);
-    const removeRow = (index: number) => setRows(prev => prev.filter((_, i) => i !== index));
-
-    const isValid = rows[0]?.serviceCode !== '' && rows[0]?.professionalCode !== '' && rows[0]?.timeSlot !== '';
-
-    const handleConfirmClick = () => {
-      const valid = rows.filter(r => r.serviceCode && r.professionalCode && r.timeSlot);
-      if (!valid.length) return;
-      const resolved = valid.map(r => ({
-        service: services.find((s: any) => String(s.codigo) === String(r.serviceCode)),
-        professional: professionals.find((p: any) => String(p.codigo) === String(r.professionalCode)),
-        timeSlot: r.timeSlot
-      })).filter(r => r.service && r.professional) as { service: any; professional: any; timeSlot: string }[];
-      onConfirm(resolved);
-    };
-
-    const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-
-    return (
-      <div className="service-selection-widget">
-        <div className="widget-date-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-          <span>📅 <strong>{dateLabel}</strong></span>
-          <button type="button" className="chat-action-btn" onClick={onChangeDate} style={{ margin: 0, padding: '4px 12px', fontSize: '0.85rem', background: 'var(--primary-color)', color: '#fff', border: 'none' }}>📅 Mudar Data</button>
-        </div>
-        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '8px 12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
-          💡 <span>Selecione os serviços na <strong>ordem exata</strong> em que serão realizados.</span>
-        </div>
-
-        {rows.map((row, index) => {
-          const profs = getEnabledProfs(row.serviceCode);
-          const svc = services.find((s: any) => String(s.codigo) === String(row.serviceCode));
-          const suggested = getSuggestedStart(index, rows);
-
-          return (
-            <div key={index} className="service-row" style={{ position: 'relative', marginTop: index > 0 ? '16px' : '0' }}>
-              <div style={{ position: 'absolute', top: '-10px', left: '12px', background: 'var(--surface-color)', padding: '0 6px', fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 'bold', zIndex: 1, borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                {index + 1}º Serviço
-              </div>
-              <div className="service-row-selects" style={{ paddingTop: '12px' }}>
-
-                {/* Serviço */}
-                <div className="service-select-group">
-                  <select className="chat-action-select" value={row.serviceCode} onChange={e => handleServiceChange(index, e.target.value)}>
-                    <option value="">✨ Serviço</option>
-                    {services.map((s: any) => (
-                      <option key={s.codigo} value={s.codigo}>{s.nome} — R$ {parseFloat(s.valor).toFixed(2).replace('.', ',')}</option>
-                    ))}
-                  </select>
-                  {svc && <div className="service-meta">⏱ {svc.duracao_minutos} min</div>}
-                </div>
-
-                {/* Profissional */}
-                <div className="service-select-group">
-                  <select
-                    className="chat-action-select"
-                    value={row.professionalCode}
-                    onChange={e => handleProfChange(index, e.target.value)}
-                    disabled={!row.serviceCode || profs.length === 0}
-                    style={{ opacity: row.serviceCode ? 1 : 0.5 }}
-                  >
-                    <option value="">
-                      {!row.serviceCode ? 'Escolha o serviço' : profs.length === 0 ? 'Sem profissionais' : '👤 Profissional'}
-                    </option>
-                    {profs.map((p: any) => <option key={p.codigo} value={p.codigo}>{shortName(p.nome)}</option>)}
-                  </select>
-                </div>
-
-                {/* Horário */}
-                <div className="service-select-group">
-                  {row.loadingSlots ? (
-                    <div className="slots-loading">⏳ Buscando...</div>
-                  ) : (
-                    <>
-                      <select
-                        className="chat-action-select"
-                        value={row.timeSlot}
-                        onChange={e => handleTimeChange(index, e.target.value)}
-                        disabled={!row.professionalCode || row.availableSlots.length === 0}
-                        style={{ opacity: row.professionalCode ? 1 : 0.5 }}
-                      >
-                        <option value="">
-                          {!row.professionalCode ? 'Escolha o profissional'
-                            : row.availableSlots.length === 0 ? 'Sem horários disponíveis'
-                            : '🕐 Horário'}
-                        </option>
-                        {row.availableSlots.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                      {index > 0 && suggested && row.availableSlots.length > 0 && !row.availableSlots.find(s => s >= suggested) && (
-                        <div className="slot-warning">⚠️ Sem horário após o serviço anterior. Escolha manualmente.</div>
-                      )}
-                      {index > 0 && suggested && row.timeSlot && row.timeSlot >= suggested && (
-                        <div className="service-meta">✔ Sugerido após {suggested}</div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-              </div>
-
-              {index > 0 && (
-                <button type="button" className="service-remove-btn" onClick={() => removeRow(index)} title="Remover">✕</button>
-              )}
-            </div>
-          );
-        })}
-
-        <button type="button" className="chat-action-btn add-service-btn" onClick={addRow}>
-          ➕ Adicionar outro serviço
-        </button>
-
-        <button
-          type="button"
-          className={`chat-action-btn pri confirm-services-btn ${!isValid ? 'disabled-btn' : ''}`}
-          onClick={handleConfirmClick}
-          disabled={!isValid}
-        >
-          👍 Pronto!
-        </button>
-
-        <button type="button" className="chat-action-btn menu-btn" onClick={onBack}>
-          ⬅️ Voltar ao Menu
-        </button>
-      </div>
-    );
-  };
-
-  // ===== Fluxo: pergunta data primeiro, depois mostra o widget =====
-  const handleServiceSelectionFlow = (customGreeting?: string) => {
-    const greetings = [
-      'Qual **dia** você prefere para o atendimento?',
-      'Vamos marcar! Me diz qual **data** fica melhor:',
-      'Primeira coisa: qual **dia** você gostaria?',
-      'Me conta qual **dia** funciona para você!',
-    ];
-    const finalGreet = customGreeting || greetings[Math.floor(Math.random() * greetings.length)];
-
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: Date.now(), sender: 'isis',
-        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        text: finalGreet,
-        actions: (
-          <DatePickerWidget
-            onDateSelected={(date) => {
-              clearLastIsisActions();
-              addUserMessage(`Dia ${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
-              showServiceWidgetForDate(date);
-            }}
-            onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
-          />
-        )
+      setMessages([{
+         id: Date.now(),
+         sender: 'isis',
+         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+         text: randomMsg
       }]);
-      setTimeout(() => scrollToBottom('smooth'), 100);
-    }, 1200);
-  };
+   };
 
-  const showServiceWidgetForDate = async (date: string) => {
-    const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-    setIsTyping(true);
+   const showMenu = (customGreeting?: string) => {
+      setEditingAg(null);
+      setIsTyping(true);
+      setTimeout(() => {
+         setIsTyping(false);
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: customGreeting || "O que você deseja fazer agora? Escolha uma opção abaixo:",
+            actions: (
+               <div className="action-buttons-grid">
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Informei o número errado'); handleWrongNumber(); }}>📱 Informei o número errado</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
+               </div>
+            )
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
 
-    const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
-    const [y, mo, d] = date.split('-').map(Number);
-    const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
-    const dayCfg = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+   // ===== HELPER: gera slots disponíveis para um profissional num dado dia =====
+   const generateAvailableSlots = async (date: string, serviceCode: string, professionalCode: string): Promise<string[]> => {
+      const service = services.find((s: any) => String(s.codigo) === String(serviceCode));
+      if (!service) return [];
 
-    setTimeout(() => {
-      setIsTyping(false);
+      const timeToMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
 
-      if (!dayCfg || !dayCfg.aberto) {
-        setMessages(prev => [...prev, {
-          id: Date.now(), sender: 'isis',
-          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          text: `Infelizmente não abrimos nesse dia da semana! 😔 Vamos tentar marcar em outra data?`,
-          actions: (
-            <DatePickerWidget
-              onDateSelected={(newDate) => {
-                clearLastIsisActions();
-                addUserMessage(`Dia ${new Date(newDate + 'T12:00:00').toLocaleDateString('pt-BR')}`);
-                showServiceWidgetForDate(newDate);
-              }}
-              onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
-            />
-          )
-        }]);
-        setTimeout(() => scrollToBottom('smooth'), 100);
-        return;
+      const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
+      const [y, mo, d] = date.split('-').map(Number);
+      const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
+      const dayCfg = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+      if (!dayCfg || !dayCfg.aberto) return [];
+
+      const { data: appts } = await supabase.from('agendamentos')
+         .select('*')
+         .eq('codigo_empresa', empresa.codigo)
+         .eq('codigo_profissional', professionalCode)
+         .neq('status', 'cancelado')
+         .gte('data_hora_inicio', `${date}T00:00:00-03:00`)
+         .lte('data_hora_inicio', `${date}T23:59:59-03:00`);
+
+      const now = new Date();
+      const duracaoSvc = service.duracao_minutos || 30;
+      const hasLunch = dayCfg.almoco_ativo;
+      const lunchStart = hasLunch ? timeToMin(dayCfg.almoco_inicio) : 0;
+      const lunchEnd = hasLunch ? timeToMin(dayCfg.almoco_fim) : 0;
+      let cur = timeToMin(dayCfg.inicio || '07:00');
+      const end = timeToMin(dayCfg.fim || '22:00');
+      const slots: string[] = [];
+
+      while (cur + duracaoSvc <= end) {
+         const tStr = minToTime(cur);
+         const slotStart = new Date(`${date}T${tStr}:00-03:00`);
+         const slotEnd = new Date(slotStart.getTime() + duracaoSvc * 60000);
+
+         if (hasLunch && cur < lunchEnd && cur + duracaoSvc > lunchStart) { cur = lunchEnd; continue; }
+         if (slotStart <= now) { cur += 15; continue; }
+         const conflict = (appts || []).some(ag => {
+            const as = new Date(ag.data_hora_inicio), ae = new Date(ag.data_hora_fim);
+            return slotStart < ae && slotEnd > as;
+         });
+         if (!conflict) slots.push(tStr);
+         cur += 15;
       }
+      return slots;
+   };
 
-      setMessages(prev => [...prev, {
-        id: Date.now(), sender: 'isis',
-        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        text: `Ótimo! Escolha os serviços para a **${dateLabel}**:`,
-        actions: (
-          <ServiceSelectionWidget
-            date={date}
-            onConfirm={(resolved) => {
-              clearLastIsisActions();
-              const summary = resolved.map(r => `${r.service.nome} c/ ${shortName(r.professional.nome)} às ${r.timeSlot}`).join(', ');
-              addUserMessage(`Escolhi: ${summary}`);
-              handleConfirmAppointmentFlow(resolved, date);
-            }}
-            onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
-            onChangeDate={() => { clearLastIsisActions(); addUserMessage('📅 Mudar data'); handleServiceSelectionFlow(); }}
-          />
-        )
-      }]);
-      setTimeout(() => scrollToBottom('smooth'), 100);
-    }, 1000);
-  };
+   // ===== WIDGET: DatePickerWidget (escolha de data antes dos serviços) =====
+   const DatePickerWidget = ({ onDateSelected, onBack }: { onDateSelected: (d: string) => void, onBack: () => void }) => {
+      const [showCal, setShowCal] = useState(false);
+      const [dateInput, setDateInput] = useState('');
+      const [dateError, setDateError] = useState('');
+
+      const validate = (iso: string) => {
+         const [y, m, d] = iso.split('-').map(Number);
+         const sel = new Date(y, m - 1, d);
+         if (sel.getFullYear() !== y || sel.getMonth() !== m - 1 || sel.getDate() !== d) {
+            setDateError('Essa data não parece correta! 🧐'); return false;
+         }
+         const today = new Date(); today.setHours(0, 0, 0, 0);
+         if (sel < today) { setDateError('Essa data já passou! 😅'); return false; }
+         setDateError(''); return true;
+      };
+
+      const submit = (iso: string) => { if (validate(iso)) onDateSelected(iso); };
+
+      const quickDate = (days: number) => {
+         const d = new Date(); d.setDate(d.getDate() + days);
+         submit(d.toLocaleDateString('en-CA'));
+      };
+
+      return (
+         <div className="action-buttons-grid">
+            <button className="chat-action-btn" type="button" onClick={() => quickDate(0)}>Hoje</button>
+            <button className="chat-action-btn" type="button" onClick={() => quickDate(1)}>Amanhã</button>
+            <div className="date-input-container" style={{ position: 'relative' }}>
+               <input
+                  type="text" className="chat-action-btn date-input-field" placeholder="Ex: 25/03/2026"
+                  value={dateInput}
+                  onChange={(e) => {
+                     let v = e.target.value.replace(/\D/g, '');
+                     if (v.length > 8) v = v.slice(0, 8);
+                     if (v.length > 4) v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
+                     else if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2)}`;
+                     setDateInput(v);
+                     if (v.length === 10) { const [d, m, y] = v.split('/'); validate(`${y}-${m}-${d}`); } else setDateError('');
+                  }}
+               />
+               <button type="button" className="calendar-trigger-btn" onClick={() => setShowCal(!showCal)}><ICalendar /></button>
+               {dateInput.length === 10 && !dateError && (
+                  <button type="button" className="confirm-date-btn" onClick={() => { const [d, m, y] = dateInput.split('/'); submit(`${y}-${m}-${d}`); }}>Confirmar</button>
+               )}
+               {showCal && (
+                  <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 1001, width: '100%' }}>
+                     <Calendar
+                        value={dateInput.length === 10 ? `${dateInput.split('/')[2]}-${dateInput.split('/')[1]}-${dateInput.split('/')[0]}` : new Date().toLocaleDateString('en-CA')}
+                        onChange={(d: string) => { const [y, m, day] = d.split('-'); setDateInput(`${day}/${m}/${y}`); submit(d); }}
+                        onClose={() => setShowCal(false)}
+                     />
+                  </div>
+               )}
+            </div>
+            {dateError && <div className="date-error-msg">{dateError}</div>}
+            <button className="chat-action-btn menu-btn" type="button" onClick={onBack}>⬅️ Voltar ao Menu</button>
+         </div>
+      );
+   };
+
+   // ===== WIDGET: ServiceSelectionWidget com horário por linha =====
+   type RowState = { serviceCode: string; professionalCode: string; timeSlot: string; availableSlots: string[]; loadingSlots: boolean; };
+
+   const ServiceSelectionWidget = ({
+      date, onConfirm, onBack, onChangeDate
+   }: {
+      date: string;
+      onConfirm: (rows: { service: any; professional: any; timeSlot: string }[]) => void;
+      onBack: () => void;
+      onChangeDate: () => void;
+   }) => {
+      const [rows, setRows] = React.useState<RowState[]>([
+         { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }
+      ]);
+
+      const minToTime = (n: number) => `${Math.floor(n / 60).toString().padStart(2, '0')}:${(n % 60).toString().padStart(2, '0')}`;
+
+      // Calcula o horário ideal de início para a linha `index` baseando-se sempre no final do ÚLTIMO serviço.
+      const getSuggestedStart = (index: number, currentRows: RowState[]): string | null => {
+         if (index === 0) return null;
+         const prev = currentRows[index - 1];
+         if (!prev.timeSlot || !prev.serviceCode) return null;
+         const [h, m] = prev.timeSlot.split(':').map(Number);
+         const svc = services.find((s: any) => String(s.codigo) === String(prev.serviceCode));
+         const dur = svc ? (svc.duracao_minutos || 0) : 0;
+         return minToTime(h * 60 + m + dur);
+      };
+
+      const triggerLoad = async (index: number, serviceCode: string, professionalCode: string, currentRows: RowState[]) => {
+         if (!serviceCode || !professionalCode) return;
+         setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: true, timeSlot: '', availableSlots: [] } : r));
+         try {
+            let slots = await generateAvailableSlots(date, serviceCode, professionalCode);
+            const suggested = getSuggestedStart(index, currentRows);
+
+            let autoSlot = '';
+            if (suggested) {
+               slots = slots.filter(s => s >= suggested);
+               autoSlot = slots.length > 0 ? slots[0] : '';
+            } else if (index === 0 && slots.length > 0) {
+               autoSlot = '';
+            }
+            setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false, availableSlots: slots, timeSlot: autoSlot } : r));
+         } catch {
+            setRows(prev => prev.map((r, i) => i === index ? { ...r, loadingSlots: false } : r));
+         }
+      };
+
+      const getEnabledProfs = (serviceCode: string) => {
+         if (!serviceCode) return [];
+         const svc = services.find((s: any) => String(s.codigo) === String(serviceCode));
+         if (!svc) return [];
+         return professionals.filter((p: any) => (svc.profissionais_habilitados || []).map(String).includes(String(p.codigo)));
+      };
+
+      const handleServiceChange = (index: number, val: string) => {
+         const truncated = rows.slice(0, index + 1);
+         const updated = truncated.map((r, i) => i === index ? { ...r, serviceCode: val, professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false } : r);
+         const profs = getEnabledProfs(val);
+         if (profs.length === 1) updated[index].professionalCode = String(profs[0].codigo);
+         setRows(updated);
+         if (profs.length === 1) triggerLoad(index, val, String(profs[0].codigo), updated);
+      };
+
+      const handleProfChange = (index: number, val: string) => {
+         const truncated = rows.slice(0, index + 1);
+         const updated = truncated.map((r, i) => i === index ? { ...r, professionalCode: val, timeSlot: '', availableSlots: [], loadingSlots: false } : r);
+         setRows(updated);
+         if (val && updated[index].serviceCode) triggerLoad(index, updated[index].serviceCode, val, updated);
+      };
+
+      const handleTimeChange = (index: number, val: string) => {
+         const truncated = rows.slice(0, index + 1);
+         const updated = truncated.map((r, i) => i === index ? { ...r, timeSlot: val } : r);
+         setRows(updated);
+      };
+
+      const addRow = () => setRows(prev => [...prev, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }]);
+      const removeRow = (index: number) => setRows(prev => prev.filter((_, i) => i !== index));
+
+      const isValid = rows[0]?.serviceCode !== '' && rows[0]?.professionalCode !== '' && rows[0]?.timeSlot !== '';
+
+      const handleConfirmClick = () => {
+         const valid = rows.filter(r => r.serviceCode && r.professionalCode && r.timeSlot);
+         if (!valid.length) return;
+         const resolved = valid.map(r => ({
+            service: services.find((s: any) => String(s.codigo) === String(r.serviceCode)),
+            professional: professionals.find((p: any) => String(p.codigo) === String(r.professionalCode)),
+            timeSlot: r.timeSlot
+         })).filter(r => r.service && r.professional) as { service: any; professional: any; timeSlot: string }[];
+         onConfirm(resolved);
+      };
+
+      const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+
+      return (
+         <div className="service-selection-widget">
+            <div className="widget-date-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+               <span>📅 <strong>{dateLabel}</strong></span>
+               <button type="button" className="chat-action-btn" onClick={onChangeDate} style={{ margin: 0, padding: '4px 12px', fontSize: '0.85rem', background: 'var(--primary-color)', color: '#fff', border: 'none' }}>📅 Mudar Data</button>
+            </div>
+            <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '8px 12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
+               💡 <span>Selecione os serviços na <strong>ordem exata</strong> em que serão realizados.</span>
+            </div>
+
+            {rows.map((row, index) => {
+               const profs = getEnabledProfs(row.serviceCode);
+               const svc = services.find((s: any) => String(s.codigo) === String(row.serviceCode));
+               const suggested = getSuggestedStart(index, rows);
+
+               return (
+                  <div key={index} className="service-row" style={{ position: 'relative', marginTop: index > 0 ? '16px' : '0' }}>
+                     <div style={{ position: 'absolute', top: '-10px', left: '12px', background: 'var(--surface-color)', padding: '0 6px', fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 'bold', zIndex: 1, borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                        {index + 1}º Serviço
+                     </div>
+                     <div className="service-row-selects" style={{ paddingTop: '12px' }}>
+
+                        {/* Serviço */}
+                        <div className="service-select-group">
+                           <select className="chat-action-select" value={row.serviceCode} onChange={e => handleServiceChange(index, e.target.value)}>
+                              <option value="">✨ Serviço</option>
+                              {services.map((s: any) => (
+                                 <option key={s.codigo} value={s.codigo}>{s.nome} — R$ {parseFloat(s.valor).toFixed(2).replace('.', ',')}</option>
+                              ))}
+                           </select>
+                           {svc && <div className="service-meta">⏱ {svc.duracao_minutos} min</div>}
+                        </div>
+
+                        {/* Profissional */}
+                        <div className="service-select-group">
+                           <select
+                              className="chat-action-select"
+                              value={row.professionalCode}
+                              onChange={e => handleProfChange(index, e.target.value)}
+                              disabled={!row.serviceCode || profs.length === 0}
+                              style={{ opacity: row.serviceCode ? 1 : 0.5 }}
+                           >
+                              <option value="">
+                                 {!row.serviceCode ? 'Escolha o serviço' : profs.length === 0 ? 'Sem profissionais' : '👤 Profissional'}
+                              </option>
+                              {profs.map((p: any) => <option key={p.codigo} value={p.codigo}>{shortName(p.nome)}</option>)}
+                           </select>
+                        </div>
+
+                        {/* Horário */}
+                        <div className="service-select-group">
+                           {row.loadingSlots ? (
+                              <div className="slots-loading">⏳ Buscando...</div>
+                           ) : (
+                              <>
+                                 <select
+                                    className="chat-action-select"
+                                    value={row.timeSlot}
+                                    onChange={e => handleTimeChange(index, e.target.value)}
+                                    disabled={!row.professionalCode || row.availableSlots.length === 0}
+                                    style={{ opacity: row.professionalCode ? 1 : 0.5 }}
+                                 >
+                                    <option value="">
+                                       {!row.professionalCode ? 'Escolha o profissional'
+                                          : row.availableSlots.length === 0 ? 'Sem horários disponíveis'
+                                             : '🕐 Horário'}
+                                    </option>
+                                    {row.availableSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                                 </select>
+                                 {index > 0 && suggested && row.availableSlots.length > 0 && !row.availableSlots.find(s => s >= suggested) && (
+                                    <div className="slot-warning">⚠️ Sem horário após o serviço anterior. Escolha manualmente.</div>
+                                 )}
+                                 {index > 0 && suggested && row.timeSlot && row.timeSlot >= suggested && (
+                                    <div className="service-meta">✔ Sugerido após {suggested}</div>
+                                 )}
+                              </>
+                           )}
+                        </div>
+
+                     </div>
+
+                     {index > 0 && (
+                        <button type="button" className="service-remove-btn" onClick={() => removeRow(index)} title="Remover">✕</button>
+                     )}
+                  </div>
+               );
+            })}
+
+            <button type="button" className="chat-action-btn add-service-btn" onClick={addRow}>
+               ➕ Adicionar outro serviço
+            </button>
+
+            <button
+               type="button"
+               className={`chat-action-btn pri confirm-services-btn ${!isValid ? 'disabled-btn' : ''}`}
+               onClick={handleConfirmClick}
+               disabled={!isValid}
+            >
+               👍 Pronto!
+            </button>
+
+            <button type="button" className="chat-action-btn menu-btn" onClick={onBack}>
+               ⬅️ Voltar ao Menu
+            </button>
+         </div>
+      );
+   };
+
+   // ===== Fluxo: pergunta data primeiro, depois mostra o widget =====
+   const handleServiceSelectionFlow = (customGreeting?: string) => {
+      const greetings = [
+         'Qual **dia** você prefere para o atendimento?',
+         'Vamos marcar! Me diz qual **data** fica melhor:',
+         'Primeira coisa: qual **dia** você gostaria?',
+         'Me conta qual **dia** funciona para você!',
+      ];
+      const finalGreet = customGreeting || greetings[Math.floor(Math.random() * greetings.length)];
+
+      setIsTyping(true);
+      setTimeout(() => {
+         setIsTyping(false);
+         setMessages(prev => [...prev, {
+            id: Date.now(), sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: finalGreet,
+            actions: (
+               <DatePickerWidget
+                  onDateSelected={(date) => {
+                     clearLastIsisActions();
+                     addUserMessage(`Dia ${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+                     showServiceWidgetForDate(date);
+                  }}
+                  onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
+               />
+            )
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1200);
+   };
+
+   const showServiceWidgetForDate = async (date: string) => {
+      const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+      setIsTyping(true);
+
+      const { data: config } = await supabase.from('configuracoes_agenda').select('*').eq('codigo_empresa', empresa.codigo).single();
+      const [y, mo, d] = date.split('-').map(Number);
+      const dayOfWeek = new Date(y, mo - 1, d, 12).getDay();
+      const dayCfg = (config?.horarios || []).find((h: any) => h.dia === dayOfWeek);
+
+      setTimeout(() => {
+         setIsTyping(false);
+
+         if (!dayCfg || !dayCfg.aberto) {
+            setMessages(prev => [...prev, {
+               id: Date.now(), sender: 'isis',
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+               text: `Infelizmente não abrimos nesse dia da semana! 😔 Vamos tentar marcar em outra data?`,
+               actions: (
+                  <DatePickerWidget
+                     onDateSelected={(newDate) => {
+                        clearLastIsisActions();
+                        addUserMessage(`Dia ${new Date(newDate + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+                        showServiceWidgetForDate(newDate);
+                     }}
+                     onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
+                  />
+               )
+            }]);
+            setTimeout(() => scrollToBottom('smooth'), 100);
+            return;
+         }
+
+         setMessages(prev => [...prev, {
+            id: Date.now(), sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: `Ótimo! Escolha os serviços para a **${dateLabel}**:`,
+            actions: (
+               <ServiceSelectionWidget
+                  date={date}
+                  onConfirm={(resolved) => {
+                     clearLastIsisActions();
+                     const summary = resolved.map(r => `${r.service.nome} c/ ${shortName(r.professional.nome)} às ${r.timeSlot}`).join(', ');
+                     addUserMessage(`Escolhi: ${summary}`);
+                     handleConfirmAppointmentFlow(resolved, date);
+                  }}
+                  onBack={() => { clearLastIsisActions(); addUserMessage('⬅️ Voltar ao Menu'); showMenu(); }}
+                  onChangeDate={() => { clearLastIsisActions(); addUserMessage('📅 Mudar data'); handleServiceSelectionFlow(); }}
+               />
+            )
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
 
 
-  const handleConfirmAppointmentFlow = (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
-     setIsTyping(true);
-     setTimeout(() => {
-        setIsTyping(false);
-        const currentEditingAg = editingAg || editingAgRef.current;
-        const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
-        const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+   const handleConfirmAppointmentFlow = (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
+      setIsTyping(true);
+      setTimeout(() => {
+         setIsTyping(false);
+         const currentEditingAg = editingAg || editingAgRef.current;
+         const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
+         const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-        // Calcula o fim do agendamento (último serviço termina em:)
-        let maxEndMs = 0;
-        for (const sel of selections) {
-          const st = new Date(`${date}T${sel.timeSlot}:00`).getTime();
-          const en = st + (sel.service.duracao_minutos || 30) * 60000;
-          if (en > maxEndMs) maxEndMs = en;
-        }
-        const endTimeStr = new Date(maxEndMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+         // Calcula o fim do agendamento (último serviço termina em:)
+         let maxEndMs = 0;
+         for (const sel of selections) {
+            const st = new Date(`${date}T${sel.timeSlot}:00`).getTime();
+            const en = st + (sel.service.duracao_minutos || 30) * 60000;
+            if (en > maxEndMs) maxEndMs = en;
+         }
+         const endTimeStr = new Date(maxEndMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        setMessages(prev => [...prev, {
-           id: Date.now(), sender: 'isis',
-           time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: (
-              <>
-                 {currentEditingAg && <div style={{ marginBottom: '8px', fontSize: '0.85rem', opacity: 0.9 }}>📍 Editando: <strong>#{currentEditingAg.codigo}</strong></div>}
-                 Confirmando seu agendamento:<br/><br/>
-                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong><br/><br/>
-                 {selections.map((sel, i) => (
-                   <React.Fragment key={i}>
-                     ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{shortName(sel.professional.nome)}</strong> — 🕐 <strong>{sel.timeSlot}</strong><br/>
-                   </React.Fragment>
-                 ))}
-                 <br/>⏱ Término previsto: <strong>{endTimeStr}</strong><br/>
-                 💰 Total: <strong>{totalFormatado}</strong><br/><br/>
-                 Posso confirmar?
-              </>
-           ),
-           actions: (
-              <div className="action-buttons-grid">
-                 <button className="chat-action-btn pri" type="button" onClick={() => {
-                    clearLastIsisActions();
-                    addUserMessage('Sim, pode confirmar! ✅');
-                    handleCompleteAppointment(selections, date);
-                 }}>✅ Confirmar agendamento</button>
-                 <button className="chat-action-btn" type="button" onClick={() => {
+         setMessages(prev => [...prev, {
+            id: Date.now(), sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: (
+               <>
+                  {currentEditingAg && <div style={{ marginBottom: '8px', fontSize: '0.85rem', opacity: 0.9 }}>📍 Editando: <strong>#{currentEditingAg.codigo}</strong></div>}
+                  Confirmando seu agendamento:<br /><br />
+                  📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong><br /><br />
+                  {selections.map((sel, i) => (
+                     <React.Fragment key={i}>
+                        ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{shortName(sel.professional.nome)}</strong> — 🕐 <strong>{sel.timeSlot}</strong><br />
+                     </React.Fragment>
+                  ))}
+                  <br />⏱ Término previsto: <strong>{endTimeStr}</strong><br />
+                  💰 Total: <strong>{totalFormatado}</strong><br /><br />
+                  Posso confirmar?
+               </>
+            ),
+            actions: (
+               <div className="action-buttons-grid">
+                  <button className="chat-action-btn pri" type="button" onClick={() => {
+                     clearLastIsisActions();
+                     addUserMessage('Sim, pode confirmar! ✅');
+                     handleCompleteAppointment(selections, date);
+                  }}>✅ Confirmar agendamento</button>
+                  <button className="chat-action-btn" type="button" onClick={() => {
                      clearLastIsisActions();
                      addUserMessage('✏️ Editar agendamento');
                      handleServiceSelectionFlow();
@@ -932,32 +928,32 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                      addUserMessage('❌ Cancelar');
                      showMenu('Agendamento cancelado. Como posso te ajudar agora?');
                   }}>❌ Cancelar</button>
-              </div>
-           )
-        }]);
-        setTimeout(() => scrollToBottom('smooth'), 100);
-     }, 1200);
-  };
+               </div>
+            )
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1200);
+   };
 
 
-  const handleCompleteAppointment = async (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
-     setIsTyping(true);
+   const handleCompleteAppointment = async (selections: { service: any; professional: any; timeSlot: string }[], date: string) => {
+      setIsTyping(true);
 
-     const startObj = new Date(`${date}T${selections[0].timeSlot}:00`);
-     let maxEndMs = startObj.getTime();
-     for (const sel of selections) {
-       const st = new Date(`${date}T${sel.timeSlot}:00`).getTime();
-       const en = st + (sel.service.duracao_minutos || 30) * 60000;
-       if (en > maxEndMs) maxEndMs = en;
-     }
-     const endObj = new Date(maxEndMs);
-     const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
+      const startObj = new Date(`${date}T${selections[0].timeSlot}:00`);
+      let maxEndMs = startObj.getTime();
+      for (const sel of selections) {
+         const st = new Date(`${date}T${sel.timeSlot}:00`).getTime();
+         const en = st + (sel.service.duracao_minutos || 30) * 60000;
+         if (en > maxEndMs) maxEndMs = en;
+      }
+      const endObj = new Date(maxEndMs);
+      const totalValor = selections.reduce((acc, s) => acc + parseFloat(s.service.valor || 0), 0);
 
-     const currentCliente = cliente || clienteRef.current;
-     if (!currentCliente) {
-        toast('Ops! Problema ao identificar seu cadastro. Tente novamente.', 'error');
-        setStep('identification'); setIsTyping(false); return;
-     }
+      const currentCliente = cliente || clienteRef.current;
+      if (!currentCliente) {
+         toast('Ops! Problema ao identificar seu cadastro. Tente novamente.', 'error');
+         setStep('identification'); setIsTyping(false); return;
+      }
 
       try {
          let error;
@@ -983,24 +979,24 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
             const { error: err1 } = await supabase.from('agendamentos').update(payloads[0]).eq('id', currentEditingAg.id);
             if (payloads.length > 1) {
-              const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
-              let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
-              const newPayloads = payloads.slice(1).map(p => ({
-                 ...p,
-                 codigo: nextCod++,
-                 codigo_empresa: empresa.codigo,
-                 codigo_cliente: currentCliente.id,
-                 status: 'agendado',
-                 isis_criou: true
-              }));
-              const { error: err2 } = await supabase.from('agendamentos').insert(newPayloads);
-              error = err1 || err2;
+               const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
+               let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
+               const newPayloads = payloads.slice(1).map(p => ({
+                  ...p,
+                  codigo: nextCod++,
+                  codigo_empresa: empresa.codigo,
+                  codigo_cliente: currentCliente.id,
+                  status: 'agendado',
+                  isis_criou: true
+               }));
+               const { error: err2 } = await supabase.from('agendamentos').insert(newPayloads);
+               error = err1 || err2;
             } else {
-              error = err1;
+               error = err1;
             }
          } else {
             const { data: allAgend } = await supabase.from('agendamentos').select('codigo').eq('codigo_empresa', empresa.codigo);
-            let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x:any)=>x.codigo)) + 1 : 1;
+            let nextCod = allAgend && allAgend.length > 0 ? Math.max(...allAgend.map((x: any) => x.codigo)) + 1 : 1;
             finalCodigo = nextCod.toString();
 
             const payloads = selections.map((sel) => {
@@ -1026,65 +1022,65 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             console.log('--- ÍSIS CHAT: TENTANDO GRAVAR AGENDAMENTOS ---', payloads);
             const { error: err } = await supabase.from('agendamentos').insert(payloads);
             error = err;
-          }
+         }
 
-        if (error) {
-           console.error('--- ÍSIS CHAT: ERRO AO GRAVAR ---', error);
-           toast('Poxa, tive um probleminha técnico ao salvar seu horário. Por favor, tente novamente em instantes.', 'error');
-           setIsTyping(false);
-           return;
-        }
+         if (error) {
+            console.error('--- ÍSIS CHAT: ERRO AO GRAVAR ---', error);
+            toast('Poxa, tive um probleminha técnico ao salvar seu horário. Por favor, tente novamente em instantes.', 'error');
+            setIsTyping(false);
+            return;
+         }
 
-        console.log('--- ÍSIS CHAT: AGENDAMENTO GRAVADO COM SUCESSO! ---');
+         console.log('--- ÍSIS CHAT: AGENDAMENTO GRAVADO COM SUCESSO! ---');
 
-        setIsTyping(false);
-        const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const endTimeStr = endObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        setMessages(prev => [...prev, {
-           id: Date.now(),
-           sender: 'isis',
-           status: 'success',
-           time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-           text: (
-              <>
-                 ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br/>
-                 Código: <strong>#{finalCodigo}</strong><br/><br/>
-                 Resumo final:<br/>
-                 📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{selections[0].timeSlot}</strong> às <strong>{endTimeStr}</strong><br/><br/>
-                 {selections.map((sel, i) => (
-                   <React.Fragment key={i}>
-                     ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{sel.professional.nome}</strong><br/>
-                   </React.Fragment>
-                 ))}
-                 <br/>💰 Total: <strong>{totalFormatado}</strong><br/>
-                 {empresa.endereco && (
-                    <>📍 Endereço: <strong>{empresa.endereco}</strong></>
-                 )}
-                 <br/>
-                 Te esperamos lá! 😊
-              </>
-           ),
-           actions: (
-              <div className="action-buttons-grid">
+         setIsTyping(false);
+         const totalFormatado = totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+         const endTimeStr = endObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            status: 'success',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: (
+               <>
+                  ✨ <strong>Agendamento confirmado com sucesso!</strong> 🎉<br />
+                  Código: <strong>#{finalCodigo}</strong><br /><br />
+                  Resumo final:<br />
+                  📅 <strong>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> das <strong>{selections[0].timeSlot}</strong> às <strong>{endTimeStr}</strong><br /><br />
+                  {selections.map((sel, i) => (
+                     <React.Fragment key={i}>
+                        ✨ <strong>{sel.service.nome}</strong> — 👤 <strong>{sel.professional.nome}</strong><br />
+                     </React.Fragment>
+                  ))}
+                  <br />💰 Total: <strong>{totalFormatado}</strong><br />
+                  {empresa.endereco && (
+                     <>📍 Endereço: <strong>{empresa.endereco}</strong></>
+                  )}
+                  <br />
+                  Te esperamos lá! 😊
+               </>
+            ),
+            actions: (
+               <div className="action-buttons-grid">
                   <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
-              </div>
-           )
+               </div>
+            )
          }]);
-        setTimeout(() => scrollToBottom('smooth'), 100);
+         setTimeout(() => scrollToBottom('smooth'), 100);
 
-     } catch (err) {
-        console.error('Critical Error:', err);
-        setIsTyping(false);
-     }
-  };
+      } catch (err) {
+         console.error('Critical Error:', err);
+         setIsTyping(false);
+      }
+   };
 
-  const handleRegistrationSubmit = async (e: React.FormEvent) => {
+   const handleRegistrationSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (isRegistering) return;
       if (!registrationData.nome) return;
-      
+
       setIsRegistering(true);
 
       try {
@@ -1093,19 +1089,19 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             .from('clientes')
             .select('codigo')
             .eq('codigo_empresa', empresa.codigo);
-         
-         const nextCod = allCli && allCli.length > 0 
-            ? Math.max(...allCli.map((x: any) => x.codigo || 0)) + 1 
+
+         const nextCod = allCli && allCli.length > 0
+            ? Math.max(...allCli.map((x: any) => x.codigo || 0)) + 1
             : 1;
 
          // 2. Insere o novo cliente (Removendo o select().single() p/ evitar erro de RLS e dar paridade c/ a dashboard)
          const payload = {
-          codigo: nextCod,
-          codigo_empresa: empresa.codigo,
-          nome: registrationData.nome,
-          telefone: registrationData.telefone,
-          email: registrationData.email || null,
-          ativo: true
+            codigo: nextCod,
+            codigo_empresa: empresa.codigo,
+            nome: registrationData.nome,
+            telefone: registrationData.telefone,
+            email: registrationData.email || null,
+            ativo: true
          };
 
          const { error } = await supabase.from('clientes').insert(payload);
@@ -1118,85 +1114,85 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          // Adiciona a mensagem do usuário com os dados informados
          setMessages(prev => [...prev, {
             id: Date.now(), sender: 'user',
-            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             text: (
                <>
-                  <strong>Nome</strong>: {registrationData.nome}<br/>
+                  <strong>Nome</strong>: {registrationData.nome}<br />
                   <strong>Telefone</strong>: {registrationData.telefone}
-                  {registrationData.email && <><br/><strong>E-mail</strong>: {registrationData.email}</>}
+                  {registrationData.email && <><br /><strong>E-mail</strong>: {registrationData.email}</>}
                </>
             )
          }]);
 
          setIsTyping(true);
          setTimeout(() => scrollToBottom('smooth'), 100);
-          setTimeout(async () => { // Made this async
-              // Busca o cliente recém criado para ter o ID correto
-              const { data: newCli } = await supabase.from('clientes').select('*').eq('codigo_empresa', empresa.codigo).eq('codigo', nextCod).single();
-              if (newCli) setCliente(newCli); // Added this line
+         setTimeout(async () => { // Made this async
+            // Busca o cliente recém criado para ter o ID correto
+            const { data: newCli } = await supabase.from('clientes').select('*').eq('codigo_empresa', empresa.codigo).eq('codigo', nextCod).single();
+            if (newCli) setCliente(newCli); // Added this line
 
-             setIsTyping(false);
-             clearLastIsisActions(); // Limpa as ações (pergunta) da Isis após o cadastro
-             setStep('actions');
-             const firstName = registrationData.nome.split(' ')[0];
+            setIsTyping(false);
+            clearLastIsisActions(); // Limpa as ações (pergunta) da Isis após o cadastro
+            setStep('actions');
+            const firstName = registrationData.nome.split(' ')[0];
 
-             const greetings = [
-              `Perfeito, **${firstName}**! Cadastro realizado com sucesso. 🚀`,
-              `Tudo pronto, **${firstName}**! Seu cadastro foi feito. 😊`,
-              `Show, **${firstName}**! Agora você já pode agendar seus horários. ✨`,
-              `Maravilha! **${firstName}**, seu cadastro está confirmadíssimo. 👍`
-             ];
-             const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
-             handleServiceSelectionFlow(randomGreet);
-             setIsRegistering(false); 
-          }, 1000);
+            const greetings = [
+               `Perfeito, **${firstName}**! Cadastro realizado com sucesso. 🚀`,
+               `Tudo pronto, **${firstName}**! Seu cadastro foi feito. 😊`,
+               `Show, **${firstName}**! Agora você já pode agendar seus horários. ✨`,
+               `Maravilha! **${firstName}**, seu cadastro está confirmadíssimo. 👍`
+            ];
+            const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
+            handleServiceSelectionFlow(randomGreet);
+            setIsRegistering(false);
+         }, 1000);
 
       } catch (err: any) {
          console.error('Erro detalhado ao cadastrar:', err);
          alert('Ops! Tive um problema ao salvar seu cadastro. Motivo: ' + (err.message || 'Erro no banco de dados.'));
          setIsRegistering(false);
       }
-  };
+   };
 
    const submitFeedback = async (rating: number, comentario: string) => {
       setIsTyping(true);
       try {
-        const conversaSincronizar = messages.map(m => ({
-           ts: m.time,
-           from: m.sender === 'user' ? 'user' : 'assistant',
-           text: getPlainText(m.text)
-        }));
-        
-        const row = {
-          id: sessionId,
-          cod_cliente: cliente?.id || null,
-          nome_cliente: cliente?.nome || null,
-          empresa: empresa?.nome_exibicao || null,
-          projeto: 'isis_agenda',
-          nota: rating,
-          comentario: comentario,
-          conversa: conversaSincronizar,
-          timestamp: new Date().toISOString()
-        };
-        await supabaseControl.from('isis').upsert(row, { onConflict: 'id' });
+         const conversaSincronizar = messages.map(m => ({
+            ts: m.time,
+            from: m.sender === 'user' ? 'user' : 'assistant',
+            text: getPlainText(m.text)
+         }));
+
+         const row = {
+            id: sessionId,
+            cod_cliente: cliente?.id || null,
+            nome_cliente: cliente?.nome || null,
+            empresa: empresa?.nome_exibicao || null,
+            projeto: 'isis_agenda',
+            nota: rating,
+            comentario: comentario,
+            conversa: conversaSincronizar,
+            timestamp: new Date().toISOString()
+         };
+         await supabaseControl.from('isis').upsert(row, { onConflict: 'id' });
       } catch (e) {
          console.error(e);
       }
       setTimeout(() => {
-          setIsTyping(false);
-          let reactMsg = "";
-          if (rating <= 2) reactMsg = "Poxa, sinto muito que sua experiência não tenha sido a melhor de todas. Vou repassar seu feedback pra equipe melhorar! 🔧";
-          else if (rating === 3) reactMsg = "Anotado! Agradeço de coração a sinceridade, prometo que vamos trabalhar para que da próxima vez seja 5 estrelas! 💪";
-          else if (rating === 4) reactMsg = "Uhuul! Muito obrigada pela avaliação! Foi muito bom falar com você. 💜";
-          else reactMsg = "Incrível!! ⭐ Fiquei super feliz com as 5 estrelas! Sempre que precisar estarei por aqui. 🥰";
+         setIsTyping(false);
+         let reactMsg = "";
+         if (rating <= 2) reactMsg = "Poxa, sinto muito que sua experiência não tenha sido a melhor de todas. Vou repassar seu feedback pra equipe melhorar! 🔧";
+         else if (rating === 3) reactMsg = "Anotado! Agradeço de coração a sinceridade, prometo que vamos trabalhar para que da próxima vez seja 5 estrelas! 💪";
+         else if (rating === 4) reactMsg = "Uhuul! Muito obrigada pela avaliação! Foi muito bom falar com você. 💜";
+         else reactMsg = "Incrível!! ⭐ Fiquei super feliz com as 5 estrelas! Sempre que precisar estarei por aqui. 🥰";
 
-          setMessages(prev => [...prev, {
-             id: Date.now(),
-             sender: 'isis',
-             time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-             text: <>{reactMsg}<br/><br/>A <strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
-          }]);
-          setTimeout(() => scrollToBottom('smooth'), 100);
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: <>{reactMsg}<br /><br />A <strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong> agradece a preferência!</>
+         }]);
+         setTimeout(() => scrollToBottom('smooth'), 100);
       }, 800);
    };
 
@@ -1216,15 +1212,15 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setMessages(prev => [...prev, {
             id: Date.now(),
             sender: 'isis',
-            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             text: randomFb,
             actions: (
-                <FeedbackWidget 
-                   onSubmit={(rating, comentario) => {
-                      clearLastIsisActions();
-                      submitFeedback(rating, comentario);
-                   }}
-                />
+               <FeedbackWidget
+                  onSubmit={(rating, comentario) => {
+                     clearLastIsisActions();
+                     submitFeedback(rating, comentario);
+                  }}
+               />
             )
          }]);
          setTimeout(() => scrollToBottom('smooth'), 100);
@@ -1244,7 +1240,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             id: Date.now(),
             sender: 'isis',
             status: 'success',
-            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             text: "Seu agendamento foi **cancelado com sucesso**. ✅",
             actions: (
                <div className="action-buttons-grid">
@@ -1263,7 +1259,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setMessages(prev => [...prev, {
             id: Date.now(),
             sender: 'isis',
-            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             text: "Você tem certeza que deseja **cancelar** seu agendamento?",
             actions: (
                <div className="action-buttons-grid">
@@ -1298,7 +1294,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             setMessages(prev => [...prev, {
                id: Date.now(),
                sender: 'isis',
-               time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                text: "Você não tem nenhum agendamento futuro no momento. 😕 Deseja fazer um novo?",
                actions: (
                   <div className="action-buttons-grid">
@@ -1330,17 +1326,17 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             setMessages(prev => [...prev, {
                id: Date.now(),
                sender: 'isis',
-               time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                text: "Você tem mais de um agendamento. Qual deles você deseja **revisar**?",
                actions: (
                   <div className="action-buttons-grid">
                      {ags.map((ag: any) => (
-                        <button key={ag.id} className="chat-action-btn" type="button" onClick={() => { 
-                           clearLastIsisActions(); 
+                        <button key={ag.id} className="chat-action-btn" type="button" onClick={() => {
+                           clearLastIsisActions();
                            addUserMessage(`Revisar: ${new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')} - ${ag.servicos?.nome}`);
                            handleReviewAppointmentFlow(ag);
                         }}>
-                           {new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')} às {new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} - {ag.servicos?.nome}
+                           {new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')} às {new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} - {ag.servicos?.nome}
                         </button>
                      ))}
                      <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu(); }}>🏠 Menu Principal</button>
@@ -1370,16 +1366,16 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setMessages(prev => [...prev, {
             id: Date.now(),
             sender: 'isis',
-            time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             text: (
                <>
-                  Perfeito! Vamos revisar seu agendamento **#{ag.codigo}**:<br/><br/>
-                  📅 <strong>{new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')}</strong> das <strong>{startStr}</strong> às <strong>{endStr}</strong><br/>
-                  ✨ <strong>{svc?.nome}</strong><br/>
-                  👤 <strong>{prof?.nome}</strong><br/>
-                  💰 Valor: <strong>{valorFormatado}</strong><br/>
-                  {empresa.endereco && <>📍 Endereço: <strong>{empresa.endereco}</strong><br/></>}
-                  <br/>
+                  Perfeito! Vamos revisar seu agendamento **#{ag.codigo}**:<br /><br />
+                  📅 <strong>{new Date(ag.data_hora_inicio).toLocaleDateString('pt-BR')}</strong> das <strong>{startStr}</strong> às <strong>{endStr}</strong><br />
+                  ✨ <strong>{svc?.nome}</strong><br />
+                  👤 <strong>{prof?.nome}</strong><br />
+                  💰 Valor: <strong>{valorFormatado}</strong><br />
+                  {empresa.endereco && <>📍 Endereço: <strong>{empresa.endereco}</strong><br /></>}
+                  <br />
                   O que você deseja fazer agora?
                </>
             ),
@@ -1396,130 +1392,130 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       }, 1000);
    };
 
-  if (loadingState === 'fetching' || (!empresa && loading)) return <div className="isis-container" style={{ backgroundColor: '#0d0d0f' }}></div>;
-  if (!empresa) return <div className="isis-container" style={{ justifyContent: 'center', color: '#ef4444' }}><h2>Empresa "{decodedNome}" não encontrada.</h2></div>;
+   if (loadingState === 'fetching' || (!empresa && loading)) return <div className="isis-container" style={{ backgroundColor: '#0d0d0f' }}></div>;
+   if (!empresa) return <div className="isis-container" style={{ justifyContent: 'center', color: '#ef4444' }}><h2>Empresa "{decodedNome}" não encontrada.</h2></div>;
 
-  if (loadingState === 'premium_wait') {
-    return (
-      <div className="isis-container premium-loading">
-         <div className="fluid-bg">
-            <div className="fluid-blob blob-1"></div>
-            <div className="fluid-blob blob-2"></div>
-            <div className="fluid-blob blob-3"></div>
+   if (loadingState === 'premium_wait') {
+      return (
+         <div className="isis-container premium-loading">
+            <div className="fluid-bg">
+               <div className="fluid-blob blob-1"></div>
+               <div className="fluid-blob blob-2"></div>
+               <div className="fluid-blob blob-3"></div>
+            </div>
+            <div className="pulsing-avatar">
+               <div className="isis-face"><img src="/isiscomprimentoperfil.png" alt="Ísis" /></div>
+               <div className="pulse-ring"></div>
+               <div className="pulse-ring delay"></div>
+            </div>
+            <h2 className="loading-text">Conectando à Ísis...</h2>
+            <p style={{ color: 'var(--text-muted)', zIndex: 10 }}>Preparando a agenda da {empresa.nome_exibicao}</p>
          </div>
-         <div className="pulsing-avatar">
-            <div className="isis-face"><img src="/isiscomprimentoperfil.png" alt="Ísis" /></div>
-            <div className="pulse-ring"></div>
-            <div className="pulse-ring delay"></div>
+      );
+   }
+
+   const isInputValid = inputType === 'phone' ? inputVal.length === 15 : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputVal);
+
+   return (
+      <div className="isis-container" ref={containerRef}>
+         <header className="isis-header">
+            <div className="header-left">
+               <div className="avatar-wrapper">
+                  <div className="isis-face small"><img src="/isiscomprimentoperfil.png" alt="Ísis" /></div>
+                  <div className="online-dot"></div>
+               </div>
+               <div className="isis-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <h2 className="isis-name-title" style={{ margin: 0, fontSize: '1.1rem', color: '#fff', lineHeight: 1 }}>Ísis</h2>
+                  <span className="badge-chat">
+                     <span className="badge-glow-dot" style={{ display: 'inline-block', width: '5px', height: '5px', background: '#38bdf8', borderRadius: '50%', boxShadow: '0 0 5px #38bdf8' }}></span>
+                     CHAT
+                  </span>
+               </div>
+            </div>
+            <div className="header-center">
+               <div className="pill-company">
+                  {empresa.logo_url ? <img src={empresa.logo_url} alt="Logo" /> : <div className="pill-logo-fallback">{empresa.nome_exibicao.charAt(0)}</div>}
+                  <span>{empresa.nome_fantasia || empresa.nome_exibicao}</span>
+               </div>
+            </div>
+            <div className="header-right">
+               <div className="company-watermark" style={{ display: 'flex', alignItems: 'center' }}>
+                  <img src="/fluxo7teamcut.png" alt="Fluxo7" style={{ height: '64px', objectFit: 'contain', opacity: 0.9 }} />
+               </div>
+            </div>
+         </header>
+
+         <main className="chat-window">
+            <div className="chat-content">
+               {messages.map(msg => (
+                  <div key={msg.id} className={`chat-line ${msg.sender === 'user' ? 'user-line' : 'isis-line'}`}>
+                     {msg.sender === 'isis' && <div className="isis-face chat-avatar"><img src="/isisneutraperfil.png" alt="Ísis" /></div>}
+                     <div className={`chat-bubble ${msg.sender} ${msg.status || ''}`}>
+                        <div className="bubble-text">{formatMarkdown(msg.text)}</div>
+                        {msg.actions && msg.actions}
+                        <span className="bubble-time">{msg.time}</span>
+                     </div>
+                  </div>
+               ))}
+               {isTyping && (
+                  <div className="chat-line isis-line">
+                     <div className="isis-face chat-avatar"><img src="/isisneutraperfil.png" alt="Ísis" /></div>
+                     <div className="chat-bubble isis" style={{ minWidth: '60px', padding: '12px 16px' }}>
+                        <div className="bubble-text"><div className="typing-dots"><span></span><span></span><span></span></div></div>
+                     </div>
+                  </div>
+               )}
+               <div ref={chatEndRef} />
+            </div>
+         </main>
+
+         <footer className="chat-footer">
+            {step === 'identification' && !isCompanyBlocked && (
+               <>
+                  <form className="chat-input-wrapper" onSubmit={handleSend}>
+                     {inputType === 'phone' ? <IPhone /> : <IEmail />}
+                     <input type={inputType === 'phone' ? 'tel' : 'email'} placeholder={inputType === 'phone' ? "(00) 00000-0000" : "seu@email.com"} value={inputVal} onChange={handleInputChange} onFocus={handleInputFocus} />
+                     <button type="submit" className="send-btn" disabled={!isInputValid}><ISend /></button>
+                  </form>
+                  <div className="footer-options">
+                     <button type="button" className="text-btn" onClick={() => { setInputType(t => t === 'phone' ? 'email' : 'phone'); setInputVal(''); }}>
+                        {inputType === 'phone' ? <><IEmail /> Prefiro usar e-mail</> : <><IPhone /> Prefiro usar telefone</>}
+                     </button>
+                  </div>
+               </>
+            )}
+
+            {step === 'registration' && (
+               <form className="registration-form" onSubmit={handleRegistrationSubmit}>
+                  <div className="form-group">
+                     <input type="text" placeholder="Nome completo" value={registrationData.nome} onChange={e => setRegistrationData(d => ({ ...d, nome: e.target.value }))} required />
+                  </div>
+                  <div className="form-row">
+                     <div className="form-group">
+                        <input type="tel" placeholder="Telefone" value={registrationData.telefone} onChange={e => setRegistrationData(d => ({ ...d, telefone: applyMask(e.target.value) }))} required />
+                        <span className="validation-text">{registrationData.telefone.length === 15 ? '✅ Válido' : '❌ Inválido'}</span>
+                     </div>
+                     <div className="form-group">
+                        <input type="email" placeholder="E-mail (opcional)" value={registrationData.email} onChange={e => setRegistrationData(d => ({ ...d, email: e.target.value }))} />
+                        <span className="validation-text">{registrationData.email ? (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrationData.email) ? '✅ Válido' : '❌ Inválido') : '⚪ Opcional'}</span>
+                     </div>
+                  </div>
+                  <button
+                     type="submit"
+                     className={`chat-action-btn pri ${isRegistering ? 'is-registering' : ''}`}
+                     disabled={isRegistering}
+                     style={{ width: '100%', marginTop: '8px' }}
+                  >
+                     {isRegistering ? 'Garantindo seu acesso...' : 'Concluir Cadastro'}
+                  </button>
+               </form>
+            )}
+
+            {step === 'actions' && <div className="footer-status-msg">Conversa em andamento com Ísis ✨</div>}
+         </footer>
+         <div className="isis-footer-brand">
+            <img src="/fluxo7teamcut.png" alt="Fluxo7" />
          </div>
-         <h2 className="loading-text">Conectando à Ísis...</h2>
-         <p style={{ color: 'var(--text-muted)', zIndex: 10 }}>Preparando a agenda da {empresa.nome_exibicao}</p>
       </div>
-    );
-  }
-
-  const isInputValid = inputType === 'phone' ? inputVal.length === 15 : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputVal);
-
-  return (
-    <div className="isis-container" ref={containerRef}>
-       <header className="isis-header">
-          <div className="header-left">
-             <div className="avatar-wrapper">
-                <div className="isis-face small"><img src="/isiscomprimentoperfil.png" alt="Ísis" /></div>
-                <div className="online-dot"></div>
-             </div>
-             <div className="isis-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-               <h2 className="isis-name-title" style={{ margin: 0, fontSize: '1.1rem', color: '#fff', lineHeight: 1 }}>Ísis</h2>
-               <span className="badge-chat">
-                  <span className="badge-glow-dot" style={{ display: 'inline-block', width: '5px', height: '5px', background: '#38bdf8', borderRadius: '50%', boxShadow: '0 0 5px #38bdf8' }}></span>
-                  CHAT
-               </span>
-             </div>
-          </div>
-          <div className="header-center">
-             <div className="pill-company">
-                {empresa.logo_url ? <img src={empresa.logo_url} alt="Logo" /> : <div className="pill-logo-fallback">{empresa.nome_exibicao.charAt(0)}</div>}
-                <span>{empresa.nome_fantasia || empresa.nome_exibicao}</span>
-             </div>
-          </div>
-          <div className="header-right">
-             <div className="company-watermark" style={{ display: 'flex', alignItems: 'center' }}>
-                <img src="/fluxo7teamcut.png" alt="Fluxo7" style={{ height: '64px', objectFit: 'contain', opacity: 0.9 }} />
-             </div>
-          </div>
-       </header>
-
-       <main className="chat-window">
-          <div className="chat-content">
-             {messages.map(msg => (
-                <div key={msg.id} className={`chat-line ${msg.sender === 'user' ? 'user-line' : 'isis-line'}`}>
-                   {msg.sender === 'isis' && <div className="isis-face chat-avatar"><img src="/isisneutraperfil.png" alt="Ísis" /></div>}
-                    <div className={`chat-bubble ${msg.sender} ${msg.status || ''}`}>
-                       <div className="bubble-text">{formatMarkdown(msg.text)}</div>
-                       {msg.actions && msg.actions}
-                       <span className="bubble-time">{msg.time}</span>
-                    </div>
-                </div>
-             ))}
-             {isTyping && (
-                <div className="chat-line isis-line">
-                   <div className="isis-face chat-avatar"><img src="/isisneutraperfil.png" alt="Ísis" /></div>
-                   <div className="chat-bubble isis" style={{ minWidth: '60px', padding: '12px 16px' }}>
-                      <div className="bubble-text"><div className="typing-dots"><span></span><span></span><span></span></div></div>
-                   </div>
-                </div>
-             )}
-             <div ref={chatEndRef} />
-          </div>
-       </main>
-
-       <footer className="chat-footer">
-          {step === 'identification' && (
-             <>
-                <form className="chat-input-wrapper" onSubmit={handleSend}>
-                   {inputType === 'phone' ? <IPhone /> : <IEmail />}
-                   <input type={inputType === 'phone' ? 'tel' : 'email'} placeholder={inputType === 'phone' ? "(00) 00000-0000" : "seu@email.com"} value={inputVal} onChange={handleInputChange} onFocus={handleInputFocus}/>
-                   <button type="submit" className="send-btn" disabled={!isInputValid}><ISend /></button>
-                </form>
-                <div className="footer-options">
-                   <button type="button" className="text-btn" onClick={() => { setInputType(t => t === 'phone' ? 'email' : 'phone'); setInputVal(''); }}>
-                      {inputType === 'phone' ? <><IEmail /> Prefiro usar e-mail</> : <><IPhone /> Prefiro usar telefone</>}
-                   </button>
-                </div>
-             </>
-          )}
-
-          {step === 'registration' && (
-             <form className="registration-form" onSubmit={handleRegistrationSubmit}>
-                <div className="form-group">
-                   <input type="text" placeholder="Nome completo" value={registrationData.nome} onChange={e => setRegistrationData(d => ({ ...d, nome: e.target.value }))} required />
-                </div>
-                <div className="form-row">
-                   <div className="form-group">
-                      <input type="tel" placeholder="Telefone" value={registrationData.telefone} onChange={e => setRegistrationData(d => ({ ...d, telefone: applyMask(e.target.value) }))} required />
-                      <span className="validation-text">{registrationData.telefone.length === 15 ? '✅ Válido' : '❌ Inválido'}</span>
-                   </div>
-                   <div className="form-group">
-                      <input type="email" placeholder="E-mail (opcional)" value={registrationData.email} onChange={e => setRegistrationData(d => ({ ...d, email: e.target.value }))} />
-                      <span className="validation-text">{registrationData.email ? (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrationData.email) ? '✅ Válido' : '❌ Inválido') : '⚪ Opcional'}</span>
-                   </div>
-                </div>
-                 <button 
-                  type="submit" 
-                  className={`chat-action-btn pri ${isRegistering ? 'is-registering' : ''}`} 
-                  disabled={isRegistering} 
-                  style={{ width: '100%', marginTop: '8px' }}
-                >
-                   {isRegistering ? 'Garantindo seu acesso...' : 'Concluir Cadastro'}
-                </button>
-             </form>
-          )}
-
-          {step === 'actions' && <div className="footer-status-msg">Conversa em andamento com Ísis ✨</div>}
-       </footer>
-       <div className="isis-footer-brand">
-          <img src="/fluxo7teamcut.png" alt="Fluxo7" />
-       </div>
-    </div>
-  );
+   );
 }
