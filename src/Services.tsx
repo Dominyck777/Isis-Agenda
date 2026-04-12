@@ -31,7 +31,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
   const [editingSvc, setEditingSvc] = useState<any>(null);
   const [editingCli, setEditingCli] = useState<any>(null);
 
-  const [authAction, setAuthAction] = useState<{ type: 'novo' | 'edit' | 'delete', payload?: any } | null>(null);
+  const [authAction, setAuthAction] = useState<{ type: 'novo' | 'edit' | 'delete' | 'novoCli' | 'editCli', payload?: any } | null>(null);
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'client' | 'service', item: any }| null>(null);
@@ -105,6 +105,8 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
     if (isAdminValid || (user.is_admin && hashedInput === user.senha)) {
       if (authAction?.type === 'novo') openNewForm();
       else if (authAction?.type === 'edit') handleEditClick(authAction.payload);
+      else if (authAction?.type === 'novoCli') openNewCliForm();
+      else if (authAction?.type === 'editCli') setEditingCli(authAction.payload);
       else if (authAction?.type === 'delete') {
          setConfirmDelete({ type: 'service', item: authAction.payload });
       }
@@ -128,8 +130,45 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
     else { toast('Serviço removido com sucesso!', 'success'); loadData(); setConfirmDelete(null); }
   };
 
-  const onAddClick = () => { setAuthAction({ type: 'novo' }); setAuthPassword(''); setAuthError(''); };
-  const onEditClick = (s: any) => { setAuthAction({ type: 'edit', payload: s }); setAuthPassword(''); setAuthError(''); };
+  const onAddClick = () => { 
+    if (user.is_admin) {
+      openNewForm();
+    } else {
+      setAuthAction({ type: 'novo' }); 
+      setAuthPassword(''); 
+      setAuthError(''); 
+    }
+  };
+
+  const onEditClick = (s: any) => { 
+    if (user.is_admin) {
+      handleEditClick(s);
+    } else {
+      setAuthAction({ type: 'edit', payload: s }); 
+      setAuthPassword(''); 
+      setAuthError(''); 
+    }
+  };
+
+  const onAddCliClick = () => { 
+    if (user.is_admin) {
+      openNewCliForm();
+    } else {
+      setAuthAction({ type: 'novoCli' }); 
+      setAuthPassword(''); 
+      setAuthError(''); 
+    }
+  };
+
+  const onEditCliClick = (c: any) => { 
+    if (user.is_admin) {
+      setEditingCli(c);
+    } else {
+      setAuthAction({ type: 'editCli', payload: c }); 
+      setAuthPassword(''); 
+      setAuthError(''); 
+    }
+  };
 
   const openNewForm = () => {
     setEditingSvc({
@@ -194,25 +233,19 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
     };
 
     if (editingSvc.codigo === 'novo') {
-      console.log('Tentando CRIAR serviço com o Payload:', payload);
       const { data, error } = await supabase.from('servicos').insert(payload).select();
       if (error) {
-        console.error('SUPABASE CREATE ERROR DETALHADO:', error);
         toast('Erro ao criar: ' + error.message, 'error');
       } else { 
-        console.log('Serviço criado no banco:', data);
         toast('Serviço adicionado ao seu catálogo!', 'success'); 
         setEditingSvc(null); 
         loadData(); 
       }
     } else {
-      console.log('Tentando ATUALIZAR serviço com o Payload:', payload);
       const { data, error } = await supabase.from('servicos').update(payload).eq('codigo', editingSvc.codigo).select();
       if (error) {
-        console.error('SUPABASE UPDATE ERROR DETALHADO:', error);
         toast('Erro ao atualizar: ' + error.message, 'error');
       } else { 
-        console.log('Serviço atualizado no banco:', data);
         toast('Serviço atualizado com sucesso!', 'success'); 
         setEditingSvc(null); 
         loadData(); 
@@ -290,9 +323,8 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
                     <h3 style={{ margin: 0 }}>Gerenciar Clientes</h3>
-                    <button className="btn-add-user" onClick={openNewCliForm} style={{ marginBottom: 0 }}>+ Cadastrar Cliente</button>
+                    <button className="btn-add-user" onClick={onAddCliClick} style={{ marginBottom: 0 }}>+ Cadastrar Cliente</button>
                   </div>
-                  {/* Desktop View Table */}
                   <div className="hide-on-mobile" style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <table className="users-table" style={{ margin: 0, border: 'none' }}>
                       <thead><tr><th>Cód</th><th>Nome</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
@@ -305,7 +337,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                             <td>{c.telefone || '-'}</td>
                             <td>{c.ativo !== false ? '🟢 Ativo' : '🔴 Inativo'}</td>
                             <td>
-                                <button style={{ background:'transparent', border:'none', color:'#0ea5e9', cursor:'pointer', padding: 0 }} onClick={() => setEditingCli(c)} title="Editar Cliente"><IEdit /> Editar</button>
+                                <button style={{ background:'transparent', border:'none', color:'#0ea5e9', cursor:'pointer', padding: 0 }} onClick={() => onEditCliClick(c)} title="Editar Cliente"><IEdit /> Editar</button>
                             </td>
                           </tr>
                         ))}
@@ -313,7 +345,6 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                     </table>
                   </div>
 
-                  {/* Mobile View Cards */}
                   <div className="show-on-mobile users-list">
                     {clientes.length === 0 && <p style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum cliente em sua base.</p>}
                     {clientes.map(c => (
@@ -323,7 +354,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                             <strong style={{ fontSize: '1.25rem', color: '#fff' }}>{c.nome}</strong>
                             <span style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>ID: #{c.codigo.toString().padStart(4, '0')}</span>
                           </div>
-                          <button className="btn-edit-user" onClick={() => setEditingCli(c)} title="Editar Cliente">
+                          <button className="btn-edit-user" onClick={() => onEditCliClick(c)} title="Editar Cliente">
                             <IEdit /> <span>Editar</span>
                           </button>
                         </div>
@@ -410,7 +441,6 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                     <p style={{ color: 'var(--text-muted)', margin: 0 }}>Configure os serviços oferecidos e seus valores.</p>
                     <button className="btn-add-user" onClick={onAddClick} style={{ marginBottom: 0 }}>+ Adicionar Serviço</button>
                   </div>
-                  {/* Desktop View Table */}
                   <div className="hide-on-mobile" style={{ overflowX: 'auto', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <table className="users-table" style={{ margin: 0, border: 'none' }}>
                       <thead><tr><th>Serviço</th><th>Duração</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
@@ -431,7 +461,6 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                     </table>
                   </div>
 
-                  {/* Mobile View Cards */}
                   <div className="show-on-mobile users-list">
                     {servicos.length === 0 && <p style={{textAlign:'center', color:'var(--text-muted)', padding: '24px'}}>Nenhum serviço cadastrado na sua base.</p>}
                     {servicos.map(s => (
@@ -463,13 +492,12 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
         </div>
       </div>
 
-      {/* Modal de Re-autenticação para Editar/Criar Serviços */}
       {authAction && (
         <div className="modal-overlay" onClick={() => setAuthAction(null)} style={{ zIndex: 9999 }}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <h3 style={{ display:'flex', alignItems:'center', gap:'8px', color: 'var(--text-main)', marginBottom: '4px' }}>Acesso Restrito</h3>
             <p style={{ marginBottom: '20px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              Digite a senha de um administrador para modificar os serviços.
+              Digite a senha de um administrador para realizar esta ação.
             </p>
             <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <input 

@@ -41,6 +41,13 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
   const [configAgenda, setConfigAgenda] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
+
+  // Auth Protection for non-admins
+  const [authAction, setAuthAction] = useState<{ type: 'novo' | 'edit', payload?: any } | null>(null);
+  const [hasAuthSession, setHasAuthSession] = useState(false); // Flag temporária após digitar senha admin
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
   const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
   useEffect(() => {
@@ -168,12 +175,67 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     });
   };
 
+  const onAddUserClick = () => {
+    if (user.is_admin) {
+      openNewUserForm();
+    } else {
+      setAuthAction({ type: 'novo' });
+      setAuthPassword('');
+      setAuthError('');
+    }
+  };
+
+  const onEditUserClick = (u: any) => {
+    if (user.is_admin) {
+      openEditUserForm(u);
+    } else {
+      setAuthAction({ type: 'edit', payload: u });
+      setAuthPassword('');
+      setAuthError('');
+    }
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('Autenticando...');
+    const hashedInput = hashPassword(authPassword);
+
+    const { data: admins, error } = await supabase
+      .from('usuarios')
+      .select('senha')
+      .eq('codigo_empresa', user.codigo_empresa)
+      .eq('is_admin', true)
+      .eq('ativo', true);
+
+    if (error) {
+      setAuthError('Erro ao consultar banco de dados.');
+      return;
+    }
+
+    const isAdminValid = admins && admins.some(a => a.senha === hashedInput);
+    
+    if (isAdminValid || (user.is_admin && hashedInput === user.senha)) {
+      setHasAuthSession(true); // Libera a gravação para esta edição específica
+      if (authAction?.type === 'novo') openNewUserForm();
+      else if (authAction?.type === 'edit') openEditUserForm(authAction.payload);
+      setAuthAction(null);
+    } else {
+      setAuthError('Senha incorreta! Requer permissão de administrador.');
+    }
+  };
+
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const isNew = editingUser.codigo === 'novo';
 
     if (isNew) {
       if(!editingUser.nome || !editingUser.email || !editingUser.senhaText) return;
+
+      // Segurança Extra: Se não for admin e não teve sessão de senha, bloqueia
+      if (!user.is_admin && !hasAuthSession) {
+        toast('Ação não autorizada. Requer senha de administrador.', 'error');
+        return;
+      }
       
       const { error } = await supabase.from('usuarios').insert({
         nome: editingUser.nome,
@@ -186,7 +248,12 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
       });
 
       if (error) toast('Erro ao criar: ' + error.message, 'error');
-      else { toast('Profissional adicionado na equipe!', 'success'); setEditingUser(null); loadData(); }
+      else { 
+        toast('Profissional adicionado na equipe!', 'success'); 
+        setEditingUser(null); 
+        setHasAuthSession(false);
+        loadData(); 
+      }
       
     } else {
       // Update
@@ -216,6 +283,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
         }
 
         setEditingUser(null); 
+        setHasAuthSession(false);
         loadData(); 
       }
     }
@@ -376,7 +444,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3>Gerenciar Profissionais</h3>
                   {!editingUser && (
-                    <button className="btn-add-user" onClick={openNewUserForm}>
+                    <button className="btn-add-user" onClick={onAddUserClick}>
                       + Adicionar Profissional
                     </button>
                   )}
@@ -420,19 +488,40 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                          <label style={{ color: 'var(--primary-color)', fontSize: '0.9rem', marginBottom: '16px', display: 'block', fontWeight: 600 }}>Permissões de Acesso</label>
                          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                               <input type="checkbox" id="isAdminCheck" checked={editingUser.is_admin} onChange={e => setEditingUser({...editingUser, is_admin: e.target.checked})} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                               <label htmlFor="isAdminCheck" style={{ cursor: 'pointer', color: '#fff', fontWeight: 500 }}>Permissão de Administrador (Acesso Total)</label>
+                               <input 
+                                 type="checkbox" 
+                                 id="isAdminCheck" 
+                                 checked={editingUser.is_admin} 
+                                 onChange={e => setEditingUser({...editingUser, is_admin: e.target.checked})} 
+                                 disabled={!user.is_admin}
+                                 style={{ width: '18px', height: '18px', cursor: !user.is_admin ? 'not-allowed' : 'pointer' }} 
+                               />
+                               <label htmlFor="isAdminCheck" style={{ cursor: !user.is_admin ? 'not-allowed' : 'pointer', color: !user.is_admin ? 'gray' : '#fff', fontWeight: 500 }}>Permissão de Administrador (Acesso Total)</label>
                             </div>
                             
                             {!editingUser.is_admin && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '28px', borderLeft: '2px solid rgba(14, 165, 233, 0.2)', marginTop: '4px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                   <input type="checkbox" id="permFora" checked={editingUser.permissoes?.permitir_fora_horario} onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, permitir_fora_horario: e.target.checked }})} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                   <label htmlFor="permFora" style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Permitir agendar fora do horário de funcionamento</label>
+                                   <input 
+                                     type="checkbox" 
+                                     id="permFora" 
+                                     checked={editingUser.permissoes?.permitir_fora_horario} 
+                                     onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, permitir_fora_horario: e.target.checked }})} 
+                                     disabled={!user.is_admin}
+                                     style={{ width: '16px', height: '16px', cursor: !user.is_admin ? 'not-allowed' : 'pointer' }} 
+                                   />
+                                   <label htmlFor="permFora" style={{ cursor: !user.is_admin ? 'not-allowed' : 'pointer', fontSize: '0.9rem', color: !user.is_admin ? 'gray' : '#fff' }}>Permitir agendar fora do horário de funcionamento</label>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                   <input type="checkbox" id="permAlmoco" checked={editingUser.permissoes?.permitir_no_almoco} onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, permitir_no_almoco: e.target.checked }})} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                   <label htmlFor="permAlmoco" style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Permitir agendar dentro do horário de almoço</label>
+                                   <input 
+                                     type="checkbox" 
+                                     id="permAlmoco" 
+                                     checked={editingUser.permissoes?.permitir_no_almoco} 
+                                     onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, permitir_no_almoco: e.target.checked }})} 
+                                     disabled={!user.is_admin}
+                                     style={{ width: '16px', height: '16px', cursor: !user.is_admin ? 'not-allowed' : 'pointer' }} 
+                                   />
+                                   <label htmlFor="permAlmoco" style={{ cursor: !user.is_admin ? 'not-allowed' : 'pointer', fontSize: '0.9rem', color: !user.is_admin ? 'gray' : '#fff' }}>Permitir agendar dentro do horário de almoço</label>
                                 </div>
                               </div>
                             )}
@@ -441,7 +530,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                     </div>
                     <div className="user-form-actions" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
                       <button type="submit" className="btn-save" style={{ margin: 0 }}>Salvar Perfil</button>
-                      <button type="button" className="btn-save" style={{ margin: 0, background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => setEditingUser(null)}>Cancelar</button>
+                      <button type="button" className="btn-save" style={{ margin: 0, background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => { setEditingUser(null); setHasAuthSession(false); }}>Cancelar</button>
                     </div>
                   </form>
                 )}
@@ -462,14 +551,16 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                                 {u.ativo ? 'Ativo' : 'Inativo'}
                               </td>
                               <td style={{ verticalAlign: 'middle' }}>
-                                <button 
-                                  className="btn-edit-user" 
-                                  style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} 
-                                  onClick={() => openEditUserForm(u)} 
-                                  title="Editar Perfil"
-                                >
-                                  <IEdit /> Editar
-                                </button>
+                                {(user.is_admin || Number(u.codigo) === Number(user.codigo)) && (
+                                  <button 
+                                    className="btn-edit-user" 
+                                    style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} 
+                                    onClick={() => onEditUserClick(u)} 
+                                    title="Editar Perfil"
+                                  >
+                                    <IEdit /> Editar
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -487,9 +578,11 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                               </strong>
                                <span style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>ID: {u.codigo.toString().padStart(2, '0')}</span>
                             </div>
-                            <button className="btn-edit-user" onClick={() => openEditUserForm(u)} title="Editar Perfil">
-                              <IEdit /> <span>Editar</span>
-                            </button>
+                            {(user.is_admin || Number(u.codigo) === Number(user.codigo)) && (
+                              <button className="btn-edit-user" onClick={() => onEditUserClick(u)} title="Editar Perfil">
+                                <IEdit /> <span>Editar</span>
+                              </button>
+                            )}
                           </div>
                           <div className="user-info-row email-row" style={{ marginTop: '8px' }}>
                             {u.email}
@@ -583,6 +676,33 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
           </main>
         </div>
       </div>
+
+      {authAction && (
+        <div className="modal-overlay" onClick={() => setAuthAction(null)} style={{ zIndex: 9999 }}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3 style={{ display:'flex', alignItems:'center', gap:'8px', color: 'var(--text-main)', marginBottom: '4px' }}>Acesso Restrito</h3>
+            <p style={{ marginBottom: '20px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              Digite a senha de um administrador para gerenciar a equipe.
+            </p>
+            <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <input 
+                type="password" 
+                placeholder="Senha Admin..." 
+                value={authPassword} 
+                onChange={e => setAuthPassword(e.target.value)} 
+                required 
+                autoFocus
+                style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: '#fff', fontSize: '1rem', outline: 'none' }}
+              />
+              {authError && <span style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '-8px' }}>{authError}</span>}
+              <div className="modal-actions">
+                <button type="button" className="btn-sec" onClick={() => setAuthAction(null)}>Cancelar</button>
+                <button type="submit" className="btn-pri" style={{ backgroundColor: 'var(--primary-color)' }}>Confirmar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
