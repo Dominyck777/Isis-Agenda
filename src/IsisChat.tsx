@@ -215,6 +215,26 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       syncChat();
    }, [messages, sessionId, cliente, empresa]);
 
+   useEffect(() => {
+      let pollingInterval: any;
+      if (isCompanyBlocked && empresa?.codigodev) {
+         pollingInterval = setInterval(async () => {
+            try {
+               const { data: ctData } = await supabaseControl
+                  .from('clientes')
+                  .select('status')
+                  .eq('code', empresa.codigodev)
+                  .single();
+
+               if (ctData && ctData.status === 'ativo') {
+                  window.location.reload();
+               }
+            } catch (err) { }
+         }, 10000); // Check every 10s pra dar o feeling de realtime
+      }
+      return () => { if (pollingInterval) clearInterval(pollingInterval); };
+   }, [isCompanyBlocked, empresa]);
+
    const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
       if (chatEndRef.current) {
          chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
@@ -253,12 +273,11 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                         setIsTyping(true);
                         setTimeout(() => {
                            setIsTyping(false);
-                           const phoneInfo = matched.telefone ? ` **${matched.telefone}**` : ' **disponibilizado nas redes sociais**';
                            setMessages([{
                               id: Date.now(),
                               sender: 'isis',
                               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                              text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão temporariamente indisponíveis por uma pendência do estabelecimento. 🚫\nPara agendar, fale diretamente pelo telefone:${phoneInfo}.`
+                              text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão indisponíveis no momento por uma pendência.`
                            }]);
                         }, 2000);
                      }, 2000);

@@ -5,7 +5,7 @@ import IsisChat from './IsisChat';
 import LicenseBlock from './LicenseBlock';
 import { supabase } from './lib/supabase';
 import { supabaseControl } from './lib/supabaseControl';
-import { ToastContainer, toast } from './Toast';
+import { ToastContainer } from './Toast';
 import './App.css';
 
 function App() {
@@ -45,7 +45,7 @@ function App() {
                 const newStatus = payload.new.status;
                 setLicenseStatus(prevStatus => {
                   if (newStatus === 'ativo' && prevStatus === 'pendente') {
-                    toast('Acesso liberado! Bem-vindo de volta.', 'success');
+                    window.location.reload();
                   }
                   return newStatus;
                 });
@@ -106,7 +106,7 @@ function App() {
       if (controlData) {
         setLicenseStatus(prevStatus => {
           if (controlData.status === 'ativo' && prevStatus === 'pendente') {
-            toast('Acesso liberado! Bem-vindo de volta.', 'success');
+            window.location.reload();
           }
           return controlData.status;
         });
