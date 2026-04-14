@@ -158,8 +158,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   // Filtros da Grade
   const [filterProf, setFilterProf] = useState('');
   const [filterServ, setFilterServ] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ativos');
   const [tempFilterProf, setTempFilterProf] = useState('');
   const [tempFilterServ, setTempFilterServ] = useState('');
+  const [tempFilterStatus, setTempFilterStatus] = useState('ativos');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isAgendamentosListOpen, setIsAgendamentosListOpen] = useState(false);
   const [isApptModalOpen, setIsApptModalOpen] = useState(false);
@@ -337,7 +339,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   const filteredAgendamentos = React.useMemo(() => {
      return agendamentos.filter(ag => {
-         if (ag.status === 'cancelado') return false;
+         if (filterStatus === 'ativos' && ag.status === 'cancelado') return false;
+         if (filterStatus === 'cancelados' && ag.status !== 'cancelado') return false;
          
          const isProfInvolved = (pId: string) => {
             if (String(ag.codigo_profissional) === pId) return true;
@@ -363,7 +366,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
          if (filterServ && !isServInvolved(filterServ)) return false;
          return true;
      });
-  }, [agendamentos, filterProf, filterServ, user]);
+  }, [agendamentos, filterProf, filterServ, filterStatus, user]);
 
   const agStyles = React.useMemo(() => {
     const styles: Record<string, { colIndex: number, numCols: number }> = {};
@@ -595,6 +598,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     setIsMobileSidebarOpen(false);
     setTempFilterProf(filterProf);
     setTempFilterServ(filterServ);
+    setTempFilterStatus(filterStatus);
     setIsFilterModalOpen(true);
   };
 
@@ -860,8 +864,12 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                           let colorBase = '#0ea5e9';
                           if (ag.status === 'em andamento') colorBase = '#f59e0b';
                           if (ag.status === 'finalizado') colorBase = '#10b981';
+                          if (ag.status === 'cancelado') colorBase = '#ef4444';
 
                           const isPulse = ag.status === 'em andamento';
+                          const isCanceled = ag.status === 'cancelado';
+                          const cardOpacity = isCanceled ? 0.6 : 1;
+                          const textDecor = isCanceled ? 'line-through' : 'none';
                           const obsText = ag.observacao || '';
                           const displayClient = (ag.codigo_cliente === 0 && obsText.startsWith('👤 ')) ? obsText.split(' | ')[0].replace('👤 ', '') : dicClientes[ag.codigo_cliente] || 'Cliente';
 
@@ -888,11 +896,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                        padding: blockHeight <= 45 ? '2px 4px' : '4px 6px', 
                                        borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', 
                                        alignItems: 'stretch', lineHeight: 1.05,
-                                       boxSizing: 'border-box'
+                                       boxSizing: 'border-box', opacity: cardOpacity
                                      }}
                                      onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                                   <strong 
-                                    style={{ fontSize: '0.75rem', color: ag.isis_criou ? 'transparent' : colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'inline-block', width: 'fit-content' }}
+                                    style={{ fontSize: '0.75rem', color: ag.isis_criou ? 'transparent' : colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'inline-block', width: 'fit-content', textDecoration: textDecor }}
                                     className={ag.isis_criou ? 'isis-rainbow-text' : ''}
                                   >
                                     {sInfo?.nome || (v.serviceCode ? `S:${v.serviceCode}` : 'Serviço')}
@@ -928,11 +936,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                                    padding: calcHeight <= 45 ? '2px 4px' : '4px 6px', 
                                    borderRadius: '4px', cursor: 'pointer', overflow: 'hidden', 
                                    alignItems: 'stretch', lineHeight: 1.05,
-                                   boxSizing: 'border-box'
+                                   boxSizing: 'border-box', opacity: cardOpacity
                                  }}
                                  onClick={(e) => { e.stopPropagation(); openEditAgendamento(ag); }}>
                                <strong 
-                                 style={{ fontSize: '0.85rem', color: ag.isis_criou ? 'transparent' : colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'inline-block', width: 'fit-content' }}
+                                 style={{ fontSize: '0.85rem', color: ag.isis_criou ? 'transparent' : colorBase, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', display: 'inline-block', width: 'fit-content', textDecoration: textDecor }}
                                  className={ag.isis_criou ? 'isis-rainbow-text' : ''}
                                >
                                  {dicServicos[ag.codigo_servico] || (ag.codigo_servico ? `S:${ag.codigo_servico}` : 'Serviço')}
@@ -991,6 +999,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
            <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%' }}>
               <h3>Filtros da Grade</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
+                 <select value={tempFilterStatus} onChange={e => setTempFilterStatus(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
+                   <option value="ativos">Agendamentos Ativos</option>
+                   <option value="cancelados">Apenas Cancelados</option>
+                   <option value="todos">Todos (Ativos e Cancelados)</option>
+                 </select>
                  <select value={user && !user.is_admin ? user.codigo.toString() : tempFilterProf} onChange={e => setTempFilterProf(e.target.value)} disabled={user && !user.is_admin} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
                    <option value="">Todos os Profissionais</option>
                    {Object.entries(dicProfs).map(([id, nome]) => <option key={id} value={id}>{nome as string}</option>)}
@@ -1000,8 +1013,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                    {Object.entries(dicServicos).map(([id, nome]) => <option key={id} value={id}>{nome as string}</option>)}
                  </select>
                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                   <button className="btn-sec" style={{ flex: 1 }} onClick={() => { setFilterProf(''); setFilterServ(''); setIsFilterModalOpen(false); }}>Limpar</button>
-                   <button className="btn-pri" style={{ flex: 1 }} onClick={() => { setFilterProf(tempFilterProf); setFilterServ(tempFilterServ); setIsFilterModalOpen(false); }}>Filtrar</button>
+                   <button className="btn-sec" style={{ flex: 1 }} onClick={() => { setFilterProf(''); setFilterServ(''); setFilterStatus('ativos'); setIsFilterModalOpen(false); }}>Limpar</button>
+                   <button className="btn-pri" style={{ flex: 1 }} onClick={() => { setFilterProf(tempFilterProf); setFilterServ(tempFilterServ); setFilterStatus(tempFilterStatus); setIsFilterModalOpen(false); }}>Filtrar</button>
                  </div>
               </div>
            </div>
@@ -1013,7 +1026,12 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
            <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', maxHeight: '90dvh', overflowY: 'auto' }}>
               <h3>Lista de Agendamentos</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-                 {agendamentos.filter(ag => new Date(ag.data_hora_inicio).toDateString() === currentDate.toDateString() && ag.status !== 'cancelado').map(ag => (
+                 {agendamentos.filter(ag => {
+                   if (new Date(ag.data_hora_inicio).toDateString() !== currentDate.toDateString()) return false;
+                   if (filterStatus === 'ativos' && ag.status === 'cancelado') return false;
+                   if (filterStatus === 'cancelados' && ag.status !== 'cancelado') return false;
+                   return true;
+                 }).map(ag => (
                    <div key={ag.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--input-bg)', borderRadius: '8px' }}>
                       <div>
                          <strong>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong>
