@@ -163,7 +163,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
       senhaText: '',
       is_admin: false,
       ativo: true,
-      permissoes: { permitir_fora_horario: false, permitir_no_almoco: false }
+      permissoes: { permitir_fora_horario: false, permitir_no_almoco: false, comissao: 100 }
     });
   };
 
@@ -171,7 +171,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
     setEditingUser({ 
       ...u, 
       senhaText: '', 
-      permissoes: u.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false } 
+      permissoes: u.permissoes || { permitir_fora_horario: false, permitir_no_almoco: false, comissao: 100 } 
     });
   };
 
@@ -467,6 +467,23 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                       <div className="form-group-flat">
                         <label>{editingUser.codigo === 'novo' ? 'Senha de Acesso Mestra' : 'Nova Senha (deixe em branco para manter)'}</label>
                         <input type="password" value={editingUser.senhaText} onChange={e => setEditingUser({...editingUser, senhaText: e.target.value})} required={editingUser.codigo === 'novo'} placeholder="***" minLength={6} />
+                      </div>
+
+                      <div className="form-group-flat">
+                        <label>Comissão do Profissional (%)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           <input 
+                             type="number" 
+                             min="0" max="100" step="1"
+                             value={editingUser.permissoes?.comissao ?? 100} 
+                             onChange={e => setEditingUser({...editingUser, permissoes: { ...editingUser.permissoes, comissao: Number(e.target.value) }})} 
+                             required 
+                             disabled={!user.is_admin}
+                             style={{ flex: 1 }}
+                           />
+                           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>%</span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Ex: 70% significa que ele ganha 70% do valor do serviço.</span>
                       </div>
                       
 
