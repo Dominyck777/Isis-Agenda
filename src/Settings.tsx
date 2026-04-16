@@ -718,7 +718,27 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         * O modo de visualização é recomendado para evitar alterações acidentais ao consultar dados.
                       </p>
                    </div>
-                </div>
+ 
+                    <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
+                       <h4 style={{ margin: '0 0 8px 0', color: 'var(--primary-color)', fontSize: '1rem' }}>Regras de Cancelamento</h4>
+                       <div className="form-group-flat">
+                          <label>Antecedência mínima para Cancelar (Horas)</label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                             <input 
+                               type="number" 
+                               min="0" 
+                               value={configAgenda?.antecedencia_cancelamento_horas ?? 2} 
+                               onChange={e => setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: Number(e.target.value) })} 
+                               style={{ width: '80px' }}
+                             />
+                             <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>horas antes do agendamento.</span>
+                          </div>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                             Clientes não poderão cancelar via Ísis se estiverem dentro deste prazo.
+                          </p>
+                       </div>
+                    </div>
+                 </div>
 
                 <button className="btn-save" onClick={handleSaveAgenda} style={{ marginTop: '32px', backgroundColor: isAgendaSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
                   {isAgendaSaved ? '✓ Grade de Horários Salva!' : 'Salvar Grades de Horário da Agenda'}

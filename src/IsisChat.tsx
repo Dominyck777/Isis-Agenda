@@ -1440,7 +1440,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                   <div className="online-dot"></div>
                </div>
                <div className="isis-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <h2 className="isis-name-title" style={{ margin: 0, fontSize: '1.1rem', color: '#fff', lineHeight: 1 }}>Ísis</h2>
+                  <h2 className="isis-name-title" style={{ margin: 0, fontSize: '1.1rem', color: '#fff', lineHeight: 1 }}>{empresa?.nome_exibicao || 'Ísis'}</h2>
                   <span className="badge-chat">
                      <span className="badge-glow-dot" style={{ display: 'inline-block', width: '5px', height: '5px', background: '#38bdf8', borderRadius: '50%', boxShadow: '0 0 5px #38bdf8' }}></span>
                      CHAT
