@@ -1,4 +1,4 @@
-.dash-layout {
+﻿.dash-layout {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -480,7 +480,7 @@
   border-width: 2px !important;
 }
 
-/* Animação tátil para todos os botões e remoção do painel azul nativo */
+/* AnimaÃ§Ã£o tÃ¡til para todos os botÃµes e remoÃ§Ã£o do painel azul nativo */
 button {
   -webkit-tap-highlight-color: transparent;
   outline: none;
@@ -549,7 +549,7 @@ button:active {
   box-shadow: 0 0 25px var(--primary-color) !important;
 }
 
-/* Notificações da Ísis */
+/* NotificaÃ§Ãµes da Ãsis */
 .isis-notifications-container {
   position: fixed;
   bottom: 24px;
@@ -709,7 +709,7 @@ button:active {
 }
 @media (max-width: 400px) { .isis-notif-card { min-width: 0; padding: 12px; gap: 10px; } .isis-notif-header strong { font-size: 0.85rem; } .isis-notif-content p { font-size: 0.8rem; } }
 
-/* Texto Arco-íris Estático para Agendamentos da Ísis */
+/* Texto Arco-Ã­ris EstÃ¡tico para Agendamentos da Ãsis */
 .isis-rainbow-text {
   background: linear-gradient(
     to right, 
@@ -724,3 +724,5 @@ button:active {
   font-weight: 800 !important;
   filter: drop-shadow(0 0 1px rgba(255,255,255,0.1));
 }
+
+input[type='date'], input[type='time'] { color-scheme: dark; }

@@ -164,6 +164,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [tempFilterStatus, setTempFilterStatus] = useState('ativos');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isAgendamentosListOpen, setIsAgendamentosListOpen] = useState(false);
+  
+  const [modalListDate, setModalListDate] = useState<string>('');
+  const [modalAgendamentos, setModalAgendamentos] = useState<any[]>([]);
+  const [modalShowCancelled, setModalShowCancelled] = useState(false);
+  const [isModalLoading, setIsModalLoading] = useState(false);
   const [isApptModalOpen, setIsApptModalOpen] = useState(false);
   const [apptBaseDate, setApptBaseDate] = useState<Date | null>(null);
   const [apptBaseHour, setApptBaseHour] = useState<number | null>(null);
@@ -564,6 +569,23 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => clearInterval(interval);
   }, [user]);
 
+  // Modal Agendamentos do Dia
+  useEffect(() => {
+    if (isAgendamentosListOpen && modalListDate && user) {
+       setIsModalLoading(true);
+       supabase.from('agendamentos')
+         .select('*')
+         .eq('codigo_empresa', user.codigo_empresa)
+         .gte('data_hora_inicio', `${modalListDate}T00:00:00`)
+         .lte('data_hora_inicio', `${modalListDate}T23:59:59`)
+         .order('data_hora_inicio', { ascending: true })
+         .then(({data}) => {
+             if (data) setModalAgendamentos(data);
+             setIsModalLoading(false);
+         });
+    }
+  }, [isAgendamentosListOpen, modalListDate, user]);
+
   const handlePrevRange = () => setCurrentDate(addDays(currentDate, -7));
   const handleNextRange = () => setCurrentDate(addDays(currentDate, 7));
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -773,7 +795,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               <button type="button" className="btn-sec" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', margin: 0 }} onClick={openFilterModal}>
                  Filtrar Grade {(filterProf || filterServ) && <span style={{ background: 'var(--primary-color)', color: '#fff', borderRadius: '50%', padding: '2px 6px', fontSize: '0.7rem' }}>!</span>}
               </button>
-              <button type="button" className="btn-sec" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', margin: 0 }} onClick={() => { setIsMobileSidebarOpen(false); setIsAgendamentosListOpen(true); }}>
+              <button type="button" className="btn-sec" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', margin: 0 }} onClick={() => { setIsMobileSidebarOpen(false); setModalListDate(`${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`); setIsAgendamentosListOpen(true); }}>
                  Agendamentos do Dia
               </button>
               <button 
@@ -1024,18 +1046,81 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       {isAgendamentosListOpen && (
         <div className="modal-overlay" onClick={() => setIsAgendamentosListOpen(false)} style={{ zIndex: 4000 }}>
            <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', maxHeight: '90dvh', overflowY: 'auto' }}>
-              <h3>Lista de Agendamentos</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <h3 style={{ margin: 0 }}>Lista de Agendamentos</h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => setModalShowCancelled(!modalShowCancelled)}
+                    style={{ 
+                      background: modalShowCancelled ? '#ef4444' : 'transparent', 
+                      color: modalShowCancelled ? '#fff' : 'var(--text-muted)', 
+                      border: '1px solid var(--border-color)',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {modalShowCancelled ? 'Ocultar Cancelados' : 'Mostrar Cancelados'}
+                  </button>
+                  <input 
+                    type="date" 
+                    value={modalListDate} 
+                    onChange={e => setModalListDate(e.target.value)}
+                    style={{ background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', padding: '8px', borderRadius: '6px', outline: 'none' }} 
+                  />
+                </div>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-                 {agendamentos.filter(ag => {
-                   if (new Date(ag.data_hora_inicio).toDateString() !== currentDate.toDateString()) return false;
-                   if (filterStatus === 'ativos' && ag.status === 'cancelado') return false;
-                   if (filterStatus === 'cancelados' && ag.status !== 'cancelado') return false;
+                 {isModalLoading ? (
+                   <p style={{ color: 'var(--text-muted)' }}>Carregando...</p>
+                 ) : modalAgendamentos.filter(ag => {
+                   if (!modalShowCancelled && ag.status === 'cancelado') return false;
+                   return true;
+                 }).length === 0 ? (
+                   <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '12px' }}>📅</div>
+                      <p style={{ margin: 0 }}>Nenhum agendamento encontrado para esta data.</p>
+                      {!modalShowCancelled && modalAgendamentos.some(ag => ag.status === 'cancelado') && (
+                        <p style={{ fontSize: '0.8rem', marginTop: '8px' }}>Dica: Existem agendamentos cancelados ocultos. Clique em "Mostrar Cancelados" para ver.</p>
+                      )}
+                   </div>
+                 ) : modalAgendamentos.filter(ag => {
+                   if (!modalShowCancelled && ag.status === 'cancelado') return false;
                    return true;
                  }).map(ag => (
-                   <div key={ag.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--input-bg)', borderRadius: '8px' }}>
+                   <div key={ag.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--input-bg)', borderRadius: '8px', alignItems: 'center' }}>
                       <div>
-                         <strong>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong>
-                         <div>{dicServicos[ag.codigo_servico]} - {dicClientes[ag.codigo_cliente] || 'Cliente'}</div>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                           <strong>{new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong>
+                           <span style={{ 
+                             fontSize: '0.65rem', 
+                             padding: '2px 8px', 
+                             borderRadius: '4px', 
+                             background: ag.status === 'finalizado' ? '#10b981' : ag.status === 'cancelado' ? '#ef4444' : ag.status === 'em andamento' ? '#3b82f6' : '#f59e0b',
+                             color: '#fff',
+                             textTransform: 'uppercase',
+                             fontWeight: 700,
+                             letterSpacing: '0.5px'
+                           }}>
+                             {ag.status}
+                           </span>
+                           {ag.isis_criou && (
+                             <span style={{ 
+                               fontSize: '0.65rem', 
+                               padding: '2px 8px', 
+                               borderRadius: '4px', 
+                               background: '#a855f7',
+                               color: '#fff',
+                               fontWeight: 700,
+                               letterSpacing: '0.5px'
+                             }}>
+                               ISIS
+                             </span>
+                           )}
+                         </div>
+                         <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{dicServicos[ag.codigo_servico] || 'Serviço'} - {dicClientes[ag.codigo_cliente] || 'Cliente'}</div>
                       </div>
                       <button className="btn-sec" onClick={() => { setIsAgendamentosListOpen(false); openEditAgendamento(ag); }}>Detalhes</button>
                    </div>
