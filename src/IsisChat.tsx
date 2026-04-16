@@ -146,6 +146,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    const [messages, setMessages] = useState<any[]>([]);
    const [services, setServices] = useState<any[]>([]);
    const [professionals, setProfessionals] = useState<any[]>([]);
+   const [configAgenda, setConfigAgenda] = useState<any>(null);
    const [inputVal, setInputVal] = useState('');
    const [inputType, setInputType] = useState<'phone' | 'email'>('phone');
    const [step, setStep] = useState<'identification' | 'registration' | 'actions'>('identification');
@@ -246,6 +247,9 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    };
 
    const loadCompany = async () => {
+      console.log('--- DIAGNÓSTICO ÍSIS ---');
+      console.log('Slug buscado:', decodedNome);
+      
       // Busca direto pelo campo link
       const { data: matched, error } = await supabase
          .from('empresas')
@@ -254,6 +258,9 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          .single();
 
       if (matched && !error) {
+         console.log('Empresa encontrada:', matched);
+         console.log('Nome de Exibicao no BD:', matched.nome_exibicao);
+         
          // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
          if (matched.codigodev) {
             try {
@@ -300,6 +307,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             }, 2000);
          }, 2000);
       } else {
+         console.error('Empresa não encontrada ou erro:', error);
          setLoading(false);
       }
    };
@@ -321,6 +329,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
       if (svcs) setServices(svcs);
       if (profs) setProfessionals(profs);
+
+      const { data: cfg } = await supabase
+         .from('configuracoes_agenda')
+         .select('*')
+         .eq('codigo_empresa', empId)
+         .single();
+      if (cfg) setConfigAgenda(cfg);
    };
 
    const startWelcomeFlow = (emp: any) => {
@@ -1271,18 +1286,48 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       setIsTyping(true);
       setTimeout(() => {
          setIsTyping(false);
-         setMessages(prev => [...prev, {
-            id: Date.now(),
-            sender: 'isis',
-            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            text: "Você tem certeza que deseja **cancelar** seu agendamento?",
-            actions: (
-               <div className="action-buttons-grid">
-                  <button className="chat-action-btn cancel-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Sim, desejo cancelar'); handleCancelAppointmentFlow(ag); }}>Sim, desejo cancelar</button>
-                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Não, voltar'); handleReviewAppointmentFlow(ag); }}>Não, voltar</button>
-               </div>
-            )
-         }]);
+
+         // Lógica de Antecedência de Cancelamento
+         const startAt = new Date(ag.data_hora_inicio);
+         const now = new Date();
+         const diffMs = startAt.getTime() - now.getTime();
+         const diffHours = diffMs / (1000 * 60 * 60);
+
+         const limitHours = configAgenda?.antecedencia_cancelamento_horas ?? 0;
+
+         if (diffHours < limitHours) {
+            setMessages(prev => [...prev, {
+               id: Date.now(),
+               sender: 'isis',
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+               text: (
+                  <>
+                     Ops! 😰 Verifiquei aqui que faltam menos de **{limitHours} horas** para o seu atendimento.<br /><br />
+                     Pelas regras da **{empresa.nome_fantasia || empresa.nome_exibicao}**, o cancelamento via sistema só é permitido com uma antecedência maior.<br /><br />
+                     Por favor, entre em contato direto pelo telefone:<br />
+                     📞 **{empresa.telefone || 'Não informado'}**
+                  </>
+               ),
+               actions: (
+                  <div className="action-buttons-grid">
+                     <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
+                  </div>
+               )
+            }]);
+         } else {
+            setMessages(prev => [...prev, {
+               id: Date.now(),
+               sender: 'isis',
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+               text: "Você tem certeza que deseja **cancelar** seu agendamento?",
+               actions: (
+                  <div className="action-buttons-grid">
+                     <button className="chat-action-btn cancel-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Sim, desejo cancelar'); handleCancelAppointmentFlow(ag); }}>Sim, desejo cancelar</button>
+                     <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('Não, voltar'); handleReviewAppointmentFlow(ag); }}>Não, voltar</button>
+                  </div>
+               )
+            }]);
+         }
          setTimeout(() => scrollToBottom('smooth'), 100);
       }, 1000);
    };
