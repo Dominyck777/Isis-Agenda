@@ -499,8 +499,15 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                              <input 
                                type="number" 
                                min="0" 
+                               max="72"
                                value={configAgenda?.antecedencia_cancelamento_horas ?? 2} 
-                               onChange={e => setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: Number(e.target.value) })} 
+                               onChange={e => {
+                                 let val = parseInt(e.target.value);
+                                 if (isNaN(val)) val = 0;
+                                 if (val > 72) val = 72;
+                                 if (val < 0) val = 0;
+                                 setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: val });
+                               }} 
                                style={{ width: '100%', padding: '12px 16px', fontSize: '1.2rem', fontWeight: 700, textAlign: 'center', borderRadius: '10px', background: 'var(--input-bg)', border: '2px solid var(--border-color)', color: 'var(--primary-color)' }}
                              />
                           </div>
