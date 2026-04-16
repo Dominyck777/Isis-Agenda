@@ -1314,6 +1314,10 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                   </div>
                )
             }]);
+            
+            setTimeout(() => {
+               showMenu('Como posso te ajudar agora? ✨');
+            }, 4500);
          } else {
             setMessages(prev => [...prev, {
                id: Date.now(),

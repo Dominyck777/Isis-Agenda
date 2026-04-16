@@ -444,52 +444,76 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                 </div>
               </div>
             ) : tab === 'isis' ? (
-              <div className="tab-pane-isis">
-                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '32px' }}>
-                    <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'var(--input-bg)', border: '3px solid var(--primary-color)', padding: '4px', marginBottom: '16px', boxShadow: '0 0 20px rgba(14, 165, 233, 0.2)' }}>
-                       <img src="/isisneutraperfil.png" alt="Avatar Ísis" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                    </div>
-                    <h3 style={{ margin: 0 }}>Personalização da Assistente</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '8px 0 0 0' }}>
-                      Configure como a Ísis se apresenta para seus clientes no chat de agendamento.
-                    </p>
-                 </div>
-
-                 <div className="form-grid">
-                    <div className="form-group-flat full">
-                       <label>Nome de Exibição da Assistente</label>
-                       <input 
-                         type="text" 
-                         value={empresaForm.nome_exibicao || ''} 
-                         onChange={e => setEmpresaForm({...empresaForm, nome_exibicao: e.target.value})} 
-                         placeholder="Ex: Ísis Agendamento"
-                       />
-                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                         ⚠️ Este é o nome que aparece no cabeçalho do chat e nas mensagens automáticas.
-                       </span>
+              <div className="tab-pane-isis" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                 {/* Card de Perfil da Assistente */}
+                 <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '32px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '150px', height: '150px', background: 'var(--primary-color)', opacity: 0.05, filter: 'blur(50px)', borderRadius: '50%' }}></div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                       <div style={{ position: 'relative', marginBottom: '20px' }}>
+                          <div style={{ width: '130px', height: '130px', borderRadius: '50%', background: 'var(--surface-color)', border: '3px solid var(--primary-color)', padding: '5px', boxShadow: '0 10px 30px rgba(14, 165, 233, 0.3)' }}>
+                             <img src="/isisneutraperfil.png" alt="Avatar Ísis" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                          </div>
+                          <div style={{ position: 'absolute', bottom: '5px', right: '5px', width: '28px', height: '28px', background: '#10b981', borderRadius: '50%', border: '4px solid var(--surface-color)', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}></div>
+                       </div>
+                       <h3 style={{ margin: '0 0 8px 0', fontSize: '1.5rem', fontWeight: 700 }}>Personalidade da Assistente</h3>
+                       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '450px', margin: 0, lineHeight: 1.5 }}>
+                          Personalize como a sua inteligência artificial se apresenta e interage com seus clientes.
+                       </p>
                     </div>
 
-                    <div className="form-group-flat full" style={{ marginTop: '16px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
-                        <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary-color)', fontSize: '1rem' }}>Regra de Cancelamento</h4>
-                        <label>Quanto tempo antes o cliente pode cancelar? (Horas)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                           <input 
-                             type="number" 
-                             min="0" 
-                             value={configAgenda?.antecedencia_cancelamento_horas ?? 2} 
-                             onChange={e => setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: Number(e.target.value) })} 
-                             style={{ width: '80px', padding: '8px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }}
-                           />
-                           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>horas de antecedência.</span>
-                        </div>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                           Se faltar menos que este tempo, a Ísis não permitirá o cancelamento automático e pedirá para o cliente ligar.
-                        </p>
+                    <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                       <div className="form-group-flat full">
+                          <label style={{ color: 'var(--primary-color)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>
+                             🏷️ Nome de Exibição no Chat
+                          </label>
+                          <input 
+                            type="text" 
+                            value={empresaForm.nome_exibicao || ''} 
+                            onChange={e => setEmpresaForm({...empresaForm, nome_exibicao: e.target.value})} 
+                            placeholder="Ex: Ísis Agendamentos"
+                            style={{ width: '100%', padding: '14px 18px', fontSize: '1.05rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: '#fff' }}
+                          />
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                             ✨ Este nome aparecerá no topo do chat e em todas as saudações da Ísis.
+                          </p>
+                       </div>
                     </div>
                  </div>
 
-                 <button className="btn-save" onClick={() => { handleSaveEmpresa(); handleSaveAgenda(); }} style={{ marginTop: '24px', backgroundColor: isSaved || isAgendaSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
-                   {isSaved || isAgendaSaved ? '✓ Configurações Salvas' : 'Salvar Configurações da Ísis'}
+                 {/* Card de Regras de Negócio */}
+                 <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '28px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                       <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', color: '#ef4444' }}>
+                          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                       </div>
+                       <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Política de Cancelamento</h4>
+                    </div>
+
+                    <div className="form-group-flat" style={{ border: 'none', padding: 0 }}>
+                       <label style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '12px', display: 'block' }}>
+                          Bloquear cancelamento automático faltando:
+                       </label>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                          <div style={{ position: 'relative', width: '120px' }}>
+                             <input 
+                               type="number" 
+                               min="0" 
+                               value={configAgenda?.antecedencia_cancelamento_horas ?? 2} 
+                               onChange={e => setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: Number(e.target.value) })} 
+                               style={{ width: '100%', padding: '12px 16px', fontSize: '1.2rem', fontWeight: 700, textAlign: 'center', borderRadius: '10px', background: 'var(--input-bg)', border: '2px solid var(--border-color)', color: 'var(--primary-color)' }}
+                             />
+                          </div>
+                          <span style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 500 }}>Horas</span>
+                       </div>
+                       <div style={{ marginTop: '16px', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', fontSize: '0.85rem', color: 'var(--text-muted)', borderLeft: '4px solid #ef4444' }}>
+                          Se o cliente tentar cancelar com menos de <strong>{configAgenda?.antecedencia_cancelamento_horas || 2}h</strong> para o serviço, a Ísis informará que não é possível e passará o seu telefone de contato.
+                       </div>
+                    </div>
+                 </div>
+
+                 <button className="btn-save" onClick={() => { handleSaveEmpresa(); handleSaveAgenda(); }} style={{ marginTop: '32px', width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 700, fontSize: '1.1rem', backgroundColor: isSaved || isAgendaSaved ? '#10b981' : 'var(--primary-color)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+                   {isSaved || isAgendaSaved ? '✓ Configurações da Ísis Salvas!' : '✨ Aplicar Alterações na Ísis'}
                  </button>
               </div>
             ) : tab === 'usuarios' ? (
