@@ -2,23 +2,30 @@ import fs from 'fs';
 const path = 'src/IsisChat.tsx';
 let content = fs.readFileSync(path, 'utf8');
 
-const anchor = "const currentCliente = cliente || clienteRef.current;";
-const insertPoint = "try {";
+// Buscamos o bloco que acabamos de inserir
+const anchor = "// --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---";
+const endAnchor = "// ----------------------------------------------";
 
-const checkCode = `
-      // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
+const revisedCheck = `      // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
       for (const sel of selections) {
          const st = new Date(\`\${date}T\${sel.timeSlot}:00\`).toISOString();
          const en = new Date(new Date(\`\${date}T\${sel.timeSlot}:00\`).getTime() + (sel.service.duracao_minutos || 30) * 60000).toISOString();
          
-         const { data: conflicts } = await supabase.from('agendamentos')
+         let query = supabase.from('agendamentos')
             .select('id')
             .eq('codigo_empresa', empresa.codigo)
             .eq('codigo_profissional', sel.professional.codigo)
             .not('status', 'eq', 'cancelado')
             .lt('data_hora_inicio', en) 
-            .gt('data_hora_fim', st)   
-            .limit(1);
+            .gt('data_hora_fim', st);
+
+         // IMPORTANTE: Se estiver editando, ignorar o ID que já pertence a este agendamento
+         const currentEditingAg = editingAg || editingAgRef.current;
+         if (currentEditingAg?.id) {
+            query = query.not('id', 'eq', currentEditingAg.id);
+         }
+
+         const { data: conflicts } = await query.limit(1);
 
          if (conflicts && conflicts.length > 0) {
             setIsTyping(false);
@@ -38,23 +45,14 @@ const checkCode = `
             return; 
          }
       }
-      // ----------------------------------------------
-\n\n`;
+      // ----------------------------------------------`;
 
 if (content.includes(anchor)) {
     const parts = content.split(anchor);
-    // Buscamos o primeiro 'try {' após a nossa âncora
-    const secondPart = parts[1];
-    const tryIndex = secondPart.indexOf(insertPoint);
-    
-    if (tryIndex !== -1) {
-        const newSecondPart = secondPart.slice(0, tryIndex) + checkCode + secondPart.slice(tryIndex);
-        content = parts[0] + anchor + newSecondPart;
-        fs.writeFileSync(path, content);
-        console.log('Sucesso: Trava de conflito inserida com busca flexível!');
-    } else {
-        console.log('Erro: try { não encontrado após a âncora.');
-    }
+    const endParts = parts[1].split(endAnchor);
+    const newContent = parts[0] + revisedCheck + endParts[1];
+    fs.writeFileSync(path, newContent);
+    console.log('Sucesso: Verificação de conflito aprimorada para múltiplos serviços e edições!');
 } else {
-    console.log('Erro: Âncora não encontrada (' + anchor + ')');
+    console.log('Erro: Âncora não encontrada.');
 }

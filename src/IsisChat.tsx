@@ -985,7 +985,50 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setStep('identification'); setIsTyping(false); return;
       }
 
-      try {
+      
+            // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
+      for (const sel of selections) {
+         const st = new Date(`${date}T${sel.timeSlot}:00`).toISOString();
+         const en = new Date(new Date(`${date}T${sel.timeSlot}:00`).getTime() + (sel.service.duracao_minutos || 30) * 60000).toISOString();
+         
+         let query = supabase.from('agendamentos')
+            .select('id')
+            .eq('codigo_empresa', empresa.codigo)
+            .eq('codigo_profissional', sel.professional.codigo)
+            .not('status', 'eq', 'cancelado')
+            .lt('data_hora_inicio', en) 
+            .gt('data_hora_fim', st);
+
+         // IMPORTANTE: Se estiver editando, ignorar o ID que já pertence a este agendamento
+         const currentEditingAg = editingAg || editingAgRef.current;
+         if (currentEditingAg?.id) {
+            query = query.not('id', 'eq', currentEditingAg.id);
+         }
+
+         const { data: conflicts } = await query.limit(1);
+
+         if (conflicts && conflicts.length > 0) {
+            setIsTyping(false);
+            setMessages(prev => [...prev, {
+               id: Date.now(),
+               sender: 'isis',
+               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+               text: (<>Ops! Alguém acabou de pegar o seu horário das <strong>{sel.timeSlot}</strong>. 😰<br /><br />Para evitar conflitos, precisamos que você escolha um novo horário disponível.</>),
+               actions: (
+                  <div className="action-buttons-grid">
+                     <button className="chat-action-btn pri" type="button" onClick={() => { clearLastIsisActions(); showServiceWidgetForDate(date); }}>📅 Escolher outro horário</button>
+                     <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu(); }}>🏠 Voltar ao Menu</button>
+                  </div>
+               )
+            }]);
+            setTimeout(() => scrollToBottom('smooth'), 100);
+            return; 
+         }
+      }
+      // ----------------------------------------------
+
+
+try {
          let error;
          let finalCodigo = '';
          const currentEditingAg = editingAg || editingAgRef.current;
@@ -1302,18 +1345,12 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                text: (
                   <>
-                     Ops! 😰 Verifiquei aqui que faltam apenas **{Math.floor(diffHours)}h** para o seu atendimento.<br /><br />
-                     Pelas regras da **{empresa.nome_fantasia || empresa.nome_exibicao}**, o cancelamento via Ísis só é permitido com no mínimo **{limitHours} horas** de antecedência.<br /><br />
+                     Pelas regras da <strong>{empresa.nome_fantasia || empresa.nome_exibicao}</strong>, o cancelamento via Ísis só é permitido com no mínimo <strong>{limitHours} horas</strong> de antecedência.<br /><br />
                      Por favor, entre em contato direto conosco para solicitar o cancelamento ou reagendamento:<br />
-                     📞 **{empresa.telefone || 'Telefone não disponível'}**
+                     📞 <strong>{empresa.telefone || 'Telefone não disponível'}</strong>
                   </>
-               ),
-               actions: (
-                  <div className="action-buttons-grid">
-                     <button className="chat-action-btn menu-btn" type="button" onClick={() => { clearLastIsisActions(); showMenu('Deseja algo mais?'); }}>🏠 Menu Principal</button>
-                  </div>
-               )
-            }]);
+                ),
+             }]);
             
             setTimeout(() => {
                showMenu('Como posso te ajudar agora? ✨');
