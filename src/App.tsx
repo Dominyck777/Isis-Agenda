@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import IsisChat from './IsisChat';
@@ -6,7 +6,6 @@ import LicenseBlock from './LicenseBlock';
 import { supabase } from './lib/supabase';
 import { supabaseControl } from './lib/supabaseControl';
 import { ToastContainer } from './Toast';
-import React, { lazy, Suspense } from 'react';
 import './App.css';
 
 // Carregamento dinâmico seguro: Se o arquivo não existir (como em produção/Github), retorna nulo

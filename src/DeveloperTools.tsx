@@ -328,7 +328,7 @@ COMMIT;`);
     );
 };
 
-const sectionHeaderStyle = {
+const sectionHeaderStyle: React.CSSProperties = {
     color: '#38bdf8',
     fontSize: '1.1rem',
     borderBottom: '1px solid #334155',
@@ -336,10 +336,10 @@ const sectionHeaderStyle = {
     marginBottom: '20px'
 };
 
-const fieldStyle = { display: 'flex', flexDirection: 'column', gap: '8px' };
-const labelStyle = { fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 };
-const inputStyle = { background: '#0f172a', border: '1px solid #334155', color: '#fff', padding: '12px', borderRadius: '8px', outline: 'none' };
-const btnPriStyle = { flex: 1, background: '#0ea5e9', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' };
-const btnSecStyle = { flex: 1, background: '#475569', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' };
+const fieldStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '8px' };
+const labelStyle: React.CSSProperties = { fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 };
+const inputStyle: React.CSSProperties = { background: '#0f172a', border: '1px solid #334155', color: '#fff', padding: '12px', borderRadius: '8px', outline: 'none' };
+const btnPriStyle: React.CSSProperties = { flex: 1, background: '#0ea5e9', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' };
+const btnSecStyle: React.CSSProperties = { flex: 1, background: '#475569', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' };
 
 export default DeveloperTools;
