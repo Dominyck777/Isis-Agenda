@@ -6,7 +6,13 @@ import LicenseBlock from './LicenseBlock';
 import { supabase } from './lib/supabase';
 import { supabaseControl } from './lib/supabaseControl';
 import { ToastContainer } from './Toast';
+import React, { lazy, Suspense } from 'react';
 import './App.css';
+
+// Carregamento dinâmico seguro: Se o arquivo não existir (como em produção/Github), retorna nulo
+const LocalDevTools = lazy(() => 
+  import('./DeveloperTools').catch(() => ({ default: () => null }))
+);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -123,6 +129,16 @@ function App() {
 
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [hostname] = useState(window.location.hostname);
+
+  // ROTA DE FERRAMENTAS DO DESENVOLVEDOR (Localhost apenas e carregamento seguro)
+  if (hostname === 'localhost' && currentPath === '/sql-generator') {
+    return (
+      <Suspense fallback={null}>
+        <LocalDevTools />
+        <ToastContainer />
+      </Suspense>
+    );
+  }
 
   useEffect(() => {
     const handleLocationChange = () => setCurrentPath(window.location.pathname);
