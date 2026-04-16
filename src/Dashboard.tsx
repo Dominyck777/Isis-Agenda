@@ -743,10 +743,10 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                 <img src={user.empresas.logo_url} alt="Logo" style={{ borderRadius: '8px', objectFit: 'cover', width: '44px', height: '44px', border: '2px solid #0ea5e9' }} />
               ) : (
                 <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '1.25rem', border: '2px solid #0ea5e9' }}>
-                  {user?.empresas?.nome_exibicao?.charAt(0) || 'I'}
+                  {user?.empresas?.nome_fantasia?.charAt(0) || user?.empresas?.nome_exibicao?.charAt(0) || 'I'}
                 </div>
               )}
-              <span className="hide-on-mobile" style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.empresas?.nome_exibicao || 'Sua Empresa'}</span>
+              <span className="hide-on-mobile" style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.empresas?.nome_fantasia || user?.empresas?.nome_exibicao || 'Sua Empresa'}</span>
             </div>
           </div>
 

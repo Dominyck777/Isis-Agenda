@@ -122,6 +122,7 @@ function App() {
   };
 
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [hostname] = useState(window.location.hostname);
 
   useEffect(() => {
     const handleLocationChange = () => setCurrentPath(window.location.pathname);
@@ -134,15 +135,38 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // Sequestra a Tela se o Pathname for a aba do Cliente ou um slug direto
-  if (currentPath !== '/' && !currentPath.includes('.')) {
-    let nomeUrl = '';
-    if (currentPath.startsWith('/hidden/') || currentPath.startsWith('/hiden/')) {
-      const divider = currentPath.startsWith('/hidden/') ? '/hidden/' : '/hiden/';
-      nomeUrl = currentPath.split(divider)[1];
-    } else {
-      // Slug direto: /hairstylesalon -> hairstylesalon
-      nomeUrl = currentPath.startsWith('/') ? currentPath.slice(1) : currentPath;
+  // Lógica de Subdomínio Wildcard
+  let subdomain = '';
+  const hostParts = hostname.split('.');
+  
+  // LOG PARA DIAGNÓSTICO
+  console.log('DEBUG HOSTNAME:', hostname, 'PARTS:', hostParts);
+
+  // Detecta se estamos em um subdomínio (ex: empresa.isisagenda.com ou empresa.localhost)
+  // Ajustado para capturar qualquer coisa que venha ANTES de isisagenda.com
+  if (hostParts.length >= 3 && hostname.includes('isisagenda.com')) {
+    const index = hostParts.indexOf('isisagenda');
+    if (index > 0 && hostParts[0] !== 'www') {
+      subdomain = hostParts[0];
+    }
+  } else if (hostname.includes('localhost') && hostParts.length > 1) {
+    subdomain = hostParts[0];
+  }
+
+  console.log('DEBUG SUBDOMAIN DETECTED:', subdomain);
+
+  // Sequestra a Tela se houver subdomínio ou se o Pathname for a aba do Cliente ou um slug direto
+  if (subdomain || (currentPath !== '/' && !currentPath.includes('.'))) {
+    let nomeUrl = subdomain;
+    
+    if (!nomeUrl) {
+      if (currentPath.startsWith('/hidden/') || currentPath.startsWith('/hiden/')) {
+        const divider = currentPath.startsWith('/hidden/') ? '/hidden/' : '/hiden/';
+        nomeUrl = currentPath.split(divider)[1];
+      } else {
+        // Slug direto: /hairstylesalon -> hairstylesalon
+        nomeUrl = currentPath.startsWith('/') ? currentPath.slice(1) : currentPath;
+      }
     }
 
     if (nomeUrl) {

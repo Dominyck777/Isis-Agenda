@@ -338,6 +338,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
         <div className="mobile-tab-select-container">
           <select value={tab} onChange={e => { setTab(e.target.value); setEditingUser(null); }} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', fontSize: '1rem' }}>
             <option value="empresa">🏢 Dados da Empresa</option>
+            <option value="isis">✨ Configurações da Ísis</option>
             <option value="usuarios">👥 Equipe e Acessos</option>
             <option value="agenda">📅 Agenda de Trabalho</option>
           </select>
@@ -351,6 +352,12 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
           <aside className="settings-nav">
             <button className={`nav-tab ${tab === 'empresa' ? 'active' : ''}`} onClick={() => setTab('empresa')}>
               <ISettings /> Dados da Empresa
+            </button>
+            <button className={`nav-tab ${tab === 'isis' ? 'active' : ''}`} onClick={() => setTab('isis')}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', overflow: 'hidden', marginRight: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <img src="/isisneutraperfil.png" alt="Isis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              Assistente Ísis
             </button>
             <button className={`nav-tab ${tab === 'usuarios' ? 'active' : ''}`} onClick={() => { setTab('usuarios'); setEditingUser(null); }}>
               <IUsers /> Equipe e Acessos
@@ -388,10 +395,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                         </label>
                     </div>
                   </div>
-                  <div className="form-group-flat">
-                    <label>Nome de Exibição (Visível na Ísis)</label>
-                    <input type="text" value={empresaForm.nome_exibicao || ''} onChange={e => setEmpresaForm({...empresaForm, nome_exibicao: e.target.value})} />
-                  </div>
+                  
                   <div className="form-group-flat">
                     <label>Nome Fantasia</label>
                     <input type="text" value={empresaForm.nome_fantasia || ''} onChange={e => setEmpresaForm({...empresaForm, nome_fantasia: e.target.value})} />
@@ -438,6 +442,37 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                       </button>
                    </div>
                 </div>
+              </div>
+            ) : tab === 'isis' ? (
+              <div className="tab-pane-isis">
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '32px' }}>
+                    <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'var(--input-bg)', border: '3px solid var(--primary-color)', padding: '4px', marginBottom: '16px', boxShadow: '0 0 20px rgba(14, 165, 233, 0.2)' }}>
+                       <img src="/isisneutraperfil.png" alt="Avatar Ísis" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                    </div>
+                    <h3 style={{ margin: 0 }}>Personalização da Assistente</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '8px 0 0 0' }}>
+                      Configure como a Ísis se apresenta para seus clientes no chat de agendamento.
+                    </p>
+                 </div>
+
+                 <div className="form-grid">
+                    <div className="form-group-flat full">
+                       <label>Nome de Exibição da Assistente</label>
+                       <input 
+                         type="text" 
+                         value={empresaForm.nome_exibicao || ''} 
+                         onChange={e => setEmpresaForm({...empresaForm, nome_exibicao: e.target.value})} 
+                         placeholder="Ex: Ísis Agendamento"
+                       />
+                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                         ⚠️ Este é o nome que aparece no cabeçalho do chat e nas mensagens automáticas.
+                       </span>
+                    </div>
+                 </div>
+
+                 <button className="btn-save" onClick={handleSaveEmpresa} style={{ marginTop: '24px', backgroundColor: isSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
+                   {isSaved ? '✓ Configurações da Ísis Salvas' : 'Salvar Alterações'}
+                 </button>
               </div>
             ) : tab === 'usuarios' ? (
               <div className="tab-pane-usuarios">

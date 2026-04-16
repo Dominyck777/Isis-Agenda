@@ -171,7 +171,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    const chatEndRef = useRef<HTMLDivElement>(null);
    const containerRef = useRef<HTMLDivElement>(null);
 
-   const decodedNome = decodeURIComponent(nomeAcesso).replace(/-/g, '').toLowerCase();
+   const decodedNome = decodeURIComponent(nomeAcesso).toLowerCase();
 
    useEffect(() => {
       loadCompany();
@@ -246,63 +246,59 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    };
 
    const loadCompany = async () => {
-      const { data } = await supabase.from('empresas').select('*');
-      if (data) {
-         const matched = data.find(emp =>
-            (emp.nome_exibicao || '').replace(/[\s-]/g, '').toLowerCase() === decodedNome
-            ||
-            (emp.nome_fantasia || '').replace(/[\s-]/g, '').toLowerCase() === decodedNome
-         );
+      // Busca direto pelo campo link
+      const { data: matched, error } = await supabase
+         .from('empresas')
+         .select('*')
+         .eq('link', decodedNome)
+         .single();
 
-         if (matched) {
-            // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
-            if (matched.codigodev) {
-               try {
-                  const { data: controlData } = await supabaseControl
-                     .from('clientes')
-                     .select('status')
-                     .eq('code', matched.codigodev)
-                     .single();
+      if (matched && !error) {
+         // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
+         if (matched.codigodev) {
+            try {
+               const { data: controlData } = await supabaseControl
+                  .from('clientes')
+                  .select('status')
+                  .eq('code', matched.codigodev)
+                  .single();
 
-                  if (controlData && controlData.status === 'pendente') {
-                     setEmpresa(matched);
-                     setIsCompanyBlocked(true);
-                     setLoadingState('premium_wait');
+               if (controlData && controlData.status === 'pendente') {
+                  setEmpresa(matched);
+                  setIsCompanyBlocked(true);
+                  setLoadingState('premium_wait');
+                  setTimeout(() => {
+                     setLoadingState('chat');
+                     setIsTyping(true);
                      setTimeout(() => {
-                        setLoadingState('chat');
-                        setIsTyping(true);
-                        setTimeout(() => {
-                           setIsTyping(false);
-                           setMessages([{
-                              id: Date.now(),
-                              sender: 'isis',
-                              time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                              text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão indisponíveis no momento por uma pendência.`
-                           }]);
-                        }, 2000);
+                        setIsTyping(false);
+                        setMessages([{
+                           id: Date.now(),
+                           sender: 'isis',
+                           time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                           text: `Infelizmente os agendamentos online para a **${matched.nome_fantasia || matched.nome_exibicao}** estão indisponíveis no momento por uma pendência.`
+                        }]);
                      }, 2000);
-                     return; // Interrompe o fluxo normal
-                  }
-               } catch (e) {
-                  console.error("Erro ao verificar controle do cliente:", e);
+                  }, 2000);
+                  return; // Interrompe o fluxo normal
                }
+            } catch (e) {
+               console.error("Erro ao verificar controle do cliente:", e);
             }
-            // -------------------------------------------------
-
-            setEmpresa(matched);
-            loadDependencies(matched.codigo);
-            setLoadingState('premium_wait');
-            setTimeout(() => {
-               setLoadingState('chat');
-               setIsTyping(true);
-               setTimeout(() => {
-                  setIsTyping(false);
-                  startWelcomeFlow(matched);
-               }, 2000);
-            }, 2000);
-         } else {
-            setLoading(false);
          }
+         // -------------------------------------------------
+
+         setEmpresa(matched);
+         loadDependencies(matched.codigo);
+         setLoadingState('premium_wait');
+         setTimeout(() => {
+            setLoadingState('chat');
+            setIsTyping(true);
+            setTimeout(() => {
+               setIsTyping(false);
+               startWelcomeFlow(matched);
+            }, 2000);
+         }, 2000);
       } else {
          setLoading(false);
       }
