@@ -1302,10 +1302,10 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                text: (
                   <>
-                     Ops! 😰 Verifiquei aqui que faltam menos de **{limitHours} horas** para o seu atendimento.<br /><br />
-                     Pelas regras da **{empresa.nome_fantasia || empresa.nome_exibicao}**, o cancelamento via sistema só é permitido com uma antecedência maior.<br /><br />
-                     Por favor, entre em contato direto pelo telefone:<br />
-                     📞 **{empresa.telefone || 'Não informado'}**
+                     Ops! 😰 Verifiquei aqui que faltam apenas **{Math.floor(diffHours)}h** para o seu atendimento.<br /><br />
+                     Pelas regras da **{empresa.nome_fantasia || empresa.nome_exibicao}**, o cancelamento via Ísis só é permitido com no mínimo **{limitHours} horas** de antecedência.<br /><br />
+                     Por favor, entre em contato direto conosco para solicitar o cancelamento ou reagendamento:<br />
+                     📞 **{empresa.telefone || 'Telefone não disponível'}**
                   </>
                ),
                actions: (
@@ -1495,7 +1495,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             <div className="header-center">
                <div className="pill-company">
                   {empresa.logo_url ? <img src={empresa.logo_url} alt="Logo" /> : <div className="pill-logo-fallback">{empresa.nome_exibicao.charAt(0)}</div>}
-                  <span>{empresa.nome_fantasia || empresa.nome_exibicao}</span>
+                  <span>{empresa.nome_exibicao || empresa.nome_fantasia}</span>
                </div>
             </div>
             <div className="header-right">

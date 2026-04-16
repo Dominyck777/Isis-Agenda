@@ -468,10 +468,28 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                          ⚠️ Este é o nome que aparece no cabeçalho do chat e nas mensagens automáticas.
                        </span>
                     </div>
+
+                    <div className="form-group-flat full" style={{ marginTop: '16px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary-color)', fontSize: '1rem' }}>Regra de Cancelamento</h4>
+                        <label>Quanto tempo antes o cliente pode cancelar? (Horas)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                           <input 
+                             type="number" 
+                             min="0" 
+                             value={configAgenda?.antecedencia_cancelamento_horas ?? 2} 
+                             onChange={e => setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: Number(e.target.value) })} 
+                             style={{ width: '80px', padding: '8px', borderRadius: '6px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)' }}
+                           />
+                           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>horas de antecedência.</span>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                           Se faltar menos que este tempo, a Ísis não permitirá o cancelamento automático e pedirá para o cliente ligar.
+                        </p>
+                    </div>
                  </div>
 
-                 <button className="btn-save" onClick={handleSaveEmpresa} style={{ marginTop: '24px', backgroundColor: isSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
-                   {isSaved ? '✓ Configurações da Ísis Salvas' : 'Salvar Alterações'}
+                 <button className="btn-save" onClick={() => { handleSaveEmpresa(); handleSaveAgenda(); }} style={{ marginTop: '24px', backgroundColor: isSaved || isAgendaSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
+                   {isSaved || isAgendaSaved ? '✓ Configurações Salvas' : 'Salvar Configurações da Ísis'}
                  </button>
               </div>
             ) : tab === 'usuarios' ? (
@@ -719,25 +737,6 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                       </p>
                    </div>
  
-                    <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
-                       <h4 style={{ margin: '0 0 8px 0', color: 'var(--primary-color)', fontSize: '1rem' }}>Regras de Cancelamento</h4>
-                       <div className="form-group-flat">
-                          <label>Antecedência mínima para Cancelar (Horas)</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                             <input 
-                               type="number" 
-                               min="0" 
-                               value={configAgenda?.antecedencia_cancelamento_horas ?? 2} 
-                               onChange={e => setConfigAgenda({ ...configAgenda, antecedencia_cancelamento_horas: Number(e.target.value) })} 
-                               style={{ width: '80px' }}
-                             />
-                             <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>horas antes do agendamento.</span>
-                          </div>
-                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-                             Clientes não poderão cancelar via Ísis se estiverem dentro deste prazo.
-                          </p>
-                       </div>
-                    </div>
                  </div>
 
                 <button className="btn-save" onClick={handleSaveAgenda} style={{ marginTop: '32px', backgroundColor: isAgendaSaved ? '#10b981' : 'var(--primary-color)', transition: 'background-color 0.3s' }}>
