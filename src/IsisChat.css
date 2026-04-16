@@ -957,3 +957,99 @@
   margin-top: 2px;
 }
 
+/* Not Found View */
+.not-found-view {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #1a1525 0%, #0d0d0f 100%);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.not-found-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 40px;
+  max-width: 450px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+  animation: slideUp 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.not-found-image {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 32px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 0 30px rgba(14, 165, 233, 0.2);
+}
+
+.not-found-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px rgba(14, 165, 233, 0.4));
+}
+
+.not-found-content h1 {
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+  background: linear-gradient(to right, #fff, #38bdf8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+}
+
+.not-found-content p {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.not-found-content .not-found-hint {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin-bottom: 32px;
+}
+
+.not-found-action {
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  padding: 16px 20px;
+  border-radius: 16px;
+  color: #38bdf8;
+  font-weight: 500;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  box-shadow: inset 0 0 20px rgba(14, 165, 233, 0.05);
+}
+
+@media (max-width: 480px) {
+  .not-found-card {
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+  .not-found-image {
+    width: 110px;
+    height: 110px;
+    margin-bottom: 24px;
+  }
+  .not-found-content h1 {
+    font-size: 1.5rem;
+  }
+  .not-found-content p {
+    font-size: 0.95rem;
+  }
+}
+

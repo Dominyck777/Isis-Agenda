@@ -201,10 +201,19 @@ COMMIT;`);
                 border: '1px solid #334155',
                 boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
             }}>
-                <h2 style={{ margin: '0 0 10px 0', color: '#0ea5e9' }}>Gerador de Empresa & Admin (Dev Only)</h2>
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '32px' }}>
-                    Esta ferramenta cria simultaneamente o SQL da empresa e de seu primeiro administrador.
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                    <div>
+                        <h2 style={{ margin: '0 0 10px 0', color: '#0ea5e9' }}>Gerador de Empresa & Admin (Dev Only)</h2>
+                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>
+                            Esta ferramenta cria simultaneamente o SQL da empresa e de seu primeiro administrador.
+                        </p>
+                    </div>
+                    <img 
+                        src="/isiscomprimentoperfil_sem_fundo.png" 
+                        alt="Isis" 
+                        style={{ width: '80px', height: 'auto', borderRadius: '8px', border: '1px solid #334155', background: 'rgba(14, 165, 233, 0.1)' }} 
+                    />
+                </div>
 
                 {/* SEÇÃO EMPRESA */}
                 <h3 style={sectionHeaderStyle}>1. Dados da Empresa</h3>

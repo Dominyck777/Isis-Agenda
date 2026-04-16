@@ -1494,7 +1494,40 @@ try {
    };
 
    if (loadingState === 'fetching' || (!empresa && loading)) return <div className="isis-container" style={{ backgroundColor: '#0d0d0f' }}></div>;
-   if (!empresa) return <div className="isis-container" style={{ justifyContent: 'center', color: '#ef4444' }}><h2>Empresa "{decodedNome}" não encontrada.</h2></div>;
+   
+   if (!empresa) {
+      return (
+         <div className="isis-container not-found-view">
+            <div className="fluid-bg">
+               <div className="fluid-blob blob-1"></div>
+               <div className="fluid-blob blob-2"></div>
+            </div>
+            
+            <div className="not-found-card">
+               <div className="not-found-image">
+                  <img src="/isiscomprimentoperfil_sem_fundo.png" alt="Ísis" />
+               </div>
+               
+               <div className="not-found-content">
+                  <h1>Ops! Algo deu errado...</h1>
+                  <p>
+                     <strong>Não encontramos esta empresa.</strong>
+                  </p>
+                  <p className="not-found-hint">
+                     Parece que o link acessado não está correto ou a empresa ainda não foi configurada.
+                  </p>
+                  <div className="not-found-action">
+                     <span>Peça ao gestor da empresa para te encaminhar o link de agendamento oficial.</span>
+                  </div>
+               </div>
+            </div>
+
+            <div className="isis-footer-brand" style={{ position: 'fixed', bottom: '20px' }}>
+               <img src="/fluxo7teamcut.png" alt="Fluxo7" />
+            </div>
+         </div>
+      );
+   }
 
    if (loadingState === 'premium_wait') {
       return (
@@ -1526,7 +1559,7 @@ try {
                   <div className="online-dot"></div>
                </div>
                <div className="isis-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <h2 className="isis-name-title" style={{ margin: 0, fontSize: '1.1rem', color: '#fff', lineHeight: 1 }}>{empresa?.nome_exibicao || 'Ísis'}</h2>
+                  <h2 className="isis-name-title" style={{ margin: 0, fontSize: '1.1rem', color: '#fff', lineHeight: 1 }}>Ísis</h2>
                   <span className="badge-chat">
                      <span className="badge-glow-dot" style={{ display: 'inline-block', width: '5px', height: '5px', background: '#38bdf8', borderRadius: '50%', boxShadow: '0 0 5px #38bdf8' }}></span>
                      CHAT
