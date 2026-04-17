@@ -188,7 +188,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          vv.addEventListener('resize', handleResize);
          return () => vv.removeEventListener('resize', handleResize);
       }
-   }, []);
+   }, [nomeAcesso]);
 
    useEffect(() => {
       if (messages.length === 0) return;
@@ -249,7 +249,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    const loadCompany = async () => {
       console.log('--- DIAGNÓSTICO ÍSIS ---');
       console.log('Slug buscado:', decodedNome);
-      
+
       // Busca direto pelo campo link
       const { data: matched, error } = await supabase
          .from('empresas')
@@ -260,7 +260,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       if (matched && !error) {
          console.log('Empresa encontrada:', matched);
          console.log('Nome de Exibicao no BD:', matched.nome_exibicao);
-         
+
          // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
          if (matched.codigodev) {
             try {
@@ -309,6 +309,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       } else {
          console.error('Empresa não encontrada ou erro:', error);
          setLoading(false);
+         setLoadingState('chat'); // Libera para mostrar a tela de "não encontrado"
       }
    };
 
@@ -985,18 +986,18 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setStep('identification'); setIsTyping(false); return;
       }
 
-      
-            // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
+
+      // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
       for (const sel of selections) {
          const st = new Date(`${date}T${sel.timeSlot}:00`).toISOString();
          const en = new Date(new Date(`${date}T${sel.timeSlot}:00`).getTime() + (sel.service.duracao_minutos || 30) * 60000).toISOString();
-         
+
          let query = supabase.from('agendamentos')
             .select('id')
             .eq('codigo_empresa', empresa.codigo)
             .eq('codigo_profissional', sel.professional.codigo)
             .not('status', 'eq', 'cancelado')
-            .lt('data_hora_inicio', en) 
+            .lt('data_hora_inicio', en)
             .gt('data_hora_fim', st);
 
          // IMPORTANTE: Se estiver editando, ignorar o ID que já pertence a este agendamento
@@ -1022,13 +1023,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                )
             }]);
             setTimeout(() => scrollToBottom('smooth'), 100);
-            return; 
+            return;
          }
       }
       // ----------------------------------------------
 
 
-try {
+      try {
          let error;
          let finalCodigo = '';
          const currentEditingAg = editingAg || editingAgRef.current;
@@ -1349,9 +1350,9 @@ try {
                      Por favor, entre em contato direto conosco para solicitar o cancelamento ou reagendamento:<br />
                      📞 <strong>{empresa.telefone || 'Telefone não disponível'}</strong>
                   </>
-                ),
-             }]);
-            
+               ),
+            }]);
+
             setTimeout(() => {
                showMenu('Como posso te ajudar agora? ✨');
             }, 4500);
@@ -1494,7 +1495,7 @@ try {
    };
 
    if (loadingState === 'fetching' || (!empresa && loading)) return <div className="isis-container" style={{ backgroundColor: '#0d0d0f' }}></div>;
-   
+
    if (!empresa) {
       return (
          <div className="isis-container not-found-view">
@@ -1502,17 +1503,15 @@ try {
                <div className="fluid-blob blob-1"></div>
                <div className="fluid-blob blob-2"></div>
             </div>
-            
+
             <div className="not-found-card">
                <div className="not-found-image">
                   <img src="/isiscomprimentoperfil_sem_fundo.png" alt="Ísis" />
                </div>
-               
+
                <div className="not-found-content">
-                  <h1>Ops! Algo deu errado...</h1>
-                  <p>
-                     <strong>Não encontramos esta empresa.</strong>
-                  </p>
+                  <h1>Ops! Não encontramos esta empresa!</h1>
+
                   <p className="not-found-hint">
                      Parece que o link acessado não está correto ou a empresa ainda não foi configurada.
                   </p>
