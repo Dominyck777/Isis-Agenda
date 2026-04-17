@@ -159,14 +159,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    const [editingAg, _setEditingAg] = useState<any>(null);
    const editingAgRef = useRef<any>(null);
 
-   const [canInstall, setCanInstall] = useState(!!(window as any).deferredPrompt);
-
-   useEffect(() => {
-      const handleInstallable = () => setCanInstall(true);
-      window.addEventListener('pwa-installable', handleInstallable);
-      return () => window.removeEventListener('pwa-installable', handleInstallable);
-   }, []);
-
    const setCliente = (val: any) => {
       _setCliente(val);
       clienteRef.current = val;
@@ -1335,7 +1327,6 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             const { outcome } = await promptEvent.userChoice;
             console.log(`User response to the install prompt: ${outcome}`);
             (window as any).deferredPrompt = null;
-            setCanInstall(false);
          }
 
          setTimeout(() => {
