@@ -1331,7 +1331,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
 
          setTimeout(() => {
             showMenu('Prontinho! O que mais deseja fazer? ✨');
-         }, 4000);
+         }, 1500);
       }, 1000);
    };
 
