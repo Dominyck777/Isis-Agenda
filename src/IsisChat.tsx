@@ -1675,6 +1675,14 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                   >
                      {isRegistering ? 'Garantindo seu acesso...' : 'Concluir Cadastro'}
                   </button>
+                  <button
+                     type="button"
+                     className="chat-action-btn"
+                     onClick={handleWrongNumber}
+                     style={{ width: '100%', marginTop: '4px' }}
+                  >
+                     Informei o número errado
+                  </button>
                </form>
             )}
 
