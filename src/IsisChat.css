@@ -1054,30 +1054,34 @@
 }
 
 
-/* Estilo Premium para o Botão de Instalar App - Borda Dourada */
+/* Estilo Ultra-Premium para o Botão de Instalar App - Brilho Dourado Intenso */
 .install-app-btn {
-   background: #1e293b !important; /* Mantém a cor base dos outros botões */
-   border: 1px solid rgba(251, 191, 36, 0.6) !important;
+   background: #1e293b !important;
+   border: 2px solid #fbbf24 !important; /* Borda mais grossa */
    color: #fff !important;
    position: relative;
-   animation: border-glow-gold 2s infinite ease-in-out;
-   box-shadow: 0 0 8px rgba(245, 158, 11, 0.3), inset 0 0 6px rgba(245, 158, 11, 0.1) !important;
+   z-index: 1;
+   animation: border-glow-gold-intense 1.5s infinite alternate ease-in-out !important;
+   box-shadow: 0 0 15px rgba(251, 191, 36, 0.5), inset 0 0 8px rgba(251, 191, 36, 0.2) !important;
+   font-weight: 700 !important;
 }
 
-@keyframes border-glow-gold {
-   0%, 100% {
-      border-color: rgba(251, 191, 36, 0.4);
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.2), inset 0 0 4px rgba(245, 158, 11, 0.1);
+@keyframes border-glow-gold-intense {
+   0% {
+      border-color: #d97706;
+      box-shadow: 0 0 10px rgba(217, 119, 6, 0.4), inset 0 0 5px rgba(217, 119, 6, 0.2);
+      transform: scale(1);
    }
-   50% {
+   100% {
       border-color: #fbbf24;
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5), inset 0 0 10px rgba(245, 158, 11, 0.2);
-      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(251, 191, 36, 0.9), 0 0 40px rgba(251, 191, 36, 0.4), inset 0 0 12px rgba(251, 191, 36, 0.5) !important;
+      transform: scale(1.03);
    }
 }
 
 .install-app-btn:hover {
-   background: #2d3748 !important;
-   border-color: #fbbf24 !important;
-   box-shadow: 0 0 20px rgba(245, 158, 11, 0.7), inset 0 0 12px rgba(245, 158, 11, 0.3) !important;
+   background: #27272a !important;
+   border-color: #fff !important;
+   box-shadow: 0 0 30px rgba(251, 191, 36, 1), 0 0 50px rgba(251, 191, 36, 0.6) !important;
+   transition: all 0.2s ease-in-out;
 }
