@@ -79,29 +79,19 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
    const [comentario, setComentario] = useState('');
 
    return (
-      <div className="registration-form" style={{ marginTop: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-         <p style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 600, color: '#fff', textAlign: 'center' }}>Como você avalia nossa conversa?</p>
-         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
+      <div className="feedback-container">
+         <p className="feedback-title">Como você avalia nossa conversa?</p>
+         <div className="feedback-stars">
             {[1, 2, 3, 4, 5].map(star => {
-               const isActive = (hover || rating) >= star;
+               const isFilled = (hover || rating) >= star;
+               const isSelected = rating >= star;
                return (
                   <span
                      key={star}
                      onClick={() => setRating(star)}
                      onMouseEnter={() => setHover(star)}
                      onMouseLeave={() => setHover(0)}
-                     style={{
-                        fontSize: '2.5rem',
-                        cursor: 'pointer',
-                        color: isActive ? '#fbbf24' : 'transparent',
-                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        userSelect: 'none',
-                        transform: isActive ? 'scale(1.25) translateY(-4px)' : 'scale(1)',
-                        textShadow: isActive ? '0 0 16px rgba(251, 191, 36, 0.6), 0 0 32px rgba(251, 191, 36, 0.4)' : '0 0 4px rgba(255,255,255,0.05)',
-                        WebkitTextStroke: isActive ? 'none' : '1.5px #52525b',
-                        margin: '0 4px',
-                        display: 'inline-block'
-                     }}
+                     className={`star ${isFilled ? 'filled' : ''} ${isSelected ? 'selected' : ''}`}
                   >
                      ★
                   </span>
@@ -109,8 +99,8 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
             })}
          </div>
          {rating > 0 && (
-            <div className="form-group" style={{ animation: 'slideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)' }}>
-               <div style={{ marginBottom: '16px', textAlign: 'center', color: '#f59e0b', fontWeight: 500, fontSize: '0.9rem' }}>
+            <div className="feedback-form-group">
+               <div className="feedback-message">
                   {rating === 1 && "Poxa, o que deu errado? 😕"}
                   {rating === 2 && "Podemos melhorar! O que faltou? 🤔"}
                   {rating === 3 && "Obrigado! Como chegar a 5 estrelas? 😊"}
@@ -118,16 +108,15 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
                   {rating === 5 && "Incrível! Fico muito feliz! 🌟"}
                </div>
                <textarea
-                  placeholder="Deixe um comentário curto (opcional)"
+                  className="feedback-textarea"
+                  placeholder="Deixe um comentário opcional..."
                   value={comentario}
                   onChange={e => setComentario(e.target.value)}
-                  style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', minHeight: '80px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'none', fontSize: '0.95rem' }}
                />
                <button
                   type="button"
-                  className="chat-action-btn pri"
+                  className="feedback-submit-btn"
                   onClick={() => onSubmit(rating, comentario)}
-                  style={{ marginTop: '16px', width: '100%', background: '#0ea5e9', border: 'none', boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)', padding: '14px', fontSize: '1rem' }}
                >
                   Enviar Avaliação
                </button>
