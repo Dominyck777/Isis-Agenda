@@ -159,6 +159,14 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    const [editingAg, _setEditingAg] = useState<any>(null);
    const editingAgRef = useRef<any>(null);
 
+   const [canInstall, setCanInstall] = useState(!!(window as any).deferredPrompt);
+
+   useEffect(() => {
+      const handleInstallable = () => setCanInstall(true);
+      window.addEventListener('pwa-installable', handleInstallable);
+      return () => window.removeEventListener('pwa-installable', handleInstallable);
+   }, []);
+
    const setCliente = (val: any) => {
       _setCliente(val);
       clienteRef.current = val;
@@ -499,6 +507,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                <div className="action-buttons-grid">
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
+                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Instalar versão app'); handleInstallPWA(); }}>📱 Instalar versão app</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Informei o número errado'); handleWrongNumber(); }}>📱 Informei o número errado</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
                </div>
@@ -1298,6 +1307,40 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
             )
          }]);
          setTimeout(() => scrollToBottom('smooth'), 100);
+      }, 1000);
+   };
+
+   const handleInstallPWA = async () => {
+      setIsTyping(true);
+      setTimeout(async () => {
+         setIsTyping(false);
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: (
+               <>
+                  Com o aplicativo você tem acesso muito mais rápido à nossa agenda! 😊<br /><br />
+                  <strong>Instruções:</strong><br />
+                  1. Uma notificação ou banner aparecerá no seu navegador agora.<br />
+                  2. Clique em <strong>"Instalar"</strong> ou <strong>"Adicionar à tela de início"</strong>.<br />
+                  3. Se não aparecer nada, clique nos três pontinhos do seu navegador e procure por <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>. 📱
+               </>
+            )
+         }]);
+
+         const promptEvent = (window as any).deferredPrompt;
+         if (promptEvent) {
+            promptEvent.prompt();
+            const { outcome } = await promptEvent.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            (window as any).deferredPrompt = null;
+            setCanInstall(false);
+         }
+
+         setTimeout(() => {
+            showMenu('Prontinho! O que mais deseja fazer? ✨');
+         }, 4000);
       }, 1000);
    };
 
