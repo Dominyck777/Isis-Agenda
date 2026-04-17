@@ -499,7 +499,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                <div className="action-buttons-grid">
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
-                  <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Instalar versão app'); handleInstallPWA(); }}>📱 Instalar versão app</button>
+                  <button className="chat-action-btn install-app-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Instalar versão app'); handleInstallPWA(); }}>📱 Instalar versão app</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Informei o número errado'); handleWrongNumber(); }}>📱 Informei o número errado</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
                </div>

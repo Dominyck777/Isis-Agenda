@@ -1053,3 +1053,29 @@
   }
 }
 
+
+/* Estilo Chamativo para o Botão de Instalar App */
+.install-app-btn {
+   border: 1.5px solid #0ea5e9 !important;
+   background: rgba(14, 165, 233, 0.1) !important;
+   color: #fff !important;
+   position: relative;
+   overflow: hidden;
+   animation: glow-pulse 2s infinite ease-in-out;
+}
+
+@keyframes glow-pulse {
+   0% {
+      box-shadow: 0 0 5px rgba(14, 165, 233, 0.2), inset 0 0 5px rgba(14, 165, 233, 0.1);
+      border-color: rgba(14, 165, 233, 0.5);
+   }
+   50% {
+      box-shadow: 0 0 20px rgba(14, 165, 233, 0.6), inset 0 0 10px rgba(14, 165, 233, 0.2);
+      border-color: #38bdf8;
+      background: rgba(14, 165, 233, 0.2) !important;
+   }
+   100% {
+      box-shadow: 0 0 5px rgba(14, 165, 233, 0.2), inset 0 0 5px rgba(14, 165, 233, 0.1);
+      border-color: rgba(14, 165, 233, 0.5);
+   }
+}
