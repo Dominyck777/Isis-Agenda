@@ -285,6 +285,53 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          // -------------------------------------------------
 
          setEmpresa(matched);
+         
+         // --- ATUALIZAÇÃO DINÂMICA DE MARCA (PWA / SPLASH / TÍTULO) ---
+         if (matched) {
+            const companyName = matched.nome_exibicao || matched.nome_fantasia || 'Isis Agenda';
+            const companyLogo = matched.logo_url || '/favicon.png';
+            
+            // 1. Atualizar Título da Página
+            document.title = companyName;
+
+            // 2. Atualizar Favicons
+            const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+            if (favicon) favicon.href = companyLogo;
+            const appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+            if (appleIcon) appleIcon.href = companyLogo;
+
+            // 3. Atualizar Splash Screen (se ainda visível no index.html)
+            const splashImg = document.querySelector('#splash img') as HTMLImageElement;
+            if (splashImg) splashImg.src = companyLogo;
+
+            // 4. Atualizar Manifest dinamicamente para a Instalação
+            // Detecta a URL base atual (funciona para subdomínio ou slug direto)
+            const currentUrl = window.location.origin + window.location.pathname;
+            
+            const manifest = {
+               name: companyName,
+               short_name: companyName.split(' ')[0],
+               start_url: currentUrl,
+               display: "standalone",
+               background_color: "#000000",
+               theme_color: "#000000",
+               description: `Agenda de ${companyName}`,
+               icons: [
+                  { src: companyLogo, sizes: "192x192", type: "image/png", purpose: "any" },
+                  { src: companyLogo, sizes: "192x192", type: "image/png", purpose: "maskable" },
+                  { src: companyLogo, sizes: "512x512", type: "image/png", purpose: "any" },
+                  { src: companyLogo, sizes: "512x512", type: "image/png", purpose: "maskable" }
+               ]
+            };
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(blob);
+            const link = document.querySelector('link[rel="manifest"]') || document.createElement('link');
+            link.setAttribute('rel', 'manifest');
+            link.setAttribute('href', manifestURL);
+            if (!document.head.contains(link)) document.head.appendChild(link);
+         }
+         // -------------------------------------------------------------
          loadDependencies(matched.codigo);
          setLoadingState('premium_wait');
          setTimeout(() => {
@@ -1560,7 +1607,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                <div className="fluid-blob blob-3"></div>
             </div>
             <div className="pulsing-avatar">
-               <div className="isis-face"><img src="/isiscomprimentoperfil.png" alt="Ísis" /></div>
+               <div className="isis-face"><img src={empresa.logo_url || "/isiscomprimentoperfil.png"} alt="Logo" style={{ borderRadius: '50%' }} /></div>
                <div className="pulse-ring"></div>
                <div className="pulse-ring delay"></div>
             </div>
