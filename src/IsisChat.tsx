@@ -1607,7 +1607,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                <div className="fluid-blob blob-3"></div>
             </div>
             <div className="pulsing-avatar">
-               <div className="isis-face"><img src={empresa.logo_url || "/isiscomprimentoperfil.png"} alt="Logo" style={{ borderRadius: '50%' }} /></div>
+               <div className="isis-face"><img src="/isiscomprimentoperfil.png" alt="Ísis" /></div>
                <div className="pulse-ring"></div>
                <div className="pulse-ring delay"></div>
             </div>
