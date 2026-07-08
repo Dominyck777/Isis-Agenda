@@ -67,8 +67,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Isis Agenda';
   const options = {
     body: data.body || 'Você tem uma nova atualização!',
-    icon: '/isisneutraperfil.png',
-    badge: '/favicon.svg',
+    icon: data.icon || '/isisneutraperfil.png',
+    badge: data.badge || '/favicon.svg',
     data: data.url || '/'
   };
 

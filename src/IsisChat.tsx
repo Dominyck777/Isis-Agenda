@@ -79,29 +79,19 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
    const [comentario, setComentario] = useState('');
 
    return (
-      <div className="registration-form" style={{ marginTop: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-         <p style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 600, color: '#fff', textAlign: 'center' }}>Como você avalia nossa conversa?</p>
-         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
+      <div className="feedback-container">
+         <p className="feedback-title">Como você avalia nossa conversa?</p>
+         <div className="feedback-stars">
             {[1, 2, 3, 4, 5].map(star => {
-               const isActive = (hover || rating) >= star;
+               const isFilled = (hover || rating) >= star;
+               const isSelected = rating >= star;
                return (
                   <span
                      key={star}
                      onClick={() => setRating(star)}
                      onMouseEnter={() => setHover(star)}
                      onMouseLeave={() => setHover(0)}
-                     style={{
-                        fontSize: '2.5rem',
-                        cursor: 'pointer',
-                        color: isActive ? '#fbbf24' : 'transparent',
-                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        userSelect: 'none',
-                        transform: isActive ? 'scale(1.25) translateY(-4px)' : 'scale(1)',
-                        textShadow: isActive ? '0 0 16px rgba(251, 191, 36, 0.6), 0 0 32px rgba(251, 191, 36, 0.4)' : '0 0 4px rgba(255,255,255,0.05)',
-                        WebkitTextStroke: isActive ? 'none' : '1.5px #52525b',
-                        margin: '0 4px',
-                        display: 'inline-block'
-                     }}
+                     className={`star ${isFilled ? 'filled' : ''} ${isSelected ? 'selected' : ''}`}
                   >
                      ★
                   </span>
@@ -109,8 +99,8 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
             })}
          </div>
          {rating > 0 && (
-            <div className="form-group" style={{ animation: 'slideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)' }}>
-               <div style={{ marginBottom: '16px', textAlign: 'center', color: '#f59e0b', fontWeight: 500, fontSize: '0.9rem' }}>
+            <div className="feedback-form-group">
+               <div className="feedback-message">
                   {rating === 1 && "Poxa, o que deu errado? 😕"}
                   {rating === 2 && "Podemos melhorar! O que faltou? 🤔"}
                   {rating === 3 && "Obrigado! Como chegar a 5 estrelas? 😊"}
@@ -118,16 +108,15 @@ const FeedbackWidget = ({ onSubmit }: { onSubmit: (r: number, c: string) => void
                   {rating === 5 && "Incrível! Fico muito feliz! 🌟"}
                </div>
                <textarea
-                  placeholder="Deixe um comentário curto (opcional)"
+                  className="feedback-textarea"
+                  placeholder="Deixe um comentário opcional..."
                   value={comentario}
                   onChange={e => setComentario(e.target.value)}
-                  style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', minHeight: '80px', width: '100%', boxSizing: 'border-box', outline: 'none', resize: 'none', fontSize: '0.95rem' }}
                />
                <button
                   type="button"
-                  className="chat-action-btn pri"
+                  className="feedback-submit-btn"
                   onClick={() => onSubmit(rating, comentario)}
-                  style={{ marginTop: '16px', width: '100%', background: '#0ea5e9', border: 'none', boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)', padding: '14px', fontSize: '1rem' }}
                >
                   Enviar Avaliação
                </button>
@@ -188,7 +177,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          vv.addEventListener('resize', handleResize);
          return () => vv.removeEventListener('resize', handleResize);
       }
-   }, []);
+   }, [nomeAcesso]);
 
    useEffect(() => {
       if (messages.length === 0) return;
@@ -249,7 +238,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
    const loadCompany = async () => {
       console.log('--- DIAGNÓSTICO ÍSIS ---');
       console.log('Slug buscado:', decodedNome);
-      
+
       // Busca direto pelo campo link
       const { data: matched, error } = await supabase
          .from('empresas')
@@ -260,7 +249,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       if (matched && !error) {
          console.log('Empresa encontrada:', matched);
          console.log('Nome de Exibicao no BD:', matched.nome_exibicao);
-         
+
          // --- VERIFICAÇÃO DE LICENÇA (CONTROLE INTERNO) ---
          if (matched.codigodev) {
             try {
@@ -296,6 +285,53 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          // -------------------------------------------------
 
          setEmpresa(matched);
+         
+         // --- ATUALIZAÇÃO DINÂMICA DE MARCA (PWA / SPLASH / TÍTULO) ---
+         if (matched) {
+            const companyName = matched.nome_exibicao || matched.nome_fantasia || 'Isis Agenda';
+            const companyLogo = matched.logo_url || '/favicon.png';
+            
+            // 1. Atualizar Título da Página
+            document.title = companyName;
+
+            // 2. Atualizar Favicons
+            const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+            if (favicon) favicon.href = companyLogo;
+            const appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+            if (appleIcon) appleIcon.href = companyLogo;
+
+            // 3. Atualizar Splash Screen (se ainda visível no index.html)
+            const splashImg = document.querySelector('#splash img') as HTMLImageElement;
+            if (splashImg) splashImg.src = companyLogo;
+
+            // 4. Atualizar Manifest dinamicamente para a Instalação
+            // Detecta a URL base atual (funciona para subdomínio ou slug direto)
+            const currentUrl = window.location.origin + window.location.pathname;
+            
+            const manifest = {
+               name: companyName,
+               short_name: companyName.split(' ')[0],
+               start_url: currentUrl,
+               display: "standalone",
+               background_color: "#000000",
+               theme_color: "#000000",
+               description: `Agenda de ${companyName}`,
+               icons: [
+                  { src: companyLogo, sizes: "192x192", type: "image/png", purpose: "any" },
+                  { src: companyLogo, sizes: "192x192", type: "image/png", purpose: "maskable" },
+                  { src: companyLogo, sizes: "512x512", type: "image/png", purpose: "any" },
+                  { src: companyLogo, sizes: "512x512", type: "image/png", purpose: "maskable" }
+               ]
+            };
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(blob);
+            const link = document.querySelector('link[rel="manifest"]') || document.createElement('link');
+            link.setAttribute('rel', 'manifest');
+            link.setAttribute('href', manifestURL);
+            if (!document.head.contains(link)) document.head.appendChild(link);
+         }
+         // -------------------------------------------------------------
          loadDependencies(matched.codigo);
          setLoadingState('premium_wait');
          setTimeout(() => {
@@ -309,6 +345,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
       } else {
          console.error('Empresa não encontrada ou erro:', error);
          setLoading(false);
+         setLoadingState('chat'); // Libera para mostrar a tela de "não encontrado"
       }
    };
 
@@ -498,6 +535,7 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                <div className="action-buttons-grid">
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('✨ Fazer agendamento'); handleServiceSelectionFlow(); }}>✨ Fazer agendamento</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📅 Revisar Agendamentos'); handleEditAppointmentFlow(); }}>📅 Revisar Agendamentos</button>
+                  <button className="chat-action-btn install-app-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Instalar versão app'); handleInstallPWA(); }}>📱 Instalar versão app</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('📱 Informei o número errado'); handleWrongNumber(); }}>📱 Informei o número errado</button>
                   <button className="chat-action-btn" type="button" onClick={() => { clearLastIsisActions(); addUserMessage('👋 Finalizar atendimento'); handleFinalizeAtendimento(); }}>👋 Finalizar atendimento</button>
                </div>
@@ -985,18 +1023,18 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
          setStep('identification'); setIsTyping(false); return;
       }
 
-      
-            // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
+
+      // --- VERIFICAÇÃO DE CONFLITO DE ÚLTIMA MILHA ---
       for (const sel of selections) {
          const st = new Date(`${date}T${sel.timeSlot}:00`).toISOString();
          const en = new Date(new Date(`${date}T${sel.timeSlot}:00`).getTime() + (sel.service.duracao_minutos || 30) * 60000).toISOString();
-         
+
          let query = supabase.from('agendamentos')
             .select('id')
             .eq('codigo_empresa', empresa.codigo)
             .eq('codigo_profissional', sel.professional.codigo)
             .not('status', 'eq', 'cancelado')
-            .lt('data_hora_inicio', en) 
+            .lt('data_hora_inicio', en)
             .gt('data_hora_fim', st);
 
          // IMPORTANTE: Se estiver editando, ignorar o ID que já pertence a este agendamento
@@ -1022,13 +1060,13 @@ export default function IsisChat({ nomeAcesso }: { nomeAcesso: string }) {
                )
             }]);
             setTimeout(() => scrollToBottom('smooth'), 100);
-            return; 
+            return;
          }
       }
       // ----------------------------------------------
 
 
-try {
+      try {
          let error;
          let finalCodigo = '';
          const currentEditingAg = editingAg || editingAgRef.current;
@@ -1300,6 +1338,39 @@ try {
       }, 1000);
    };
 
+   const handleInstallPWA = async () => {
+      setIsTyping(true);
+      setTimeout(async () => {
+         setIsTyping(false);
+         setMessages(prev => [...prev, {
+            id: Date.now(),
+            sender: 'isis',
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            text: (
+               <>
+                  Com o aplicativo você tem acesso muito mais rápido à nossa agenda! 😊<br /><br />
+                  <strong>Instruções:</strong><br />
+                  1. Uma notificação ou banner aparecerá no seu navegador agora.<br />
+                  2. Clique em <strong>"Instalar"</strong> ou <strong>"Adicionar à tela de início"</strong>.<br />
+                  3. Se não aparecer nada, clique nos três pontinhos do seu navegador e procure por <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>. 📱
+               </>
+            )
+         }]);
+
+         const promptEvent = (window as any).deferredPrompt;
+         if (promptEvent) {
+            promptEvent.prompt();
+            const { outcome } = await promptEvent.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            (window as any).deferredPrompt = null;
+         }
+
+         setTimeout(() => {
+            showMenu('Prontinho! O que mais deseja fazer? ✨');
+         }, 1500);
+      }, 1000);
+   };
+
    const handleCancelAppointmentFlow = async (ag: any) => {
       setIsTyping(true);
       setTimeout(async () => {
@@ -1349,9 +1420,9 @@ try {
                      Por favor, entre em contato direto conosco para solicitar o cancelamento ou reagendamento:<br />
                      📞 <strong>{empresa.telefone || 'Telefone não disponível'}</strong>
                   </>
-                ),
-             }]);
-            
+               ),
+            }]);
+
             setTimeout(() => {
                showMenu('Como posso te ajudar agora? ✨');
             }, 4500);
@@ -1494,7 +1565,7 @@ try {
    };
 
    if (loadingState === 'fetching' || (!empresa && loading)) return <div className="isis-container" style={{ backgroundColor: '#0d0d0f' }}></div>;
-   
+
    if (!empresa) {
       return (
          <div className="isis-container not-found-view">
@@ -1502,17 +1573,15 @@ try {
                <div className="fluid-blob blob-1"></div>
                <div className="fluid-blob blob-2"></div>
             </div>
-            
+
             <div className="not-found-card">
                <div className="not-found-image">
                   <img src="/isiscomprimentoperfil_sem_fundo.png" alt="Ísis" />
                </div>
-               
+
                <div className="not-found-content">
-                  <h1>Ops! Algo deu errado...</h1>
-                  <p>
-                     <strong>Não encontramos esta empresa.</strong>
-                  </p>
+                  <h1>Ops! Não encontramos esta empresa!</h1>
+
                   <p className="not-found-hint">
                      Parece que o link acessado não está correto ou a empresa ainda não foi configurada.
                   </p>
@@ -1641,6 +1710,14 @@ try {
                      style={{ width: '100%', marginTop: '8px' }}
                   >
                      {isRegistering ? 'Garantindo seu acesso...' : 'Concluir Cadastro'}
+                  </button>
+                  <button
+                     type="button"
+                     className="chat-action-btn"
+                     onClick={handleWrongNumber}
+                     style={{ width: '100%', marginTop: '4px' }}
+                  >
+                     Informei o número errado
                   </button>
                </form>
             )}
