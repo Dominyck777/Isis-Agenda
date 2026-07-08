@@ -457,3 +457,14 @@
   color: #fff;
   transform: scale(0.98);
 }
+
+.custom-mobile-select summary {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.custom-mobile-select[open] summary span {
+  transform: rotate(180deg);
+}
+.custom-mobile-select summary span {
+  transition: transform 0.2s ease;
+}

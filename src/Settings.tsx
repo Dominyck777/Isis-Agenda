@@ -336,12 +336,32 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
         </div>
 
         <div className="mobile-tab-select-container">
-          <select value={tab} onChange={e => { setTab(e.target.value); setEditingUser(null); }} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', fontSize: '1rem' }}>
-            <option value="empresa">🏢 Dados da Empresa</option>
-            <option value="isis">✨ Configurações da Ísis</option>
-            <option value="usuarios">👥 Equipe e Acessos</option>
-            <option value="agenda">📅 Agenda de Trabalho</option>
-          </select>
+          <details className="custom-mobile-select" style={{ width: '100%', position: 'relative' }}>
+            <summary style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', listStyle: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {tab === 'empresa' && <><ISettings /> Dados da Empresa</>}
+                {tab === 'isis' && <><div style={{ width: '18px', height: '18px', borderRadius: '50%', overflow: 'hidden' }}><img src="/isisneutraperfil.png" alt="Isis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div> Configurações da Ísis</>}
+                {tab === 'usuarios' && <><IUsers /> Equipe e Acessos</>}
+                {tab === 'agenda' && <><ICalendar /> Agenda de Trabalho</>}
+              </div>
+              <span style={{ fontSize: '0.8rem' }}>▼</span>
+            </summary>
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '4px', zIndex: 10, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
+              <button type="button" onClick={(e) => { setTab('empresa'); e.currentTarget.parentElement?.parentElement?.removeAttribute('open'); }} style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', fontSize: '1rem' }}>
+                <ISettings /> Dados da Empresa
+              </button>
+              <button type="button" onClick={(e) => { setTab('isis'); e.currentTarget.parentElement?.parentElement?.removeAttribute('open'); }} style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', fontSize: '1rem' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', overflow: 'hidden' }}><img src="/isisneutraperfil.png" alt="Isis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div> Configurações da Ísis
+              </button>
+              <button type="button" onClick={(e) => { setTab('usuarios'); setEditingUser(null); e.currentTarget.parentElement?.parentElement?.removeAttribute('open'); }} style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', fontSize: '1rem' }}>
+                <IUsers /> Equipe e Acessos
+              </button>
+              <button type="button" onClick={(e) => { setTab('agenda'); setEditingUser(null); e.currentTarget.parentElement?.parentElement?.removeAttribute('open'); }} style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', textAlign: 'left', fontSize: '1rem' }}>
+                <ICalendar /> Agenda de Trabalho
+              </button>
+            </div>
+          </details>
+          <style>{`summary::-webkit-details-marker { display: none; }`}</style>
           
           <button className="mobile-install-btn" onClick={handleInstallApp}>
             <IDownload /> {isIOS ? 'Instalar no iOS' : 'Instalar como WebApp'}
@@ -390,7 +410,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <label style={{ fontSize: '0.9rem' }}>Logomarca da Empresa</label>
                         <label style={{ display: 'inline-block', background: 'rgba(255,255,255,0.05)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', border: '1px solid var(--border-color)', fontSize: '0.8rem', width: 'fit-content', color: 'var(--text-muted)' }}>
-                          🖼 Selecionar Arquivo...
+                          Selecionar Arquivo...
                           <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
                         </label>
                     </div>
@@ -465,7 +485,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                     <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                        <div className="form-group-flat full">
                           <label style={{ color: 'var(--primary-color)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>
-                             🏷️ Nome de Exibição no Chat
+                             Nome de Exibição no Chat
                           </label>
                           <input 
                             type="text" 
@@ -475,7 +495,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                             style={{ width: '100%', padding: '14px 18px', fontSize: '1.05rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: '#fff' }}
                           />
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                             ✨ Este nome aparecerá no topo do chat e em todas as saudações da Ísis.
+                             Este nome aparecerá no topo do chat e em todas as saudações da Ísis.
                           </p>
                        </div>
                     </div>
@@ -520,7 +540,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                  </div>
 
                  <button className="btn-save" onClick={() => { handleSaveEmpresa(); handleSaveAgenda(); }} style={{ marginTop: '32px', width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 700, fontSize: '1.1rem', backgroundColor: isSaved || isAgendaSaved ? '#10b981' : 'var(--primary-color)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-                   {isSaved || isAgendaSaved ? '✓ Configurações da Ísis Salvas!' : '✨ Aplicar Alterações na Ísis'}
+                   {isSaved || isAgendaSaved ? '✓ Configurações da Ísis Salvas!' : 'Aplicar Alterações na Ísis'}
                  </button>
               </div>
             ) : tab === 'usuarios' ? (
@@ -732,7 +752,7 @@ export default function Settings({ onClose, user }: { onClose: () => void, user:
                           </div>
                         </div>
                       ) : (
-                        <span style={{ color: '#ef4444', fontSize: '0.9rem', fontStyle: 'italic', marginLeft: '12px' }}>🔒 Fechado esse dia</span>
+                        <span style={{ color: '#ef4444', fontSize: '0.9rem', fontStyle: 'italic', marginLeft: '12px' }}>Fechado esse dia</span>
                       )}
                     </div>
                   ))}

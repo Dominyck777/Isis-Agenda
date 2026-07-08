@@ -263,10 +263,24 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
         </div>
 
         <div className="mobile-tab-select-container">
-          <select value={tab} onChange={e => { setTab(e.target.value); setEditingSvc(null); setEditingCli(null); }} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', fontSize: '1rem' }}>
-            <option value="clientes">👥 Clientes</option>
-            <option value="servicos">✂️ Serviços e Preços</option>
-          </select>
+          <details className="custom-mobile-select" style={{ width: '100%', position: 'relative' }}>
+            <summary style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', listStyle: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {tab === 'clientes' && <><IUsers /> Clientes</>}
+                {tab === 'servicos' && <><ITag /> Serviços e Preços</>}
+              </div>
+              <span style={{ fontSize: '0.8rem' }}>▼</span>
+            </summary>
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '4px', zIndex: 10, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
+              <button type="button" onClick={(e) => { setTab('clientes'); setEditingSvc(null); setEditingCli(null); e.currentTarget.parentElement?.parentElement?.removeAttribute('open'); }} style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', fontSize: '1rem' }}>
+                <IUsers /> Clientes
+              </button>
+              <button type="button" onClick={(e) => { setTab('servicos'); setEditingSvc(null); setEditingCli(null); e.currentTarget.parentElement?.parentElement?.removeAttribute('open'); }} style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', textAlign: 'left', fontSize: '1rem' }}>
+                <ITag /> Serviços e Preços
+              </button>
+            </div>
+          </details>
+          <style>{`summary::-webkit-details-marker { display: none; }`}</style>
         </div>
 
         <div className="settings-body" style={{ display: 'flex', flex: 1, padding: 0, overflow: 'hidden' }}>
@@ -335,7 +349,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                             <td style={{ color:'var(--text-muted)' }}>#{c.codigo.toString().padStart(4, '0')}</td>
                             <td><strong>{c.nome}</strong></td>
                             <td>{c.telefone || '-'}</td>
-                            <td>{c.ativo !== false ? '🟢 Ativo' : '🔴 Inativo'}</td>
+                            <td>{c.ativo !== false ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#10b981" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Ativo</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#ef4444" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Inativo</span>}</td>
                             <td>
                                 <button style={{ background:'transparent', border:'none', color:'#0ea5e9', cursor:'pointer', padding: 0 }} onClick={() => onEditCliClick(c)} title="Editar Cliente"><IEdit /> Editar</button>
                             </td>
@@ -359,11 +373,11 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                           </button>
                         </div>
                         <div className="user-row-2" style={{ marginTop: '8px' }}>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>📞 {c.telefone || 'Sem telefone'}</span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.896-1.596-5.275-3.975-6.871-6.871l1.293-.97c.362-.271.527-.733.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg> {c.telefone || 'Sem telefone'}</span>
                         </div>
                         <div className="user-row-3">
                           <span className="status-indicator">
-                            {c.ativo !== false ? '🟢 Ativo' : '🔴 Inativo'}
+                            {c.ativo !== false ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#10b981" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Ativo</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#ef4444" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Inativo</span>}
                           </span>
                         </div>
                       </div>
@@ -451,7 +465,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                             <td><strong>{s.nome}</strong></td>
                             <td>{Math.floor(s.duracao_minutos/60).toString().padStart(2, '0')}:{(s.duracao_minutos%60).toString().padStart(2, '0')}</td>
                             <td>{parseFloat(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                            <td>{s.ativo ? '🟢 Ativo' : '🔴 Desativado'}</td>
+                            <td>{s.ativo ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#10b981" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Ativo</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#ef4444" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Desativado</span>}</td>
                             <td>
                                 <button style={{ background:'transparent', border:'none', color:'#0ea5e9', cursor:'pointer', padding: 0 }} onClick={() => onEditClick(s)} title="Editar Serviço"><IEdit /> Editar</button>
                             </td>
@@ -479,7 +493,7 @@ export default function CadastrosPanel({ onClose, user }: { onClose: () => void,
                         </div>
                         <div className="user-row-3">
                           <span className="status-indicator">
-                            {s.ativo ? '🟢 Ativo' : '🔴 Desativado'}
+                            {s.ativo ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#10b981" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Ativo</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><svg width="8" height="8" viewBox="0 0 8 8" fill="#ef4444" style={{ borderRadius: '50%' }}><circle cx="4" cy="4" r="4" /></svg> Desativado</span>}
                           </span>
                         </div>
                       </div>
