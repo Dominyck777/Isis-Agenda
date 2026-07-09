@@ -126,3 +126,15 @@ button {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Custom Select Dropdown Global */
+.custom-mobile-select summary {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.custom-mobile-select[open] summary span {
+  transform: rotate(180deg);
+}
+.custom-mobile-select summary span {
+  transition: transform 0.2s ease;
+}

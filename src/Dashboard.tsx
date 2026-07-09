@@ -6,6 +6,7 @@ import SettingsPanel from './Settings';
 import ServicesPanel from './Services';
 import AppointmentModal from './AppointmentModal';
 import Finance from './Finance';
+import { CustomSelect } from './CustomSelect';
 import './Dashboard.css';
 
 const mobileStyles = `
@@ -441,11 +442,18 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     const startOfWk = currentWeekDays[0].fullDate;
     const endOfWk = currentWeekDays[currentWeekDays.length - 1].fullDate;
 
+    // Expand fetch to include full month for the mini-calendar highlight feature
+    const startOfMo = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endOfMo = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+    const fetchStart = startOfWk < startOfMo ? startOfWk : startOfMo;
+    const fetchEnd = endOfWk > endOfMo ? endOfWk : endOfMo;
+
     const { data: ags } = await supabase.from('agendamentos')
       .select('*')
       .eq('codigo_empresa', user.codigo_empresa)
-      .gte('data_hora_inicio', startOfWk.toISOString())
-      .lte('data_hora_fim', new Date(endOfWk.getTime() + 86400000).toISOString());
+      .gte('data_hora_inicio', fetchStart.toISOString())
+      .lte('data_hora_fim', new Date(fetchEnd.getTime() + 86400000).toISOString());
 
     const { data: svs } = await supabase.from('servicos')
       .select('codigo, nome, duracao_minutos')
@@ -697,6 +705,9 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     const miniGridBlanks = Array.from({ length: getFirstDayOfMonth(currentDate) });
     const miniGridDays = Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => i + 1);
 
+    // Filter appointments (excluding cancelled) and map to Date strings for O(1) lookup
+    const activeApptDates = new Set(agendamentos.filter(ag => ag.status !== 'cancelado').map(ag => new Date(ag.data_hora_inicio).toDateString()));
+
     return (
       <div className="mini-calendar" onClick={e => e.stopPropagation()}>
         <div className="mini-cal-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -714,10 +725,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             const thisRDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dNum);
             const isExactlyToday = thisRDate.toDateString() === new Date().toDateString();
             const isCurrentSelection = thisRDate.toDateString() === currentDate.toDateString();
+            const hasAppt = activeApptDates.has(thisRDate.toDateString());
             return (
               <span
                 key={dNum}
-                className={`mini-day ${isCurrentSelection ? 'active' : ''} ${isExactlyToday ? 'mini-today' : ''}`}
+                className={`mini-day ${isCurrentSelection ? 'active' : ''} ${isExactlyToday ? 'mini-today' : ''} ${hasAppt ? 'has-appt' : ''}`}
                 onClick={() => { handleMiniCalClick(dNum); setShowDatePicker(false); }}
               >
                 {dNum}
@@ -1021,19 +1033,35 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%' }}>
             <h3>Filtros da Grade</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
-              <select value={tempFilterStatus} onChange={e => setTempFilterStatus(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
-                <option value="ativos">Agendamentos Ativos</option>
-                <option value="cancelados">Apenas Cancelados</option>
-                <option value="todos">Todos (Ativos e Cancelados)</option>
-              </select>
-              <select value={user && !user.is_admin ? user.codigo.toString() : tempFilterProf} onChange={e => setTempFilterProf(e.target.value)} disabled={user && !user.is_admin} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
-                <option value="">Todos os Profissionais</option>
-                {Object.entries(dicProfs).map(([id, nome]) => <option key={id} value={id}>{nome as string}</option>)}
-              </select>
-              <select value={tempFilterServ} onChange={e => setTempFilterServ(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }}>
-                <option value="">Todos os Serviços</option>
-                {Object.entries(dicServicos).map(([id, nome]) => <option key={id} value={id}>{nome as string}</option>)}
-              </select>
+              <CustomSelect 
+                value={tempFilterStatus} 
+                onChange={val => setTempFilterStatus(val)} 
+                options={[
+                  { value: 'ativos', label: 'Agendamentos Ativos' },
+                  { value: 'cancelados', label: 'Apenas Cancelados' },
+                  { value: 'todos', label: 'Todos (Ativos e Cancelados)' }
+                ]}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }} 
+              />
+              <CustomSelect 
+                value={user && !user.is_admin ? user.codigo.toString() : tempFilterProf} 
+                onChange={val => setTempFilterProf(val)} 
+                disabled={user && !user.is_admin} 
+                options={[
+                  { value: '', label: 'Todos os Profissionais' },
+                  ...Object.entries(dicProfs).map(([id, nome]) => ({ value: id, label: nome as string }))
+                ]}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }} 
+              />
+              <CustomSelect 
+                value={tempFilterServ} 
+                onChange={val => setTempFilterServ(val)} 
+                options={[
+                  { value: '', label: 'Todos os Serviços' },
+                  ...Object.entries(dicServicos).map(([id, nome]) => ({ value: id, label: nome as string }))
+                ]}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff' }} 
+              />
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 <button className="btn-sec" style={{ flex: 1 }} onClick={() => { setFilterProf(''); setFilterServ(''); setFilterStatus('ativos'); setIsFilterModalOpen(false); }}>Limpar</button>
                 <button className="btn-pri" style={{ flex: 1 }} onClick={() => { setFilterProf(tempFilterProf); setFilterServ(tempFilterServ); setFilterStatus(tempFilterStatus); setIsFilterModalOpen(false); }}>Filtrar</button>

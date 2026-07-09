@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from './lib/supabase';
+import { CustomSelect } from './CustomSelect';
 import './Finance.css';
 
 interface FinanceProps {
@@ -301,16 +302,15 @@ const Finance: React.FC<FinanceProps> = ({ user }) => {
            {user.is_admin ? (
              <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Selecione um funcionário:</p>
-                <select 
+                <CustomSelect 
                    value={selectedProf} 
-                   onChange={(e) => setSelectedProf(e.target.value)}
-                   style={{ padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none', width: '100%', maxWidth: '300px', fontSize: '1rem' }}
-                >
-                   <option value="none" disabled>-- Escolha na lista --</option>
-                   {usuarios.map(u => (
-                      <option key={u.codigo} value={String(u.codigo)}>{u.nome}</option>
-                   ))}
-                </select>
+                   onChange={val => setSelectedProf(val)}
+                   options={[
+                     { value: 'none', label: '-- Escolha na lista --' },
+                     ...usuarios.map(u => ({ value: String(u.codigo), label: u.nome }))
+                   ]}
+                   style={{ padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', color: '#fff', border: '1px solid var(--border-color)', width: '100%', maxWidth: '300px' }}
+                />
              </div>
            ) : (
              <div style={{ textAlign: 'center', marginBottom: '24px' }}>

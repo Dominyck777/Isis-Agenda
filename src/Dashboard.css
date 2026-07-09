@@ -1,4 +1,4 @@
-﻿.dash-layout {
+.dash-layout {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -152,6 +152,9 @@
 }
 .mini-day:hover { background-color: rgba(255,255,255,0.1); }
 .mini-day.active { background-color: var(--primary-color); color: #fff; font-weight: 600; }
+.mini-day.has-appt { background-color: rgba(14, 165, 233, 0.15); color: #fff; border: 1px solid rgba(14, 165, 233, 0.3); }
+.mini-day.has-appt:hover { background-color: rgba(14, 165, 233, 0.25); }
+.mini-day.has-appt.active { background-color: var(--primary-color); border: none; }
 .mini-today { border: 1px solid var(--primary-color); color: var(--primary-color); }
 .mini-today.active { color: #fff; }
 

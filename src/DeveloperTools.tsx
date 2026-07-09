@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import CryptoJS from 'crypto-js';
+import { CustomSelect } from './CustomSelect';
 
 const DeveloperTools: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -291,10 +292,15 @@ COMMIT;`);
                     </div>
                     <div style={fieldStyle}>
                         <label style={labelStyle}>AÇÃO AO CLICAR</label>
-                        <select style={inputStyle} value={agendaData.clique_acao} onChange={(e) => setAgendaData({...agendaData, clique_acao: e.target.value})}>
-                            <option value="visualizar">Visualizar</option>
-                            <option value="editar">Editar</option>
-                        </select>
+                        <CustomSelect 
+                            style={inputStyle} 
+                            value={agendaData.clique_acao} 
+                            onChange={val => setAgendaData({...agendaData, clique_acao: val})}
+                            options={[
+                                { value: 'visualizar', label: 'Visualizar' },
+                                { value: 'editar', label: 'Editar' }
+                            ]}
+                        />
                     </div>
                     <div style={fieldStyle}>
                         <label style={labelStyle}>ANTECEDÊNCIA CANCELAMENTO (HORAS)</label>

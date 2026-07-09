@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { toast } from './Toast';
+import { CustomSelect } from './CustomSelect';
 
 const IClose = () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
@@ -472,16 +473,16 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
               <div className="form-group-flat">
                 <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Cliente (Base)</label>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <select
+                  <CustomSelect
                     value={form.codigo_cliente}
-                    onChange={e => { setForm({ ...form, codigo_cliente: e.target.value }); setShowQuickCli(false); }}
-                    required
+                    onChange={val => { setForm({ ...form, codigo_cliente: val }); setShowQuickCli(false); }}
+                    options={[
+                      { value: '', label: '-- Selecionar Cliente --' },
+                      { value: 'avulso', label: 'Cliente Sem Cadastro' },
+                      ...clientes.map(c => ({ value: String(c.id), label: c.nome }))
+                    ]}
                     style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', fontSize: '1rem' }}
-                  >
-                    <option value="">-- Selecionar Cliente --</option>
-                    <option value="avulso">Cliente Sem Cadastro</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
+                  />
                   <button type="button" onClick={() => setShowQuickCli(!showQuickCli)} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '48px', height: '48px', fontSize: '1.5rem', cursor: 'pointer' }}>+</button>
                 </div>
 
@@ -526,49 +527,48 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                 <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Procedimentos (Serviço + Profissional)</label>
                 {selections.map((sel, index) => (
                   <div key={index} className="procedures-grid procedure-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) auto', gap: '8px', marginBottom: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid #374151' }}>
-                    <select value={sel.serviceCode} onChange={async (e) => {
-                      const val = e.target.value;
+                    <CustomSelect value={sel.serviceCode} onChange={async (val) => {
                       // Truncate subsequent selections and reset current slot
                       const newSelections = selections.slice(0, index + 1);
                       newSelections[index].serviceCode = val;
                       newSelections[index].timeSlot = '';
                       setSelections(newSelections);
                       if (val && newSelections[index].professionalCode) await triggerLoadSlots(index, val, newSelections[index].professionalCode, form.data, newSelections);
-                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
-                      <option value="">Serviço</option>
-                      {servicos.map(s => <option key={s.codigo} value={s.codigo}>{s.nome}</option>)}
-                    </select>
+                    }} 
+                      options={[{ value: '', label: 'Serviço' }, ...servicos.map(s => ({ value: String(s.codigo), label: s.nome }))]}
+                      style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }} 
+                    />
 
-                    <select value={sel.professionalCode} onChange={async (e) => {
-                      const val = e.target.value;
+                    <CustomSelect value={sel.professionalCode} onChange={async (val) => {
                       // Truncate subsequent selections and reset current slot
                       const newSelections = selections.slice(0, index + 1);
                       newSelections[index].professionalCode = val;
                       newSelections[index].timeSlot = '';
                       setSelections(newSelections);
                       if (val && newSelections[index].serviceCode) await triggerLoadSlots(index, newSelections[index].serviceCode, val, form.data, newSelections);
-                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
-                      <option value="">Profissional</option>
-                      {profissionais.map(p => <option key={p.codigo} value={p.codigo}>{p.nome}</option>)}
-                    </select>
+                    }} 
+                      options={[{ value: '', label: 'Profissional' }, ...profissionais.map(p => ({ value: String(p.codigo), label: p.nome }))]}
+                      style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}
+                    />
 
-                    <select value={sel.timeSlot} onChange={e => {
-                      const val = e.target.value;
+                    <CustomSelect value={sel.timeSlot} onChange={val => {
                       // Truncate subsequent selections when time changes
                       const newSelections = selections.slice(0, index + 1);
                       newSelections[index].timeSlot = val;
                       setSelections(newSelections);
-                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }}>
-                      <option value="">Hora</option>
-                      {sel.availableSlots.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    }} 
+                      options={[{ value: '', label: 'Hora' }, ...sel.availableSlots.map(t => ({ value: t, label: t }))]}
+                      style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#111827', color: '#fff', border: '1px solid #374151', fontSize: '0.85rem' }} 
+                    />
 
                     {index === selections.length - 1 ? (
                       <button className="procedure-add-btn" type="button" onClick={() => setSelections([...selections, { serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }])} style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer' }}>+</button>
                     ) : (
                       <button className="procedure-add-btn" type="button" onClick={() => {
-                        const newS = [...selections];
-                        newS.splice(index, 1);
+                        let newS = selections.slice(0, index);
+                        if (newS.length === 0) {
+                          newS = [{ serviceCode: '', professionalCode: '', timeSlot: '', availableSlots: [], loadingSlots: false }];
+                        }
                         setSelections(newS);
                       }} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer' }}>x</button>
                     )}
@@ -577,18 +577,23 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
               </div>
 
               <div className="form-group-flat">
-                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Observação Interna</label>
-                <textarea value={form.observacao} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="✨ Agendamento realizado via Assistente Ísis" rows={2} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', resize: 'none' }} />
+                <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Observações</label>
+                <textarea value={form.observacao} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="Adicione observações sobre o agendamento..." rows={2} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151', resize: 'none' }} />
               </div>
 
               <div className="form-group-flat">
                 <label style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '8px', display: 'block' }}>Status do Agendamento</label>
-                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151' }}>
-                  <option value="agendado">Agendado</option>
-                  <option value="em andamento">Em Andamento</option>
-                  <option value="finalizado">Finalizado</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
+                <CustomSelect 
+                  value={form.status} 
+                  onChange={val => setForm({ ...form, status: val })} 
+                  options={[
+                    { value: 'agendado', label: 'Agendado' },
+                    { value: 'em andamento', label: 'Em Andamento' },
+                    { value: 'finalizado', label: 'Finalizado' },
+                    { value: 'cancelado', label: 'Cancelado' }
+                  ]}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#1f2937', color: '#fff', border: '1px solid #374151' }} 
+                />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
