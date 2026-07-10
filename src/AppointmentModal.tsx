@@ -197,7 +197,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
         let bestSlot = s.timeSlot;
         // Se mudou o serviço/profissional e o slot atual não está na lista nova, ou se não tem slot
         if (!bestSlot || !slots.includes(bestSlot)) {
-          bestSlot = slots.length > 0 ? (suggested && slots.includes(suggested) ? suggested : slots[0]) : '';
+          bestSlot = (suggested && slots.includes(suggested)) ? suggested : '';
         }
         return { ...s, availableSlots: slots, loadingSlots: false, timeSlot: bestSlot };
       }
@@ -531,7 +531,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                       // Truncate subsequent selections and reset current slot
                       const newSelections = selections.slice(0, index + 1);
                       newSelections[index].serviceCode = val;
-                      newSelections[index].timeSlot = '';
+                      // Mantém o timeSlot anterior em vez de zerar, para preservar o clique na grade
                       setSelections(newSelections);
                       if (val && newSelections[index].professionalCode) await triggerLoadSlots(index, val, newSelections[index].professionalCode, form.data, newSelections);
                     }} 
@@ -543,7 +543,7 @@ export default function AppointmentModal({ isOpen, onClose, user, configAgenda, 
                       // Truncate subsequent selections and reset current slot
                       const newSelections = selections.slice(0, index + 1);
                       newSelections[index].professionalCode = val;
-                      newSelections[index].timeSlot = '';
+                      // Mantém o timeSlot anterior
                       setSelections(newSelections);
                       if (val && newSelections[index].serviceCode) await triggerLoadSlots(index, newSelections[index].serviceCode, val, form.data, newSelections);
                     }} 

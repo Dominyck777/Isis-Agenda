@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "617791088378",
+    "project_id": "isis-agenda-62ed4",
+    "storage_bucket": "isis-agenda-62ed4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:617791088378:android:6b023b8d13b569220dcb43",
+        "android_client_info": {
+          "package_name": "com.isisagenda.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzjjCISrVObgOuUHWg_wsyG1lxegNA4yM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

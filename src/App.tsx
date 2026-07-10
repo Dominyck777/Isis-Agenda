@@ -6,6 +6,7 @@ import LicenseBlock from './LicenseBlock';
 import { supabase } from './lib/supabase';
 import { supabaseControl } from './lib/supabaseControl';
 import { ToastContainer } from './Toast';
+import { platform } from './platform';
 import './App.css';
 
 // Carregamento dinâmico seguro: Se o arquivo não existir (como em produção/Github), retorna nulo
@@ -30,6 +31,12 @@ function App() {
     let channel: any;
 
     if (isAuthenticated) {
+      // Setup Notifications (Nativo ou Mock)
+      const userStr = localStorage.getItem('isis_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        platform.setupPushNotifications(user.id);
+      }
       // 1. Verificação inicial e setup do Realtime
       const setupMonitoring = async () => {
         const codigodev = await checkLicense();
